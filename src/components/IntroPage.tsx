@@ -28,7 +28,7 @@ export const IntroPage: React.FC<{ onEnter: () => void }> = ({ onEnter }) => {
   };
 
   return (
-    <div className="min-h-[100dvh] w-full bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 text-slate-200 flex flex-col items-center justify-start pt-12 pb-12 p-4 sm:p-8 font-sans selection:bg-cyan-500/30 overflow-y-auto">
+    <div className="min-h-[100dvh] w-full bg-gradient-to-br from-[#0a1e3f] via-[#0e2a52] to-[#0c3b4f] text-slate-200 flex flex-col items-center justify-start pt-12 pb-12 p-4 sm:p-8 font-sans selection:bg-cyan-500/30 overflow-y-auto">
       <div className="max-w-2xl w-full grid gap-8 animate-in fade-in slide-in-from-bottom-8 duration-700 pb-8">
         
         {/* Header */}
