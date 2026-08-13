@@ -1,0 +1,1874 @@
+[
+    {
+        "version": "11.5.7",
+        "title": "Vá Rò Rỉ Marker TITLE_ANCHOR, Dọn Trùng Gần Đúng, Thêm Gemma 4 31B Vào Hậu Kiểm & Vá Lỗi Rơi Nhầm OpenRouter",
+        "isLatest": true,
+        "changes": [
+            {
+                "icon": "ShieldCheck",
+                "bold": "Hậu kiểm XML trước khi đóng gói EPUB:",
+                "text": "Mỗi file XML/XHTML tạo ra (content.opf, toc.ncx, nav.xhtml, intro.xhtml, từng chapter-x.xhtml) giờ được parse thử bằng DOMParser trước khi ghi vào zip. Trước đây nếu có ký tự đặc biệt lọt lưới escape, lỗi chỉ lộ ra khi người dùng mở app đọc (Calibre, vbook, Play Books từ chối mở cả file) — giờ báo lỗi ngay lúc tạo, chỉ rõ đúng file nào hỏng."
+            },
+            {
+                "icon": "Zap",
+                "bold": "Tự động nén ảnh bìa EPUB:",
+                "text": "Ảnh bìa được resize về tối đa 1200px chiều rộng và nén JPEG chất lượng 0.8 trước khi nhúng vào EPUB (có fallback dùng ảnh gốc nếu nén lỗi), giảm đáng kể dung lượng file so với nhúng thẳng ảnh gốc 2-5MB tải từ raw."
+            },
+            {
+                "icon": "Feather",
+                "bold": "Sửa lỗi font nhúng EPUB thiếu format() hint:",
+                "text": "Trước đây khai báo @font-face chỉ phân biệt ttf/otf và không có format() hint, khiến 1 số trình đọc (đặc biệt Calibre) không nhận diện đúng, âm thầm fallback về font hệ thống dù đã nhúng font riêng. Giờ nhận diện đủ ttf/otf/woff/woff2 và khai báo đúng format() cho từng loại."
+            },
+            {
+                "icon": "Bug",
+                "bold": "Vá lỗi cú pháp regex khi nhận diện tiêu đề chương trong EPUB:",
+                "text": "Đoạn code cũ dùng \"[Tập|Quyển]?\" — đây là character class chứa ký tự \"|\", vô tình khớp 1 ký tự bất kỳ trong cụm thay vì khớp cả từ \"Tập\"/\"Quyển\". Đã sửa thành \"(?:Tập|Quyển)?\" và mở rộng nhận diện số La Mã/số đếm bằng chữ (\"Chương IV\", \"Chương Năm\") giống bộ nhận diện chương chính, tránh sót tiêu đề khi tách chương cho mục lục EPUB."
+            },
+            {
+                "icon": "Book",
+                "bold": "Chuẩn hoá dấu câu cuối lời thoại trong formatBookStyle:",
+                "text": "Thêm 2 quy tắc: (1) dấu chấm bị đặt ra ngoài dấu ngoặc kép đóng (\"Xin chào”.) được đưa vào trong (\"Xin chào.”) theo đúng chuẩn tiếng Việt; (2) dòng chỉ chứa đúng 1 câu thoại trọn vẹn nhưng thiếu dấu câu kết thúc trước ngoặc đóng thoại được tự động thêm dấu chấm. Chỉ áp dụng cho dòng thoại trọn vẹn, không đụng vào câu thoại nhiều vế ngắt quãng bởi lời dẫn truyện."
+            },
+            {
+                "icon": "FileText",
+                "bold": "Giữ nguyên số thứ tự & mã thời gian khi dịch phụ đề SRT:",
+                "text": "Thêm quy tắc bắt buộc: khi văn bản đầu vào có định dạng phụ đề .srt (khối lặp lại gồm dòng số thứ tự + dòng mã thời gian dạng 00:00:03,500 --> 00:00:05,300), AI phải chép nguyên văn 100% hai dòng đó và chỉ dịch phần lời thoại phía sau, không được coi là định dạng thừa rồi xóa mất. Quy tắc chỉ áp dụng khi nhận diện đúng định dạng phụ đề, không ảnh hưởng văn bản truyện thông thường. Đồng thời đánh dấu quy tắc này (và quy tắc đồng bộ ID file batch đã có từ trước) là bắt buộc giữ nguyên khi chạy tính năng Prompt Tối Ưu theo từng truyện, tránh bị AI lược bỏ khi tái thiết kế prompt."
+            },
+            {
+                "icon": "Eraser",
+                "bold": "Tự động dọn ký tự obfuscation từ raw:",
+                "text": "Bổ sung bước chuẩn hoá: chuyển «» thành dấu ngoặc kép chuẩn (giống 《》 đã có sẵn), gộp [[[ ]]] về [ ] (an toàn với thẻ ID nội bộ vì đã tách trước đó), và xoá dấu chấm giữa (·) chèn xen trong từ để né kiểm duyệt (vd \"g·iết\" -> \"giết\", \"t·ự s·át\" -> \"tự sát\")."
+            },
+            {
+                "icon": "RefreshCw",
+                "bold": "Mở rộng quy tắc đảo ngữ Hán-Việt (V.13):",
+                "text": "Thêm quy tắc riêng cho mệnh đề thời gian/lý do bị đẩy xuống cuối câu kiểu convert (vd \"...thời điểm\" phải đảo lên đầu, \"nguyên nhân căn bản\" phải đưa lên đầu kèm \"là\"), phó từ bị đặt trước động từ thay vì sau, câu hỏi mức độ \"có bao nhiêu X\" phải đảo thành \"X bao nhiêu\", không dịch máy móc reduplication AABB, và vài liên từ/từ Hán Việt tối nghĩa thông dụng còn sót (Nhiên nhi, phản hoàn, ẩn bí)."
+            },
+            {
+                "icon": "ListOrdered",
+                "bold": "Thêm Gemma 4 31B vào danh sách model hậu kiểm (Tier 2), sắp lại thứ tự ưu tiên:",
+                "text": "Trước đây hậu kiểm Tier 2 chỉ dùng 3 model (Gemini 3.5 Flash Lite, 3.1 Flash Lite, Gemma 4 26B), bỏ sót Gemma 4 31B dù model này đã có sẵn trong hệ thống. Đã thêm Gemma 4 31B vào cả lượt hậu kiểm chính lẫn lượt xác nhận chéo, đồng thời chỉnh lại điểm ưu tiên (priority) của 4 model lite/gemma này để thứ tự chọn thực tế là: Gemma 4 31B > Gemini 3.5 Flash Lite > Gemini 3.1 Flash Lite > Gemma 4 26B (số điểm càng thấp càng được ưu tiên chọn trước khi còn quota)."
+            },
+            {
+                "icon": "Bug",
+                "bold": "Vá lỗi rơi nhầm về OpenRouter dù đã dán DeepSeek Key (báo \"hết Quota\" dù key hợp lệ):",
+                "text": "Phát hiện qua log DEBUG thực tế: file được useTranslator.ts gắn tag \"Bàn giao DeepSeek\" rõ ràng (đúng nghĩa hệ thống đã quyết định cần cứu hộ qua DeepSeek), nhưng cờ nội bộ needsRescueFallback trong streamTranslate.ts lại chỉ dò vài cụm từ cố định (\"an toàn\"/\"safety\"/\"nghi vấn lỗi nội dung\"...) trong errorMessage — không xét đến tag \"Bàn giao\" đã có sẵn. Với các lỗi gốc không rơi đúng cụm từ đó (vd \"Thiếu kết quả từ API\", \"Lỗi ngắt kết nối API\"), cờ này bị tính sai thành false, khiến bước chuyển hẳn model sang DeepSeek bị bỏ qua, batch rơi lại dùng model OpenRouter mặc định (dù OpenRouter Key trống) và báo lỗi hết Quota dù DeepSeek Key hoàn toàn hợp lệ. Đã vá tận gốc: chỉ cần file có tag \"Bàn giao OpenRouter\"/\"Bàn giao DeepSeek\" là đủ điều kiện kích hoạt chuyển vệ tinh, không cần dò thêm từ khoá nào khác."
+            },
+            {
+                "icon": "Bug",
+                "bold": "Vá lỗi lộ marker __TITLE_ANCHOR__ ra 3 nơi hiển thị cho người dùng:",
+                "text": "Khi tách chương theo độ dài ký tự (chế độ \"Giữ nguyên\") có bật tùy chọn \"Chèn Title Anchor\", app cố tình chèn tiền tố __TITLE_ANCHOR__: vào đầu dòng tiêu đề trong dữ liệu gửi AI dịch, để AI nhận biết đúng điểm bắt đầu 1 chương khi chương đó bị cắt vụn thành nhiều phần. Marker này vốn được lọc sạch khi xuất bản dịch, nhưng lộ ra ở 3 nơi: panel \"Bản Gốc (Raw)\" và nút \"Copy Raw\" trong Editor, màn hình xem trước ngay sau khi tách trong Bộ Tách Chương, và bản dịch tạm hiển thị real-time lúc đang dịch (streaming). Đã thêm hàm lọc dùng chung và áp dụng tại cả 3 điểm hiển thị này; dữ liệu gốc gửi đi dịch vẫn giữ nguyên marker như thiết kế ban đầu."
+            },
+            {
+                "icon": "ScanSearch",
+                "bold": "Thêm tính năng dọn trùng gần đúng (nút \"Trùng ~\", tách biệt với \"Xóa Trùng\" cũ):",
+                "text": "Tính năng \"Xóa Trùng\" cũ chỉ bắt được các chương trùng khớp tuyệt đối 100% (so 200 ký tự đầu + 100 ký tự cuối), nên bỏ lọt các cặp chương là cùng nội dung nhưng bị đổi vài từ hoặc lược bớt do crawl từ 2 nguồn khác nhau. Nút \"Trùng ~\" mới dùng hệ số Dice/Sørensen trên bigram ký tự để tính % giống nhau giữa mỗi chương với tối đa 40 chương liền trước (bù cho việc 2 nguồn crawl có thể trôi lệch số thứ tự dần dần), ngưỡng mặc định 30% — đã kiểm chứng an toàn, không báo nhầm giữa các chương không liên quan. Chỉ tự động chọn để người dùng tự duyệt (giống cơ chế \"Lọc Rác\"), không tự xóa gì; quét theo từng đợt 250 chương kèm thanh tiến trình để không treo giao diện với truyện nhiều nghìn chương."
+            }
+        ]
+    },
+    {
+        "version": "11.5.6",
+        "title": "Nâng Cấp Vệ Tinh Cứu Hộ DeepSeek & Sắp Xếp Lại Thứ Tự Chế Độ Dịch",
+        "isLatest": false,
+        "changes": [
+            {
+                "icon": "ShieldCheck",
+                "bold": "Thêm DeepSeek làm vệ tinh cứu hộ thứ 2 (song song OpenRouter):",
+                "text": "Thêm tab \"DeepSeek\" ngay trong bảng \"Quản Lý API Key & Model\" (cùng chỗ OpenRouter), hỗ trợ dán nhiều API Key, tick chọn model DeepSeek V4 Pro/V4 Flash/Chat/Reasoner, có link lấy API Key trỏ thẳng DeepSeek Platform. Khi 1 tệp bị nghi vấn dính Safety Filter: nếu có cả 2 Key, OpenRouter sẽ được ưu tiên thử trước (tối đa 2 lượt), thất bại thì tự động bàn giao qua DeepSeek thử tiếp; nếu chỉ có 1 trong 2 Key thì bên đó đảm nhận toàn bộ; nếu không có Key nào thì cách ly tệp như cũ."
+            },
+            {
+                "icon": "Sparkles",
+                "bold": "Auto-fix, hậu kiểm (Tier 2) và Smart Fix đồng bộ theo đúng vệ tinh đã cứu hộ:",
+                "text": "Các tệp vừa được DeepSeek dịch/cứu hộ thì bước Auto-fix dòng sót raw, hậu kiểm AI và Smart Fix (Pro Mode) cũng tự động dùng lại DeepSeek thay vì quay về Gemini, tránh dính lại lỗi Safety Filter cũ. Hậu kiểm Tier 2 khi DeepSeek báo nghi vấn cũng có bước xác nhận chéo bằng Gemini để tránh báo oan, y hệt cơ chế đang có với OpenRouter."
+            },
+            {
+                "icon": "Zap",
+                "bold": "Thêm chế độ dịch DeepSeek (chọn thủ công) và sắp xếp lại thứ tự các chế độ:",
+                "text": "Thêm nút \"DeepSeek\" ở màn hình chọn chế độ dịch (dịch hàng loạt/dịch lại/dịch từng file) và ở bảng Tự Động Hoá. Thứ tự hiển thị các chế độ được sắp lại thành: OpenRouter → DeepSeek → Lite → Flash → Normal → Pro → Full."
+            },
+            {
+                "icon": "Filter",
+                "bold": "Thêm bộ lọc \"DeepSeek\" ở trang Workspace:",
+                "text": "Thêm chip lọc \"DeepSeek\" cạnh chip \"OpenRouter\" đang có (gộp cả tệp dịch bằng V4 Flash lẫn V4 Pro), và thêm badge hiển thị model DeepSeek đã dùng (vd \"DS: V4-FLASH\") trên từng thẻ tệp."
+            },
+            {
+                "icon": "Bug",
+                "bold": "Vá lỗi Smart Fix/Sửa lỗi bằng Pro bị tự dừng giữa chừng, báo nhầm \"người dùng hủy\":",
+                "text": "Khi sửa lỗi hàng loạt bằng model Pro (nhiều batch), tiến trình có thể tự dừng ngay sau batch đầu tiên và báo \"Đã dừng sửa lỗi do người dùng yêu cầu\" dù không ai bấm hủy. Nguyên nhân: hệ thống tưởng nhầm tiến trình đã xong vì bỏ sót các tệp đang ở trạng thái REPAIRING, khiến Smart Fix bị gọi chồng và vô tình huỷ phiên đang chạy dở. Đã vá tận gốc: không còn coi là \"đã xong\" khi vẫn còn tệp đang sửa dở, chỉ đánh dấu phiên mới khi thực sự bắt đầu, và thêm cờ chặn cứng không cho khởi động chồng lên phiên sửa lỗi/dịch đang chạy."
+            }
+        ]
+    },
+    {
+        "version": "11.5.5",
+        "title": "Lối Xưng Hô Mong Muốn (Tự Chọn Theo Thể Loại) & Vá Lỗi Số Trong Danh Từ Riêng",
+        "isLatest": false,
+        "changes": [
+            {
+                "icon": "Sparkles",
+                "bold": "Thêm tùy chọn \"Lối Xưng Hô Mong Muốn\" (Hiện Đại / Cổ Đại / Linh Động) ở trang Tri Thức:",
+                "text": "Trước đây khi \"Phân Tích Sâu\" gặp truyện niên đại/hiện đại, AI đôi lúc vẫn lẫn xưng hô cổ trang kiểu kiếm hiệp (đại nương, muội tử, tẩu tử...) do chỉ dựa vào tự phân loại theo bối cảnh (3 NHÓM A/B/C). Giờ có thể ép cứng toàn truyện chỉ dùng 1 lối xưng hô duy nhất: \"Hiện Đại\" (chỉ dùng anh/em/cô/dì/chú/bác...), \"Cổ Đại\" (chỉ dùng huynh/muội/tiền bối/vãn bối...), hoặc giữ \"Linh Động\" (mặc định, AI tự phân loại theo bối cảnh từng nhân vật như cũ). Lựa chọn này ghi đè tuyệt đối lên hệ phân loại 3 NHÓM khi chạy Phân Tích Sâu."
+            },
+            {
+                "icon": "Zap",
+                "bold": "Tự động chọn Hiện Đại/Cổ Đại ngay sau khi chạy \"Phân Tích Nhanh\":",
+                "text": "Sau khi Phân Tích Nhanh quét xong thể loại/bối cảnh, app tự soi các tag vừa nhận được — nếu nghiêng hẳn về hiện đại (đô thị, ngôn tình, thập niên 80-90, niên đại...) sẽ tự chọn \"Hiện Đại\"; nếu nghiêng hẳn về cổ trang (tiên hiệp, kiếm hiệp, tu tiên, huyền huyễn...) sẽ tự chọn \"Cổ Đại\"; truyện lai/không rõ tín hiệu thì giữ nguyên \"Linh Động\". Chỉ tự chọn khi người dùng chưa từng bấm chọn tay, không ghi đè lựa chọn thủ công."
+            },
+            {
+                "icon": "Bug",
+                "bold": "Sửa lỗi số Hán Việt trong danh từ riêng/thành ngữ bị đổi nhầm thành số Ả Rập:",
+                "text": "Ví dụ địa danh \"Thập Vạn Đại Sơn\" bị dịch sai thành \"Thập 10000 Đại Sơn\" do AI áp nhầm quy tắc thu gọn số lớn (10000 -> 1 vạn) vào chữ \"vạn\" nằm trong tên riêng. Đã thêm quy tắc ưu tiên cao hơn: chữ số Hán Việt (vạn, thiên, ức, bách, thập...) khi là một phần cố định của địa danh/tên riêng/thành ngữ (vd \"Thập Vạn Đại Sơn\", \"vạn cổ\", \"bách vạn hùng binh\") tuyệt đối không bị tách ra đổi thành số, chỉ áp dụng quy tắc thu gọn cho số liệu thực tế (tu vi, sát thương, mệnh giá...)."
+            },
+            {
+                "icon": "Sparkles",
+                "bold": "Cập nhật link Telegram liên hệ/nhóm donate ở trang Giới Thiệu:",
+                "text": "Đổi sang link nhóm mới, đồng thời bổ sung khối \"Vui lòng liên hệ\" (Telegram cá nhân + Group) ngay dưới mã QR donate, đồng bộ với khối liên hệ hiển thị khi hết hạn sử dụng."
+            }
+        ]
+    },
+    {
+        "version": "11.5.4",
+        "title": "Giữ Tiêu Đề Chương & Lọc Rác Sơ Bộ Sau Khi Tách PDF (Đối Chiếu Với Tool Tách Chương Truyện Pro)",
+        "isLatest": false,
+        "changes": [
+            {
+                "icon": "Bug",
+                "bold": "Sửa lỗi mất tiêu đề chương khi tách PDF dọc tiếng Nhật không có mục lục:",
+                "text": "Phiên bản trước bỏ qua dòng tiêu đề (số chương + tên chương) khi dựng nội dung chương, khiến bản dịch/biên tập không còn thấy tiêu đề gốc đâu cả. Giờ dòng tiêu đề (vd '＃1 死亡、そして復活。' hoặc '1：巻き込まれて異世界') được giữ nguyên làm dòng đầu tiên của nội dung chương, đúng hành vi tool tham khảo."
+            },
+            {
+                "icon": "Sparkles",
+                "bold": "Đọc PDF dọc tiếng Nhật ra đúng dòng/đoạn thay vì dính liền thành 1 khối văn bản:",
+                "text": "Trước đây toàn bộ chữ trên 1 trang bị nối bằng dấu cách, mất hết ranh giới dòng thoại/đoạn văn. Giờ nối bằng xuống dòng thật, áp dụng cho cả 2 luồng đọc PDF (có mục lục và không có mục lục)."
+            },
+            {
+                "icon": "Sparkles",
+                "bold": "Thêm bước lọc rác sơ bộ sau khi tách chương (tham khảo Tool Tách Chương Truyện Pro):",
+                "text": "Tự động xóa thẻ HTML rác, ký tự *, #, = trơ trọi, chuỗi _ hoặc - lặp từ 2 lần trở lên, chuẩn hóa chuỗi chấm/than dài quá mức — áp dụng cho mọi PDF tách được. Thêm hẳn tùy chọn bật/tắt trong Bộ Tách Chương (Splitter) để áp dụng luôn cho tách theo Regex và Cắt đoạn văn bản thường (txt/docx/epub)."
+            },
+            {
+                "icon": "Bug",
+                "bold": "Loại bỏ chương giả phát sinh từ danh sách liệt kê trong truyện, thêm hỗ trợ tiêu đề kiểu ◇số (Prologue/ngoại truyện):",
+                "text": "Đối chiếu trực tiếp với kết quả tách của Tool Tách Chương Truyện Pro trên bộ truyện mẫu, phát hiện 1 đoạn liệt kê trong nội dung ('3：tìm...', '4：phá hủy...') tình cờ đứng đầu trang bị nhận nhầm thành tiêu đề chương. Đã thêm điều kiện số chương phải tăng dần để loại các trường hợp này, đồng thời thêm hỗ trợ tiêu đề kiểu ◇/◆ + số (thường dùng cho phần mở đầu/ngoại truyện) — kết quả tách khớp chính xác 638/638 chương so với bản đối chiếu."
+            }
+        ]
+    },
+    {
+        "version": "11.5.3",
+        "title": "Vá Lỗi Đọc PDF Tiếng Nhật/Trung Ra Rỗng Toàn Bộ (Thiếu CMap Font)",
+        "isLatest": false,
+        "changes": [
+            {
+                "icon": "Bug",
+                "bold": "Sửa lỗi gốc khiến PDF dùng font CID nhúng (thường gặp ở PDF tiếng Nhật/Trung convert từ Syosetu, Kakuyomu...) đọc ra rỗng toàn bộ, hiện '[TRANG N: KHÔNG TÌM THẤY VĂN BẢN]' ở mọi trang:",
+                "text": "pdfjs cần 2 tài nguyên phụ (CMap và font chuẩn) để giải mã đúng ký tự cho các PDF dùng font CID-keyed (ánh xạ mã ký tự riêng, không theo Unicode trực tiếp trong nội dung file). Trước đây app gọi pdfjsLib.getDocument() mà không cấp cMapUrl/standardFontDataUrl, khiến pdfjs ÂM THẦM đọc được 0 ký tự ở mọi trang cho dạng PDF này (không báo lỗi rõ ràng, chỉ ra placeholder 'KHÔNG TÌM THẤY VĂN BẢN'), khiến cả việc trích văn bản lẫn tính năng tách chương PDF dọc tiếng Nhật mới thêm ở v11.5.2 không hoạt động được với đúng dạng PDF mà nó nhắm tới. Đã trỏ cMapUrl và standardFontDataUrl tới cùng CDN jsdelivr đang dùng cho pdf.worker (đã hoạt động ổn định từ trước), lỗi này ảnh hưởng đến MỌI PDF dùng font CID chứ không riêng PDF dọc tiếng Nhật — vá xong áp dụng chung cho toàn bộ tính năng đọc PDF của app."
+            }
+        ]
+    },
+    {
+        "version": "11.5.2",
+        "title": "Tách chương PDF dọc tiếng Nhật (Syosetu) không có mục lục",
+        "isLatest": false,
+        "changes": [
+            {
+                "icon": "Sparkles",
+                "bold": "Nhận diện chương theo cấu trúc PDF dọc tiếng Nhật khi PDF không có mục lục (bookmark):",
+                "text": "Các PDF convert từ Syosetu/Kakuyomu (kiểu 'ToriiHina no PDF Maker') thường không có outline/bookmark nên trước đây bị gộp toàn bộ nội dung thành 1 khối duy nhất, không tách được chương. Giờ app đọc trực tiếp vị trí và cấu trúc từng đoạn chữ (item) trên mỗi trang để nhận diện tiêu đề chương dựa trên 2 dấu hiệu: số chân trang luôn dùng chữ số nửa rộng còn số chương luôn dùng chữ số toàn rộng — nhờ đó phân biệt chính xác dòng '＃1' / '1：Tên chương' là tiêu đề chương thật chứ không phải số trang hay số ngẫu nhiên trong văn bản. Đã kiểm chứng tách đúng 100% (281/281 và 636/636 chương, không thiếu không trùng) trên 2 bộ truyện mẫu thực tế."
+            },
+            {
+                "icon": "Wrench",
+                "bold": "Gộp đúng các trang lời tựa/lời bạt cùng chương thay vì tách nhầm thành chương trùng số:",
+                "text": "Một số chương có thêm trang riêng cho lời tựa/lời bạt của tác giả dùng lại đúng số chương đó (vd '94：...（後書き）'). App nhận diện và gộp các trang này vào cùng chương đang mở thay vì tạo ra 1 chương mới trùng số, tránh việc 2 file cùng đè lên một số thứ tự."
+            },
+            {
+                "icon": "ShieldCheck",
+                "bold": "Không ảnh hưởng PDF khác, chỉ kích hoạt khi tìm được ít nhất 2 chương hợp lệ:",
+                "text": "Nếu PDF không theo đúng định dạng chương dọc tiếng Nhật này (không tìm được marker hoặc chỉ tìm được 0-1 chương), app tự động quay lại hành vi cũ (gộp toàn văn bản thành 1 file) như trước, không thay đổi kết quả cho các PDF khác đang hoạt động bình thường."
+            }
+        ]
+    },
+    {
+        "version": "11.5.1",
+        "title": "Cập nhật v11.5.1 - Tái Cấu Trúc Codebase: Chia Nhỏ File/Hàm Quá Dài",
+        "isLatest": false,
+        "changes": [
+            {
+                "icon": "Wrench",
+                "bold": "Tách file lõi dịch thuật (translator.ts, ~1500 dòng, hàm translateBatchStream một mình đã ~840 dòng):",
+                "text": "Chuyển sang thư mục services/workflows/translate/ gồm các file nhỏ theo đúng trách nhiệm: streamTranslate.ts (luồng dịch chính), aiValidation.ts (hậu kiểm Tier 2), repair.ts (sửa lỗi hàng loạt), smartFixChunk.ts, modelSelection.ts, titleBatch.ts, contentSafety.ts. File translator.ts cũ giữ lại làm lớp tương thích ngược (re-export), toàn bộ chỗ gọi cũ trong app không cần sửa."
+            },
+            {
+                "icon": "Wrench",
+                "bold": "Tách file phân tích sâu (analyzer.ts, ~870 dòng):",
+                "text": "Chuyển sang services/workflows/analyze/ gồm context.ts (phân tích/hợp nhất ngữ cảnh), autoAnalyze.ts, promptRules.ts (tối ưu prompt), cover.ts (tạo bìa), names.ts, customError.ts. analyzer.ts cũ giữ làm lớp tương thích ngược."
+            },
+            {
+                "icon": "Wrench",
+                "bold": "Tách file xử lý file (fileHelpers.ts, ~1140 dòng):",
+                "text": "Chuyển sang utils/file/ gồm parsers.ts (đọc docx/pdf/epub...), exporters.ts (xuất zip/docx/epub), splitters.ts (chia chương), core.ts, shared.ts."
+            },
+            {
+                "icon": "Wrench",
+                "bold": "Tách file định dạng văn bản (formatting.ts, ~600 dòng, formatBookStyle một mình ~400 dòng):",
+                "text": "Chuyển sang utils/text/format/ gồm bookStyle.ts, titleMergeFixer.ts, paragraphs.ts, textCase.ts; phần liên quan phân tích/tối ưu câu chữ tách riêng ra utils/text/analysis.ts và utils/text/optimization.ts."
+            },
+            {
+                "icon": "ShieldCheck",
+                "bold": "Không đổi hành vi, chỉ tổ chức lại code:",
+                "text": "Đây là refactor thuần cấu trúc — logic, prompt, cách xử lý giữ nguyên 100%, chỉ chia hàm/file khổng lồ thành các đơn vị nhỏ, rõ trách nhiệm hơn để dễ khoanh vùng khi debug và giảm rủi ro sửa chỗ này vỡ chỗ khác. Đã chạy typecheck + build thật để xác nhận không phát sinh lỗi sau khi tách."
+            },
+            {
+                "icon": "Trash2",
+                "bold": "Dọn dẹp sau rà soát: xoá file rác, gỡ import thừa, tắt cảnh báo linter báo nhầm:",
+                "text": "Xoá src/components/ErrorBoundary.tsx — file mồ côi không được import ở đâu, trùng chức năng và kém tính năng hơn ErrorBoundary thật đang chạy (định nghĩa trong index.tsx, có xuất log crash). Gỡ 1 dòng import thừa không dùng trong contentSafety.ts. Đợt dedupe 14 khối setter trùng lặp trong useCoreState.ts (đã có từ trước) khiến ESLint v7 báo nhầm 32 lỗi 'đọc ref lúc render' do không nhìn xuyên được qua lớp hàm factory — đã thêm eslint-disable có giải thích rõ ràng tại đúng khối đó (logic thực tế không có bug, chỉ là linter quá nghiêm)."
+            },
+            {
+                "icon": "Gauge",
+                "bold": "Auto-Fix ở chế độ Flash ưu tiên chắc chắn hơn cho Gemini 3.5 Flash Lite trước 3.1 Flash Lite:",
+                "text": "Model thực sự được chọn cho Auto-Fix không do vị trí trong danh sách quyết định, mà do điểm 'priority' gán cho từng model (điểm càng thấp càng ưu tiên) kết hợp tải RPM/RPD hiện tại. Trước đây 2 model 3.5 Flash Lite (4.65) và 3.1 Flash Lite (4.7) chỉ cách nhau 0.05 điểm — quá sát, nên khi 3.5 Flash Lite mới bị dùng dồn dập trước đó (ví dụ vừa chạy xong bước Dịch), phần tải RPM cộng vào điểm đôi khi đủ khiến 3.1 Flash Lite bị chọn thay dù không phải hết quota thật. Đã nới khoảng cách điểm ưu tiên của 3.1 Flash Lite (4.7 → 4.9) để 3.5 Flash Lite luôn được ưu tiên rõ ràng hơn khi cả 2 đều sẵn sàng, chỉ rớt xuống 3.1 khi 3.5 thực sự đang hết quota/nghỉ RPM."
+            }
+        ]
+    },
+    {
+        "version": "11.5.0",
+        "title": "Cập nhật v11.5.0 - Đại Tu Hậu Kiểm Tier 2: Hết Cảnh Báo Oan Chương Nhiều Cảnh/Chuyển POV",
+        "isLatest": false,
+        "changes": [
+            {
+                "icon": "ShieldCheck",
+                "bold": "Hậu kiểm Tier 2 giờ đối chiếu NGUYÊN VĂN thay vì đoán cửa sổ đầu/cuối:",
+                "text": "Trước đây AI hậu kiểm chỉ được xem một trích đoạn đầu/cuối do app tự cắt (theo số ký tự cố định, sau đó là theo tỉ lệ giãn nở Việt/Hán). Với các chương có nhiều cảnh/chuyển POV giữa chương (vd chương chính xen cảnh phe phái khác họp bàn rồi quay lại), đoạn cắt cuối dễ lọt vào đúng cảnh giữa chương thay vì đoạn kết thật sự, khiến bản dịch ĐÚNG bị báo nhầm 'lệch/ghép sai chương' và bị hủy dịch lại oan liên tục. Giờ với file trong ngưỡng thông thường (gốc ≤ 6.000 ký tự, dịch ≤ 20.000 ký tự — đủ cho tuyệt đại đa số chương truyện), app gửi thẳng TOÀN BỘ nội dung gốc và dịch cho AI hậu kiểm tự tìm đúng đoạn kết mà đối chiếu, không còn đoán mò cửa sổ nữa. Chỉ file dài bất thường (paste nhầm nhiều chương/nguyên tập vào 1 file) mới dùng cửa sổ dự phòng, nhưng đã nới rất rộng (4.000 ký tự mỗi đầu mỗi bên) để giảm tối đa rủi ro."
+            },
+            {
+                "icon": "Sparkles",
+                "bold": "Bổ sung rule 'chương nhiều cảnh/chuyển POV là cấu trúc bình thường':",
+                "text": "Thêm hướng dẫn rõ ràng trong prompt hậu kiểm: một chương gốc có thể tự nhiên chứa nhiều cảnh khác nhau, nhảy góc nhìn giữa các nhóm nhân vật — đây KHÔNG phải dấu hiệu ghép nhầm chương. Vì giờ AI được xem toàn văn (không phải trích đoạn), AI có thể tự xác định đúng đoạn kết thật sự (đoạn văn cuối cùng trước khi hết bản gốc) để đối chiếu, thay vì nhầm lẫn với một cảnh ở giữa chương."
+            },
+            {
+                "icon": "Bug",
+                "bold": "Gỡ bỏ toàn bộ heuristic cắt cửa sổ cũ (fixed 250 ký tự / ratio-scaling / neo theo dấu phân cảnh):",
+                "text": "Ba cách tiếp cận cũ lần lượt được thử để vá lỗi báo oan nói trên nhưng đều chỉ bịt được một phần: cắt cố định 250 ký tự không phản ánh đúng tỉ lệ giãn nở Việt/Hán; ratio-scaling theo tỉ lệ trung bình cả chương vẫn hụt khi cảnh cuối thật sự giãn nở khác hẳn mức trung bình; neo theo dấu phân cảnh (……/...) thất bại vì AI dịch không luôn giữ lại các dấu này. Việc chuyển sang gửi nguyên văn loại bỏ tận gốc cả 3 điểm yếu này cùng lúc."
+            }
+        ]
+    },
+    {
+        "version": "11.4.10",
+        "title": "Cập nhật v11.4.10 - Vá Hậu Kiểm Báo Oan Truyện Dạng Livestream/Game",
+        "isLatest": false,
+        "changes": [
+            {
+                "icon": "ShieldCheck",
+                "bold": "Hậu kiểm Tier 2 không còn báo oan bình luận khán giả/người chơi:",
+                "text": "Truyện dạng nhân vật chính phát trực tiếp trong game (có đoạn 弹幕/观众们 xen giữa chương) trước đây hay bị hậu kiểm AI hiểu nhầm là bản dịch tự bịa thêm/lệch chương, khiến bản dịch ĐÚNG bị hủy và dịch lại oan uổng. Đã bổ sung rule riêng cho hậu kiểm: nhận diện đây là cốt truyện thật, chỉ báo lỗi khi bình luận thay thế hẳn nội dung chính chứ không chỉ vì không thấy khớp trong đoạn trích ngắn đầu/cuối."
+            },
+            {
+                "icon": "Bug",
+                "bold": "Chặn AI dịch dừng sớm ngay sau khối bình luận khán giả:",
+                "text": "Bổ sung rule mới trong prompt dịch chính (theo mẫu đã áp dụng thành công cho bảng thông số hệ thống): khi gặp khối bình luận khán giả/người chơi giữa chương, AI phải dịch đủ rồi bắt buộc tiếp tục dịch hết phần cốt truyện chính phía sau, không được ngắt ngang bản dịch tại đó — nguyên nhân gốc khiến một số chương (vd chương có cảnh khán giả bàn tán) bị hậu kiểm phát hiện thiếu đoạn cuối thật."
+            },
+            {
+                "icon": "Wrench",
+                "bold": "Rule mới không bị rớt khi qua bước \"Tối Ưu Prompt\":",
+                "text": "Phát hiện: bước Tối Ưu Prompt (Prompt Designer) dùng AI viết lại toàn bộ prompt, nên rule chỉ nằm ở thân văn bản thường (không đánh dấu bắt buộc giữ) có thể bị AI lược bỏ khi tối ưu. Đã thêm quy tắc \"BẮT BUỘC DUY TRÌ\" ép AI tối ưu luôn bơm lại rule chặn dừng sớm sau khối bình luận khán giả vào 3 vị trí (Mục II, Mục VII tự kiểm tra, Checklist cuối) — cùng cơ chế đã dùng để bảo vệ rule bảng thông số hệ thống. Lưu ý: các Prompt đã tối ưu TỪ TRƯỚC bản này cần bấm Tối Ưu Prompt lại (hoặc thêm tay) để nhận rule mới, vì đó là văn bản đã lưu cứng từ trước."
+            },
+            {
+                "icon": "Zap",
+                "bold": "Rút ngưỡng nhận định hết Quota từ 5 xuống 3 lần liên tục:",
+                "text": "Trước đây phải dính lỗi 429 liên tục 5 lần (chờ tổng cộng 5s+10s+15s+60s giữa các lần thử) mới bị đánh dấu 'hết Quota thực sự' và chuyển model khác. Giờ chỉ cần 3 lần liên tục báo lỗi Quota là đủ kết luận, tránh mất công chờ/thử lại vô ích khi model đã thực sự hết quota."
+            }
+        ]
+    },
+    {
+        "version": "11.4.9",
+        "title": "Cập nhật v11.4.9 - Hợp nhất fix Batch/Hậu kiểm & Vùng chạm",
+        "isLatest": false,
+        "changes": [
+            {
+                "icon": "Bug",
+                "bold": "Sửa lỗi lưu thiếu nội dung cuối chương (MAX_TOKENS):",
+                "text": "Trước đây khi AI chạm giới hạn Token ở file cuối batch, app tưởng nhầm là 'AI quên đóng tag' và lưu file như đã xong dù bị cụt đuôi — gây báo oan hàng loạt 'nghi vấn nhầm chương' ở hậu kiểm. Giờ đã phân biệt đúng 2 trường hợp, file bị cắt ngang sẽ tự động vào lại hàng đợi dịch lại."
+            },
+            {
+                "icon": "ShieldCheck",
+                "bold": "Giữ lại bản dịch nghi vấn khi hậu kiểm lỗi:",
+                "text": "Khi Tier 1/2 hậu kiểm phát hiện nghi vấn nhầm/chập chương, app không còn xoá trắng bản dịch. Nội dung nghi vấn được giữ lại kèm cờ cảnh báo, xếp xuống cuối hàng chờ để xem xét/dịch lại, chỉ bị ghi đè khi có bản dịch mới thành công."
+            },
+            {
+                "icon": "Layout",
+                "bold": "Vùng chạm (Touch Target) FileCard:",
+                "text": "Tăng kích thước vùng chạm của các nút hành động trên thẻ file (Tách chương/Quick Fix/Sửa/Cứu hộ/Dịch lại/Xoá) để đạt chuẩn tối thiểu cho cảm ứng tablet/phone."
+            },
+            {
+                "icon": "Layers",
+                "bold": "Gọn hơn ở trang Thông Tin & Header:",
+                "text": "Gộp Batch/Ratio Control thành khu 'Cài Đặt Nâng Cao' thu gọn (mặc định đóng), giới hạn chiều rộng khung nhập Tên Truyện/Tác Giả, và nhóm lại các nút trên thanh công cụ dưới cùng theo từng chức năng để dễ phân biệt hơn."
+            }
+        ]
+    },
+    {
+        "version": "11.4.8",
+        "title": "Cập nhật v11.4.8 - Tái Thiết Kế Giao Diện",
+        "isLatest": false,
+        "changes": [
+            {
+                "icon": "Layout",
+                "bold": "Giao Diện Toàn Diện:",
+                "text": "Chuẩn hóa lại toàn bộ màu sắc, khoảng cách, bo góc và hiệu ứng đổ bóng theo một hệ thống thống nhất, tinh tế hơn ở cả 2 chế độ Sáng/Tối."
+            },
+            {
+                "icon": "Wrench",
+                "bold": "Vá 3 Lỗi CSS Nghiêm Trọng:",
+                "text": "Một số class quan trọng (thanh cuộn tùy chỉnh, thanh công cụ dưới cùng với 21 nút chức năng) trước đây chưa từng được định nghĩa, khiến các thành phần này hiển thị sai. Đã khắc phục triệt để."
+            },
+            {
+                "icon": "Eye",
+                "bold": "Dark Mode Đầy Đủ:",
+                "text": "Vá các màn hình còn thiếu chế độ tối hoàn toàn (hộp thoại xác nhận, bộ tách chương, trang Sáng Tác) — giờ đổi theo theme nhất quán toàn app."
+            },
+            {
+                "icon": "Sparkles",
+                "bold": "Responsive Tablet/Phone:",
+                "text": "Sửa lại ngưỡng chuyển đổi thanh điều hướng để tablet không còn bị chật, thêm cuộn mượt kiểu cảm ứng (momentum scroll) trên di động."
+            },
+            {
+                "icon": "ShieldCheck",
+                "bold": "Hỗ Trợ Bàn Phím:",
+                "text": "Bổ sung viền focus rõ ràng cho toàn bộ nút bấm, ô nhập liệu và thẻ file — hỗ trợ điều hướng bằng phím Tab tốt hơn."
+            }
+        ]
+    },
+    {
+        "version": "11.4.7",
+        "title": "Cập nhật v11.4.7 - Sửa lỗi hệ thống",
+        "isLatest": false,
+        "changes": [
+            {
+                "icon": "Bug",
+                "bold": "Sửa lỗi hệ thống:",
+                "text": "Sửa lỗi vòng lặp, báo lỗi nhầm khi hậu kiểm AI."
+            }
+        ]
+    },
+    {
+        "version": "11.4.6",
+        "title": "Cập nhật v11.4.6 - Tinh chỉnh Prompt & Fix lỗi nhận diện",
+        "isLatest": false,
+        "changes": [
+            {
+                "icon": "Eraser",
+                "bold": "Lọc Rác & Credit:",
+                "text": "Bổ sung thêm pattern chặn quảng cáo, dòng credit người dịch, nhóm dịch, sponsor bị lọt."
+            },
+            {
+                "icon": "Feather",
+                "bold": "Xưng hô Đô thị & Hybrid:",
+                "text": "Khắc phục lỗi ép xưng hô cứng nhắc ('ta' thành 'tôi', 'nàng' thành 'em/chị'). Phân biệt rõ đại từ kể chuyện, cá tính nhân vật và xưng hô hội thoại."
+            },
+            {
+                "icon": "ShieldCheck",
+                "bold": "Bảo vệ tên riêng:",
+                "text": "Thêm ngoại lệ cấm tự ý đảo cấu trúc các tên riêng, tên tổ chức, chức quan (VD: Cấm đảo 'Trấn Ma Ty' thành 'Ty Trấn Ma')."
+            },
+            {
+                "icon": "GitCommit",
+                "bold": "Thể loại lai (Hybrid):",
+                "text": "Nâng cấp xử lý mượt mà truyện vừa có yếu tố Đô thị vừa có Tu tiên, tránh ép sai preset xưng hô."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Cập Nhật Hệ Thống:",
+                "text": "Cập nhật phiên bản ứng dụng, bổ sung các tinh chỉnh và bản vá lỗi mới nhất."
+            }
+        ]
+    },
+    {
+        "version": "11.4.5",
+        "title": "Cập nhật v11.4.5 - 26/07/2026",
+        "isLatest": false,
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Dọn Dẹp Code & Tối Ưu Hệ Thống:",
+                "text": "Sửa lỗi fail-open trong kiểm tra an toàn (báo đúng nguyên nhân lỗi thay vì ghi đè bằng hết quota). Tối ưu hóa hook dependencies để giảm re-render vô ích. Dọn sạch code rác và imports thừa, đảm bảo mã nguồn gọn nhẹ và ổn định."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Fix lỗi nhận diện Credit Dịch giả:",
+                "text": "Khắc phục lỗi xóa nhầm nội dung truyện khi dính liền với credit dịch giả ở đầu chương, giúp AI không còn báo lỗi false-positive HALLUCINATION_PERSIST khi hậu kiểm."
+            }
+        ]
+    },
+    {
+        "version": "11.4.4",
+        "title": "Cập nhật v11.4.4 - 26/07/2026",
+        "isLatest": false,
+        "changes": [
+            {
+                "icon": "Wand2",
+                "bold": "Nâng cấp Prompt Hệ Thống:",
+                "text": "Bổ sung triệt để quy tắc xử lý từ đệm 'a' rác (ở mọi vị trí trong câu), chuyển đổi xưng hô 'Ngô' thành 'Ta', và hạn chế Hán Việt tối nghĩa (VD: 'khu khu')."
+            }
+        ]
+    },
+    {
+        "version": "11.4.3",
+        "title": "Cập nhật v11.4.3 - 26/07/2026",
+        "isLatest": false,
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Tối ưu kiểm tra Ratio & Fix lỗi Hậu kiểm:",
+                "text": "Tối ưu bộ kiểm tra ratio, sửa lỗi vòng lặp hậu kiểm và hoàn thiện luồng tự động lưu editor."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Hoàn thiện Phân Tích Ngữ Cảnh:",
+                "text": "Giữ nguyên quy tắc bổ sung khi phân tích nhiều phần và phân loại thêm nhóm xưng hô cho truyện phương Tây."
+            }
+        ]
+    },
+    {
+        "version": "11.4.2",
+        "title": "Cập nhật v11.4.2 - 25/07/2026",
+        "isLatest": false,
+        "changes": [
+            {
+                "icon": "Cpu",
+                "bold": "Cứu Hộ Thông Minh:",
+                "text": "Tự động gọi API catalog của OpenRouter để lấy danh sách các model đang thật sự miễn phí, không còn phụ thuộc vào tên model cứng dễ bị thay đổi."
+            }
+        ]
+    },
+    {
+        "version": "11.4.1",
+        "title": "Cập nhật v11.4.1 - 24/7/2026",
+        "isLatest": false,
+        "changes": [
+            {
+                "icon": "Sparkles",
+                "bold": "Mới:",
+                "text": "Hoàn tất tái cấu trúc kiến trúc mã nguồn (tách các hooks, utils, services) để dễ bảo trì và giảm thiểu lỗi."
+            }
+        ]
+    },
+    {
+        "version": "11.4.0",
+        "title": "Tích hợp 3.6 Flash & 3.5 Flash Lite",
+        "isLatest": false,
+        "changes": [
+            {
+                "icon": "Cpu",
+                "bold": "Model Mới:",
+                "text": "Thêm 2 model mới là Gemini 3.6 Flash và Gemini 3.5 Flash Lite vào hệ thống."
+            },
+            {
+                "icon": "Zap",
+                "bold": "Tối Ưu Phân Tích:",
+                "text": "Chỉnh sửa lại các quy trình phân tích nhanh và phân tích sâu cho phù hợp với sự tham gia của 2 model mới."
+            },
+            {
+                "icon": "Layers",
+                "bold": "Tối Ưu Chế Độ Dịch & Hậu Kiểm:",
+                "text": "Tinh chỉnh lại thứ tự ưu tiên các model cho các chế độ dịch, tự động sửa lỗi (Auto Fix), soát lỗi bộ lọc an toàn và hậu kiểm bằng AI."
+            }
+        ]
+    },
+    {
+        "version": "11.3.9",
+        "title": "Tối Ưu Hậu Kiểm AI, EPUB, Lọc Rác HTML & Sửa Lỗi Quota",
+        "isLatest": false,
+        "changes": [
+            {
+                "icon": "ShieldCheck",
+                "bold": "Bỏ Qua Chú Thích Khi Hậu Kiểm:",
+                "text": "Tự động phát hiện và lọc bỏ các đoạn văn bản rác ở ĐẦU chương (như Bonus, Event, thông tin converter) và các đoạn chú thích của tác giả ở CUỐI chương trước khi tính toán tỷ lệ độ dài và khi Hậu kiểm bằng AI (Tier 2). Tránh báo lỗi ảo giác sai (hallucination_persist) do AI lược bỏ các nội dung thừa thãi này."
+            },
+            {
+                "icon": "Settings",
+                "bold": "Tối Ưu Batch Size 3.5:",
+                "text": "Nâng Batch Size mặc định của các mô hình Gemini 1.5 Pro (3.5) lên 15 chương/batch cho cả truyện Latin và truyện Raw để tận dụng tối đa tốc độ, thay vì 5 như trước đây."
+            },
+            {
+                "icon": "Wrench",
+                "bold": "Sửa Lỗi Khôi Phục Batch:",
+                "text": "Khắc phục triệt để lỗi crash ứng dụng khi thuật toán Hybrid cố gắng tách và khôi phục các chương bị AI gộp nhầm trong lúc Stream dịch."
+            },
+            {
+                "icon": "ListChecks",
+                "bold": "Sửa Lỗi Nhận Diện Số Chương & Tiêu Đề:",
+                "text": "Tối ưu hóa hệ thống để nhận diện chính xác số chương thực sự (bỏ qua số thứ tự bài đăng thừa ở đầu dòng như 1149.第1147章). Cập nhật lệnh dịch (Prompt) để AI dịch đúng số chương thật, và Hậu kiểm Tier 1/Tier 2 không báo lỗi nhầm chương sai nữa."
+            },
+            {
+                "icon": "Type",
+                "bold": "Upload Font Mặc Định Cho EPUB:",
+                "text": "Bổ sung tính năng cho phép người dùng tải lên file Font chữ tùy chỉnh (.ttf, .otf) khi đóng gói Ebook. Font sẽ được tự động nhúng vào EPUB và thiết lập làm font hiển thị mặc định trên các trình đọc sách."
+            },
+            {
+                "icon": "Trash2",
+                "bold": "Xóa Sạch Rác HTML Gây Ảo Giác:",
+                "text": "Phát hiện và tự động dọn sạch các thẻ HTML thừa (như <i></i>) bị chèn lẫn vào văn bản Raw. Ngăn chặn triệt để tình trạng AI bị bối rối sinh ra lỗi ảo giác (như dấu ..... hoặc dãy số 0000) khi dịch hoặc hậu kiểm."
+            },
+            {
+                "icon": "Sparkles",
+                "bold": "Sửa Lỗi Tinh Chỉnh Quy Tắc:",
+                "text": "Khắc phục lỗi không hoạt động của nút 'Tinh Chỉnh' quy tắc bổ sung trong Prompt Designer, giúp người dùng dễ dàng tạo các quy tắc dịch riêng dựa trên Series Bible."
+            },
+            {
+                "icon": "ShieldCheck",
+                "bold": "Nâng Cấp Bộ Lọc Rác Toàn Diện:",
+                "text": "Bộ Lọc Rác giờ đây không chỉ làm sạch bản dịch mà còn dọn dẹp trực tiếp trên cả văn bản Raw gốc, áp dụng tức thời ngay từ lúc import file hoặc dán văn bản mới."
+            },
+            {
+                "icon": "Filter",
+                "bold": "Bộ Lọc File Chỉnh Sửa Thủ Công:",
+                "text": "Thêm tính năng lọc và highlight các tệp tin đã được chỉnh sửa bằng tay thông qua giao diện Editor, giúp người dùng dễ dàng theo dõi tiến độ biên tập."
+            },
+            {
+                "icon": "ShieldAlert",
+                "bold": "Sửa Lỗi Nhận Diện Quota 429:",
+                "text": "Khắc phục triệt để tình trạng hệ thống nhận diện nhầm lỗi hết Quota (Resource Exhausted) của Gemini thành lỗi vi phạm nội dung (Safety Filter). App giờ đây sẽ xử lý chờ Retry chuẩn xác thay vì fallback cắt file sang OpenRouter vô cớ."
+            },
+            {
+                "icon": "Zap",
+                "bold": "Nhận Diện Token Động:",
+                "text": "Cache thông tin max_context thực tế của từng model trên OpenRouter để cấu hình độ dài đầu vào tối ưu, không còn cắt cụt ở mặc định của API."
+            },
+            {
+                "icon": "RefreshCcw",
+                "bold": "Nối Dịch Tự Động:",
+                "text": "Bắt finish_reason = length để nhận diện model hết context, tự động ra lệnh AI nối tiếp đoạn dịch bị cắt ngang liền mạch lên đến 6 lần. Tránh việc phải dịch lại từ đầu rồi lại vấp đúng lỗi."
+            },
+            {
+                "icon": "Box",
+                "bold": "Ép Batch Size = 1:",
+                "text": "Xử lý riêng nhánh cho OpenRouter, hạ Batch Size xuống mức an toàn là 1 chương thay vì rơi vào nhánh mặc định của Gemini."
+            },
+            {
+                "icon": "Zap",
+                "bold": "Smart Context Cho OpenRouter:",
+                "text": "Tính toán động lượng token đầu vào (prompt + raw text) và tự động căn chỉnh ngữ cảnh (Context cốt truyện) cùng giới hạn từ điển để nhồi tối đa thông tin mà không vượt quá max_context của từng model. Giữ lại tối đa thông tin phụ trợ để tăng chất lượng dịch thay vì cắt bỏ hoàn toàn."
+            }
+        ]
+    },
+    {
+        "version": "11.3.8",
+        "title": "Tối Ưu Hậu Kiểm AI (Tier 2) & Phân Luồng",
+        "isLatest": false,
+        "changes": [
+            {
+                "icon": "Zap",
+                "bold": "Tối Ưu Khối Lượng Hậu Kiểm:",
+                "text": "Phân nhỏ lượng tệp đưa vào các mô hình kiểm định AI (Tier 2). Hệ thống sẽ tự động cắt nhỏ lô dịch thành các cụm 5 tệp và chạy đa luồng đồng thời, giảm tải context cho các mô hình nhỏ (như Gemma 26B), khắc phục triệt để lỗi treo quá trình kiểm định."
+            },
+            {
+                "icon": "Crop",
+                "bold": "Giảm Context Hậu Kiểm:",
+                "text": "Rút gọn số lượng ký tự trích xuất để kiểm tra đầu/đuôi từ 500 xuống 250 ký tự mỗi tệp. Vẫn đảm bảo độ chính xác khi đối chiếu lỗi sai chương, nhưng tiết kiệm 50% số lượng Token đầu vào, giúp tăng tốc độ xử lý và chống treo nghẽn API."
+            }
+        ]
+    },
+    {
+        "version": "11.3.7",
+        "title": "Tối Ưu Prompt Bảng Thông Số & Dấu Câu Lặp",
+        "changes": [
+            {
+                "icon": "MessageCircle",
+                "bold": "Xử Lý Bảng Thông Số (Prompt):",
+                "text": "Cập nhật Prompt dịch, bắt buộc AI chuyển đổi các chỉ số có nhiều chữ số 0 (ví dụ: 10000000, 500000) sang dạng chữ viết tắt (10 triệu, 50 vạn). Giúp tránh triệt để lỗi AI tự động ngắt kết nối (bị cắt ngang) do vấp phải cơ chế chống lặp ký tự vô hạn của chính nó."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Rút Gọn Dấu Câu Lặp Lại:",
+                "text": "Thêm quy tắc ép AI rút gọn các chuỗi dấu câu lặp lại liên tiếp quá dài (ví dụ: '............', '!!!!!!!!') thành 1 dấu duy nhất (chuẩn ngữ pháp) để tránh bị chặn bởi bộ lọc chống hallucination của Gemini."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.3.6",
+        "title": "Sửa lỗi OpenRouter Crash & Cải thiện Logic Cứu Hộ",
+        "changes": [
+            {
+                "icon": "Wand",
+                "bold": "Khắc phục Crash OpenRouter:",
+                "text": "Sửa lỗi crash khi OpenRouter trả về stream rỗng hoặc mất format. Cải thiện logic bắt lỗi JSON cho OpenRouter."
+            },
+            {
+                "icon": "Zap",
+                "bold": "Tối ưu gom lô tệp cứu hộ:",
+                "text": "Tối ưu hóa logic loại trừ tệp thủ công khỏi các đợt cứu hộ tự động, giúp Smart Fix không bị kẹt khi gom tệp."
+            },
+            {
+                "icon": "Settings",
+                "bold": "Hard Limit Quota Error:",
+                "text": "Nâng giới hạn cưỡng chế hết Quota cho model Pro lên 25 và Flash lên 105, giúp tận dụng tối đa Quota nếu mạng gặp sự cố."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.3.5",
+        "title": "Kiến Trúc Prompt Bảng Thông Số & Quản Lý Quota",
+        "changes": [
+            {
+                "icon": "ShieldCheck",
+                "bold": "Khôi Phục Gom Lô Tệp An Toàn:",
+                "text": "Khắc phục triệt để lỗi các tệp được xác định 'an toàn' (từ mẻ dịch có tệp lỗi) bị xử lý đơn lẻ từng tệp. Giờ đây, các tệp an toàn sẽ được gộp lại thành lô (batch) 15 tệp theo đúng thiết lập để tối đa hoá hiệu suất dịch."
+            },
+            {
+                "icon": "Settings",
+                "bold": "Kiểm Soát Quota Gemini Chặt Chẽ:",
+                "text": "Sửa lỗi hệ thống tự động nhảy sang mô hình dự phòng OpenRouter khi Gemini bị ngắt kết nối do hết Quota (hoặc Time-out API). Hệ thống sẽ kiên nhẫn thử lại Gemini theo đúng giới hạn thiết lập để xác nhận chính xác lỗi Quota trước khi đưa ra quyết định ngừng mẻ dịch."
+            },
+            {
+                "icon": "MessageCircle",
+                "bold": "Kiến Trúc Prompt Bảng Hệ Thống:",
+                "text": "Bổ sung quy tắc cực mạnh yêu cầu mô hình AI (LLM) không được coi bảng thông số (Ký chủ, Tu vi, Thân phận...) là tín hiệu ngắt văn bản. AI bắt buộc phải dịch tiếp trọn vẹn đoạn văn xuôi/hội thoại nằm sau bảng thông số."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Cập Nhật Checklist Nội Bộ:",
+                "text": "Hệ thống tự động nhắc nhở AI tự kiểm tra lại (Checklist) ở bước xuất kết quả cuối cùng: đảm bảo 100% không ngắt ngang bản dịch tại bảng thông số hệ thống."
+            },
+            {
+                "icon": "Cpu",
+                "bold": "Xử Lý OpenRouter Trả Về Kết Quả Rỗng:",
+                "text": "Khắc phục triệt để tình trạng một số mô hình của OpenRouter (như gemma-4) trả về output rỗng khi gặp Safety Filter thay vì báo lỗi trực tiếp. Hệ thống nay đã nhận diện chính xác output rỗng là lỗi, ngay lập tức báo cáo lỗi Safety Filter và tự động chia nhỏ batch để xử lý tiếp mà không bị treo."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.3.4",
+        "title": "Xử Lý Quota Chặt Chẽ & Đếm Quota Safety Filter",
+        "changes": [
+            {
+                "icon": "Settings",
+                "bold": "Khắc Phục Đếm Quota Safety Filter:",
+                "text": "Sửa lỗi các model quét an toàn (như 3.1 Flash Lite) không hiển thị số lượt request lên thanh theo dõi Quota."
+            },
+            {
+                "icon": "Settings",
+                "bold": "Ngừng Dịch Khi Hết Quota Thực Sự:",
+                "text": "Hệ thống sẽ ngừng model và hiển thị Hết Quota (Depleted) nếu model đó báo lỗi Resource Exhausted 4 lần liên tiếp. Nếu tất cả model trong chế độ đều cạn, hệ thống sẽ tự động ngừng dịch để tránh lặp vô tận."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.3.3",
+        "title": "Tối Ưu Safety Filter, Theo Dõi Quota & Lỗi Vệ Tinh",
+        "changes": [
+            {
+                "icon": "Settings",
+                "bold": "Hiển Thị Quota Model Quét Lỗi:",
+                "text": "Hệ thống đã tính toán chính xác và hiển thị trực tiếp số lượt request của các model được dùng để hậu kiểm và quét nội dung bộ lọc (như 3.1 Flash Lite) lên thanh Quota bar."
+            },
+            {
+                "icon": "Download",
+                "bold": "Chống Quá Tải Request (RPM):",
+                "text": "Bổ sung thời gian chờ thông minh giữa các lượt check lỗi bộ lọc để tránh tình trạng quá tải RPM dẫn đến bị chặn tạm thời. Tự động luân chuyển model khi cần thiết."
+            },
+            {
+                "icon": "Settings",
+                "bold": "Quét Bộ Lọc Nhóm (Batch Scan):",
+                "text": "Gom toàn bộ lô quét nhanh 1 lần. Nếu báo lỗi an toàn giả (ví dụ: ngắt kết nối do bảng thông tin nhân vật, mã nguồn), sẽ tự động cách ly tập tin nghi vấn và cho các tập tin còn lại đi dịch."
+            },
+            {
+                "icon": "List",
+                "bold": "Nhận Diện Bảng Thông Số:",
+                "text": "Nhận diện bảng thông tin nhân vật, trạng thái hệ thống. Tự động xử lý riêng biệt để không gây ngắt API và không vạ lây tới các tệp khác trong cùng lô dịch."
+            },
+            {
+                "icon": "Settings",
+                "bold": "Xử Lý Lỗi Hết Quota Ẩn:",
+                "text": "Sửa lỗi các tệp bị lỗi Quota hoặc ngắt kết nối API nhưng bị hệ thống hiểu nhầm thành lỗi bộ lọc và liên tục lặp lại quá trình dịch cách ly lô 1 tệp. Log báo lỗi đã hiển thị chi tiết nguyên nhân model bị lỗi."
+            },
+            {
+                "icon": "Cpu",
+                "bold": "Dịch Vệ Tinh (OpenRouter):",
+                "text": "Các tệp bị cách ly do nghi vấn sẽ tự động được đẩy qua OpenRouter (nếu có cấu hình Key) để thử dịch độc lập, tránh vạ lây và cứu hộ tệp lỗi triệt để nhất."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.3.2",
+        "title": "Sửa Lỗi Bộ Lọc Ngầm & Lỗi Báo Oan",
+        "changes": [
+            {
+                "icon": "Wand",
+                "bold": "Khắc phục lỗi ngừng dịch giữa chừng:",
+                "text": "Bổ sung xử lý lỗi AI đột ngột ngắt kết quả do bộ lọc ngầm (Finish Reason: OTHER, RECITATION, SPII)."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Sửa lỗi báo oan:",
+                "text": "Tinh chỉnh lại thuật toán kiểm định để hạn chế tình trạng file bị báo lỗi sai (báo oan) khi kết quả dịch vẫn chính xác."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.3.1",
+        "title": "Tự Động Kiểm Định Lỗi Kết Cấu",
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Kiểm định AI (Tier 2):",
+                "text": "Tích hợp tính năng AI tự động đối chiếu nội dung bản dịch với nguyên tác để phát hiện các lỗi sai chương, râu ông nọ cắm cằm bà kia."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Sửa Lỗi Giao Diện:",
+                "text": "Khắc phục tình trạng nút dịch nhanh ở từng tệp thỉnh thoảng không kích hoạt bảng chọn cấp độ dịch (Model), và sửa lỗi nhầm tên OpenRouter thành OR ở thanh điều khiển Auto."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.3.0",
+        "title": "Tối Ưu Giao Diện, Tách Chương Thông Minh Hơn",
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Làm Gọn Ứng Dụng:",
+                "text": "Tinh chỉnh lại thiết kế giao diện giúp ứng dụng trở nên gọn gàng, trực quan và tối ưu không gian hiển thị."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Nâng Cấp Regex Tách Chương:",
+                "text": "Khắc phục triệt để lỗi tách thiếu chương đối với các tệp TXT bị format lỗi (khi tiêu đề chương dính liền vào câu văn trước đó mà không có dấu phân cách hoặc xuống dòng). Đặc biệt hiệu quả với các file convert thô."
+            },
+            {
+                "icon": "Settings",
+                "bold": "Tối Ưu Cập Nhật Tỉ Lệ (Ratio Limits):",
+                "text": "Tinh chỉnh lại cơ chế xử lý và tự động cập nhật các mốc kiểm tra tỉ lệ an toàn ngôn ngữ, giúp phát hiện lỗi thiếu/thừa nội dung chính xác hơn."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.2.9",
+        "title": "Bộ Lọc An Toàn, Chống Nghẽn Mạng, & Chống Ảo Giác AI",
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Khắc Phục Ảo Giác Vòng Lặp AI:",
+                "text": "Xử lý triệt để tình trạng model AI bị lỗi mất thẻ kết thúc và lặp từ liên tục hàng ngàn phần trăm làm treo tệp. Tự động ngắt khi phát hiện vượt ngưỡng an toàn và đổi model."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Sửa Lỗi Tải File Dịch:",
+                "text": "Khắc phục triệt để lỗi khi người dùng tải/import file bản dịch ở tab Sửa Lỗi và tab Hán Việt nhưng chỉ hiện bên phần bản gốc (không hiển thị đầy đủ bên bản dịch)."
+            },
+            {
+                "icon": "Image",
+                "bold": "Chuyển Đổi Model Ảnh Banana Nano 2 Lite:",
+                "text": "Thay thế model vẽ ảnh cũ thành gemini-3.1-flash-lite-image mới tối ưu chi phí hơn và tốc độ nhanh hơn, mang tên gọi Nano Banana 2 Lite."
+            },
+            {
+                "icon": "ShieldCheck",
+                "bold": "Cơ Chế Rà Soát Tệp Bị Chặn Thông Minh (Smart Safety Filter):",
+                "text": "Trình biên dịch và phân luồng lô dịch (Batch Translator) đã được thiết kế lại hoàn toàn. Khi lô bị chặn an toàn, hệ thống thực hiện quét nhanh (lấy output 1 token để siêu tiết kiệm và nhanh với model như 3.1 flash lite) để phân lập chính xác các tệp vi phạm. Tái gom các tệp an toàn vào batch và xử lý tiếp, chỉ các tệp vi phạm mới tách biệt ra."
+            },
+            {
+                "icon": "Settings",
+                "bold": "Giải Quyết Điểm Nghẽn Quota Mạng Lưới (429):",
+                "text": "Quy trình loại trừ an toàn 2 lớp ngăn chặn hiện tượng tách nhỏ batch tệp bị lỗi và gửi đơn lẻ lên Gemini gây kiệt quệ Quota đột ngột, tối ưu hóa API call."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Đẩy Tệp Nhạy Cảm Sang Mô Hình Vệ Tinh Tránh Kiếm Duyệt:",
+                "text": "Chỉ các tệp kiểm chứng chứa nội dung cực kỳ nhạy cảm vi phạm bộ lọc an toàn của Gemini mới được tự động chuyển luồng qua AI vệ tinh (OpenRouter) để dịch đơn độc lập, không làm tắc nghẽn luồng dịch nhanh."
+            },
+            {
+                "icon": "Cpu",
+                "bold": "Quản lý đa API Key OpenRouter:",
+                "text": "Hỗ trợ nhập và lưu trữ nhiều key cùng lúc qua khung cấu hình hoặc File TXT, tự động xoay vòng linh hoạt. Hệ thống cảnh báo thông minh cho phép nhập nhanh dạng tạm thời ngay lúc Auto."
+            },
+            {
+                "icon": "Layout",
+                "bold": "Kiến trúc Giao Diện Siêu Linh Hoạt:",
+                "text": "Giao diện kiểm duyệt đã chia màn hình nhỏ, và sử dụng công nghệ Infinite Scroll trên các tab lớn vượt 300 tệp giúp hoạt động mượt mà."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.2.8",
+        "title": "Tối ưu hóa Giao diện, Tab Sáng Tác Liên Hoàn & AI Sửa Lỗi",
+        "changes": [
+            {
+                "icon": "PenTool",
+                "bold": "Sáng Tác Liên Hoàn (Max 65536 tokens):",
+                "text": "Thiết kế lại hoàn toàn tab Sáng Tác với 2 tùy chọn Viết Mới và Viết Tiếp từ tệp EPUB. AI (3.5 Flash) sẽ tự động phân tích và điền vào các trường thông tin. Chế độ sáng tác (3.1 Pro) tận dụng tối đa lượng tokens, viết liên tục hàng chục chương trong một lần bấm."
+            },
+            {
+                "icon": "Wand",
+                "bold": "AI Sửa & Dò Lỗi Thông Minh:",
+                "text": "Hợp nhất và tối ưu tab sửa lỗi. Cải tiến luồng: Quét lỗi thô (3.5 Flash) -> Đề xuất quy tắc sửa (3.1 Pro) -> Áp dụng tự động. Trải nghiệm xử lý cực mạnh, sửa trăm lỗi chỉ trong vài cú click."
+            },
+            {
+                "icon": "Search",
+                "bold": "Nâng Cấp Quét & Sửa Hán Việt:",
+                "text": "Giao diện và luồng hoạt động quét Hán Việt được làm mới. Hỗ trợ tự động phân tích cấu trúc, cải thiện độ chính xác quy tắc, đảm bảo tính mạch lạc sau sửa."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Regex Thông Minh 2.0:",
+                "text": "Cập nhật bộ quy tắc regex chia chương thông minh và ổn định hơn, xử lý triệt để các cấu trúc chương lộn xộn trong cả TXT và EPUB."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Sửa Lỗi Tệp TXT Mã Hóa:",
+                "text": "Tự động nhận diện và khắc phục tình trạng tệp TXT lỗi font (không đúng chuẩn UTF-8), tránh hiện tượng lỗi ký tự rác khi import."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Xử Lý Thiếu Nội Dung Triệt Để:",
+                "text": "Củng cố lại thuật toán phát hiện và báo lỗi tính toàn vẹn, vá dứt điểm tình trạng dịch thiếu dòng, sót đoạn hoặc AI tự ý kết thúc quá sớm."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Thông Báo Trạng Thái Autofix:",
+                "text": "Khắc phục tính ổn định của tiến trình tự động sửa lỗi sót raw (tiếng Anh/CJK) sau khi hoàn thiện dịch Batch. Thêm thông báo và tiến trình (toast & log) rõ ràng minh bạch trên giao diện khi chuyển tiếp sang bước auto-fix."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.2.7",
+        "title": "Tối Ưu Hoá Giao Diện, Sửa Quota, Anti-Convert & Tính Toàn Vẹn Mới",
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Kiểm Tra Tính Toàn Vẹn v2:",
+                "text": "Hệ thống kiểm tra nội dung được thiết kế lại hoàn toàn. Bỏ đếm dòng cứng nhắc (hay gây lỗi False-Positive với raw Tàu wrap dòng). Giờ đây AI tự động đếm câu ngữ nghĩa, khối lượng nội dung và quét mất đầu/đuôi cực kỳ thông minh."
+            },
+            {
+                "icon": "Settings",
+                "bold": "Sửa lỗi nút Reset Quota:",
+                "text": "Bản vá tối quan trọng: Nút Reset Quota nay đã thực sự xóa và làm trắng bộ nhớ giới hạn, khắc phục tình trạng ấn nút rồi nhưng hệ thống vẫn nhận diện cũ (báo thẻ đỏ)."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Cấm Dịch Cứng Bằng Từ Gốc:",
+                "text": "Ghim chỉ thị cấm dịch Word-by-Word, loại bỏ hiện tượng câu từ cứng nhắc do AI quá lệ thuộc vào bản raw/convert. Tăng độ mượt mà tự nhiên, bắt buộc AI diễn đạt chuẩn văn phong thuần Việt 100%."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Hiệu Đính Lỗi Chính Tả Tối Đa:",
+                "text": "Tích hợp kỷ luật chính tả cực gắt: Yêu cầu mô hình tự động quét, phân biệt và sửa lại mọi lỗi chính tả tiếng Việt phát sinh (ch/tr, s/x, l/n, hỏi/ngã...) trong văn bản trước khi đóng gói kết quả cuối cùng."
+            },
+            {
+                "icon": "Save",
+                "bold": "Nâng Cấp Tính Năng Backup Toàn Diện:",
+                "text": "Hệ thống sao lưu thiết lập toàn bộ trạng thái app, bao gồm cả tab Sáng Tác, Quét Lỗi Thông Minh và Tìm Hán Việt thay vì chỉ tab Biên Tập gốc."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Phân Tích Xưng Hô Thể Loại Chính Xác:",
+                "text": "Hệ thống tag bối cảnh hỗ trợ thêm 'Thập niên 80-90'. Prompt biên dịch tự động nhận dạng các tag như Hiện đại, Đô thị, Thập niên 80-90 để TUYỆT ĐỐI CẤM sử dụng xưng hô cổ trang (tại hạ, huynh đài, a di, thúc thúc) và ép buộc dùng danh xưng thời nay phù hợp."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Giao Dịch Điển Cố & Từ Lóng:",
+                "text": "Bổ sung quy tắc dịch thoát ý tiếng lóng (internet slang) của giới trẻ đương đại và thoát ngữ nghĩa đối với thành ngữ, điển cố Trung Quốc giúp kết quả tự nhiên và mềm mại hơn."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Bổ Sung Ngữ Cảnh Sửa Lỗi Hán Việt:",
+                "text": "Chức năng AI đề xuất sửa lỗi Hán Việt giờ sẽ được tham chiếu vào 'Tên Truyện', 'Thẻ Tag' và 'Series Bible' để chỉnh sửa sắc thái chính xác, mượt mà và hợp bối cảnh với truyện đang dịch hơn."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Hợp Nhất Tệp Sửa Hán Việt:",
+                "text": "File Text xuất ra sau khi quét Hán Việt được gộp gọn với 2 nhãn rõ ràng 'Chưa Fix' và 'Đã Fix/Đề xuất', hỗ trợ đối chiếu, chọn lọc và loại bỏ lỗi dư thừa trước khi apply thay thế dễ dàng hơn."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Việt Hóa & Làm Mượt Thuật Ngữ:",
+                "text": "Cập nhật từ điển và quy tắc mới: Xử lý từ nối Hán Việt (Nhiên nhi, bất quá), chuyển hóa cụm danh từ/hành động cứng nhắc (quá độ được, tọa ủng, thư kích, cuồng tiêu đào độn), Việt hóa tự nhiên các câu thoại trực tiếp, và ngăn chặn triệt để các lỗi dùng từ chỉ số lượng sai ngữ pháp (ví dụ: 'hai cái Bán Nhân Ngư', 'một cái đều không có' thay bằng 'hai tên Bán Nhân Ngư', 'một mống cũng không')."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.2.6",
+        "title": "Tối Ưu Prompt Ngôn Ngữ, Ổn Định Số Đếm & Model",
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Chặn lọt Tiếng Anh trong Diễn đạt/Hội thoại:",
+                "text": "Bổ sung ngoại lệ vào Prompt gốc đảm bảo AI tuyệt đối không sử dụng tiếng Anh xen kẽ vào các nội dung giao tiếp thông thường (như 'Don\\'t cry', 'My master'). Ép buộc Việt hóa 100% ngữ cảnh hội thoại, kể cả chế độ Convert. Rành mạch các vùng ngoại lệ: chỉ Level/Skill, Wifi và tên riêng."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Tách chương thông minh:",
+                "text": "Tối ưu hóa thuật toán tách chương. Với các chương cực dài sẽ chia dư khoảng 200 kí tự để linh hoạt gom các đoạn văn vừa vặn hơn, không chia quá nhỏ ở phiên bản mới."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Internal Checklist Tiếng Anh:",
+                "text": "Cập nhật checklist ngầm báo động khi AI sinh nhầm tiếng Anh trong văn bản không thuộc ngoại lệ."
+            },
+            {
+                "icon": "Cpu",
+                "bold": "Loại bỏ Model cũ:",
+                "text": "Gỡ bỏ model 2.5 Pro và 2.5 Flash khỏi hệ thống để ưu tiên các model mới hơn."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Cấm trộn lẫn Tiếng Anh:",
+                "text": "Thiết lập kỷ luật Prompt cực mạnh, cấm tuyệt đối việc sử dụng hoặc xen kẽ các từ Tiếng Anh (ví dụ: 'But', 'On') vào câu Tiếng Việt trong cả quá trình dịch thuật, phân tích chuyên sâu và tạo ngữ cảnh (trừ các danh từ riêng, thuật ngữ đặc thù hoặc kỹ năng bắt buộc)."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Sửa lỗi số đếm khi định dạng:",
+                "text": "Khắc phục tình trạng khi bấm nút định dạng tự động chuyển nhầm chữ thành dạng số ngoài ý muốn, đảm bảo giữ nguyên tính logic của số đếm như bản dịch gốc."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.2.5",
+        "title": "Tích hợp Gemini 3.5 Flash & Tối ưu luân phiên Backup",
+        "changes": [
+            {
+                "icon": "Cpu",
+                "bold": "Ưu tiên Model Pro tuyệt đối:",
+                "text": "Ở chế độ Normal và Full, hệ thống vắt kiệt tối đa quota của các model Pro (3.1/2.5) trước khi đẩy sang Gemini 3.5 Flash & các model phụ trợ."
+            },
+            {
+                "icon": "Cpu",
+                "bold": "Tự động kích hoạt Model Backup:",
+                "text": "Khi Restore Backup cũ, hệ thống sẽ tự động bật 3.1 Flash Lite và 3.5 Flash nếu chưa có, và tự nhảy sang trang Biên Tập số 1."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Tiết kiệm Request Auto Fix:",
+                "text": "Hệ thống hiện tại bổ sung thêm Gemini 3.1 Flash Lite, sử dụng luân phiên cùng Gemini 3.0 Flash và Gemini 2.5 Flash cho quy trình này để tiết kiệm Request."
+            },
+            {
+                "icon": "Cpu",
+                "bold": "Tích hợp Gemini 3.5 Flash:",
+                "text": "Thêm thành công mô hình Gemini 3.5 Flash mới nhất vào hệ thống API, hỗ trợ chức năng Dịch Thuật siêu tốc và Auto Fix với tốc độ xử lý nhanh, ổn định."
+            },
+            {
+                "icon": "Settings",
+                "bold": "Xử lý Batch thông minh:",
+                "text": "Hỗ trợ Co giãn Max Char nếu Batch vượt cấu hình chuẩn. Các mô hình batch nhỏ (ví dụ 6 tệp của 2.5 Pro) hệ thống sẽ đảm bảo ưu tiên nạp đủ số tệp tối đa."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.2.4",
+        "title": "Sửa Lỗi Format Dịch Ngược (Thịt, Súc Sinh)",
+        "changes": [
+            {
+                "icon": "Wand",
+                "bold": "Sửa lỗi Regex Convert (Thịt Rồng / Súc Sinh):",
+                "text": "Khắc phục triệt để lỗi parse một số cấu trúc danh từ mang hướng convert bị AI điền ngược như 'súc sinh a đây đều là' thành 'đây đều là súc sinh a', sửa các cụm 'mấy con thịt rồng' thành 'thịt mấy con rồng' và 'rồng thịt' thành 'thịt rồng'."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.2.3",
+        "title": "Tối Ưu Batch Gemini 2.5 Pro, Tách Chương Đa Ngữ & Khắc Phục Lỗi Convert",
+        "changes": [
+            {
+                "icon": "Settings",
+                "bold": "Tối Ưu Limit Batch 2.5 Pro:",
+                "text": "Điều chỉnh mức batch size mặc định của Gemini 2.5 Pro ('v25') thành 6 để bảo vệ khỏi lỗi ngắt kết nối/timeout do thời gian xử lý stream kéo dài."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Nâng Cấp Bộ Tách Chương:",
+                "text": "Cập nhật Smart Regex hỗ trợ tách chương mượt mà đa ngôn ngữ. Tích hợp thêm các format truyện Hàn (제1장, 1화, 1장) bên cạnh chuẩn truyện Trung (Đa Năng), Nhật, Việt, Anh (Prologue, Epilogue...)."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Khắc Phục Tình Trạng Lặp Số Ở Chữ (Mười sáu mười bảy tuổi -> 77 tuổi):",
+                "text": "Thiết kế bộ Regex nâng cao để bắt triệt để lặp số chữ Hán Việt/Việt. Dặn dò AI tránh phát sinh chuỗi Hán Việt và định dạng cấu trúc đúng ngữ pháp hơn, không gộp 16 và 17 lại với nhau. Ngăn chặn bug parseViNumber gộp 'mười sáu mười bảy' thành '77' tuổi."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Sửa lỗi nhận diện convert nhạy cảm:",
+                "text": "Khắc phục triệt để lỗi parse sai chữ 'ba' trong 'bao nhiêu' thành 'tamo nhiêu'. Dọn dẹp lỗi parsing từ 'linh' gây số '0' đơn lẻ cực đoan. Sửa các bản dịch thô chứa cụm từ 'đều không chỉ', 'không có một trong'."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Cải thiện đo đạc thời gian/không gian:",
+                "text": "Fix lỗi 'năm tháng' bị ép chuyển đổi sai thành '5 tháng' trong các ngữ cảnh thời gian (vô tận năm tháng, trải qua năm tháng). Nhận dạng đúng các từ vạn, triệu... (tiêu hao ngũ triệu linh khí -> 5 triệu linh khí)."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Xử lý lỗi ghép số nhầm & Cấp bậc:",
+                "text": "Bổ sung chuẩn hóa xử lý các lỗi sinh số dị dạng khi dịch (ba 10 mét -> 30 mét, cung cấp báchcân -> cung cấp 100 cân, mỗi cấp nhất lần -> mỗi cấp một lần). Sửa chuẩn các định dạng lai Hán Việt & Số Ả Rập như 'tầng lục1' thành 'tầng 61', 'thập 8' thành '18', 'thất thập 1 tầng' thành '71 tầng'."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Xử Lý Lóng Xuyên Không & Convert:",
+                "text": "Liên kết triệt để danh sách lóng nhạy cảm (ngọa tào, ma đản, ta kháo, nê mã/ni mã...) vào Checklist của Prompt dịch. Ưu tiên dịch một cách mềm mỏng, hài hước và thân thiện hơn (Vãi chưởng!, Mẹ kiếp!, Cái quái gì thế này!). Thay từ thô như 'ngạnh sinh sinh' thành 'cứ thế'."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Tối Ưu EPUB (Lỗi Font Màu Nhạt):",
+                "text": "Khắc phục lỗi file css tích hợp trên EPUB chỉnh màu xám tối (#333) làm chữ bên trong dấu in nghiêng hội thoại bị nhạt/rất khó đọc khi bật chế độ Dark Mode. Nay các dòng hội thoại (quote) in nghiêng hoàn toàn đồng nhất mã màu với văn bản mặc định gốc của máy/app đọc sách."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.2.2",
+        "title": "Hoàn Thiện Số Đếm Tuổi & Tối Ưu Nút Định Dạng",
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Dọn Dẹp Ký Tự Thừa:",
+                "text": "Nút định dạng tự động xóa bỏ toàn bộ các ký tự rác không cần thiết thường bị model sinh ra (như *, #, ~, =) và dọn dẹp các đường gạch nối (- hoặc _) bị lặp lại liên tiếp thành đoạn dài để giúp đoạn văn mượt mà hơn."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Khắc phục triệt để số đếm tuổi:",
+                "text": "Xử lý triệt để lỗi chuyển từ dạng số đếm tuổi (năm mười tuổi => năm 10 tuổi)."
+            },
+            {
+                "icon": "Settings",
+                "bold": "Điều Chỉnh Batch Limits:",
+                "text": "Chỉnh số kí tự latin/raw tối đa mỗi batch xuống 110k/55k để tăng độ ổn định."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Xử Lý Nhạy Cảm Số Liệu:",
+                "text": "Sửa lỗi các chữ số có trong ngữ cảnh đặc thù bị dịch sai thành danh hiệu tu tiên (ví dụ: 'trường cấp 1' thay vì 'trường cấp nhất'). Chặn dịch từ 'năm một', 'bước một' thành 'nhất'."
+            },
+            {
+                "icon": "MessageCircle",
+                "bold": "Bảo Toàn Ý Nghĩa & Ngữ Cảnh:",
+                "text": "Ngăn chặn các từ đồng âm hoặc danh từ cố định bị dịch tùy tiện, cụ thể như 'Công bố' bị đổi thành 'Công ba', 'động cơ' thành 'động cơ một'."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Thu Gọn Mệnh Giá Lớn:",
+                "text": "Hướng dẫn AI viết thu gọn kết hợp cả chữ và số cho các mệnh giá cực lớn (1 vạn, 10 triệu, 5 ức) thay vì dùng chuỗi dài toàn số 0 (10000, 10000000) gây rối mắt."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Xử Lý Số Đếm Ước Lượng & Cấp Độ:",
+                "text": "Chặn triệt để lỗi chuyển các số đại khái sang chữ số (mấy chục mét -> mấy 10 mét, mấy trăm ngàn -> mấy 100000). Yêu cầu AI tuyệt đối không chuyển phân hạng cấp độ bằng số (cấp 40) sang dạng Hán Việt (cấp tứ thập)."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Sửa Định Dạng Tự Động:",
+                "text": "Nút định dạng trực tiếp hỗ trợ tự động tìm và khôi phục các cấp bậc Hán Việt bị dịch sai bằng chữ (cấp tam thập lục, cấp tứ thập, level nhị thập) về dạng số (cấp 36, cấp 40, level 20)."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.2.1",
+        "title": "Tùy Chọn Định Dạng, Lọc Rác & XML Tags",
+        "changes": [
+            {
+                "icon": "Type",
+                "bold": "Tùy Chỉnh Định Dạng Tiêu Đề:",
+                "text": "Hệ thống bổ sung cài đặt mới để tùy chỉnh việc định dạng, cấu trúc lại tiêu đề trong file. Tính năng này được bổ trợ xuyên suốt từ quá trình dịch tự động, tải TXT hoặc xuất nội dung thành file EPUB/DOCX."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Dynamic XML Tag Format:",
+                "text": "Bổ sung tùy chọn sử dụng format tag định dạng Bracket ([[[FILE_ID: X]]]) hoặc XML (<FILE_ID=\"X\">) cho hệ thống biên dịch. Qua đó, xử lý triệt để lỗi đánh rơi/quên thẻ tag đặc trưng ở từng model LLMs. Hỗ trợ tự động chuyển đổi tag tối ưu nhất cho từng model."
+            },
+            {
+                "icon": "Layout",
+                "bold": "Cải Thiện Giao Diện Văn Bản (Đọc/In Ấn):",
+                "text": "Tối ưu hóa các tùy biến thiết kế EPUB và DOCX. Giãn cách dòng giữa trong từng văn bản (line height) được đặt mặc định là 1.5, tuy nhiên giãn cách khi ngắt đoạn (paragraph) sẽ là gấp đôi (double space) đúng chuẩn tiểu thuyết."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.2.0",
+        "title": "Tối Ưu Ngữ Cảnh Chuyên Sâu & Chia Nhỏ Tải Raw",
+        "changes": [
+            {
+                "icon": "Download",
+                "bold": "Nâng cấp tính năng Tải File Raw (Download Raw):",
+                "text": "Hệ thống hỗ trợ bật lên cửa sổ tùy chọn nhập số phần muốn chia nhỏ. Ứng dụng sẽ tự động tính toán, chia đều tổng số file TXT thành nhiều tệp ZIP nhỏ và nén tất cả lại vào một cục 'Master ZIP' để tải về trong 1 click cực kỳ tiện dụng."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Tinh Chỉnh Quy Tắc Bổ Sung Chuyên Môn:",
+                "text": "Bản phân tích chuyên sâu tự động đưa ra các quy tắc bổ sung (văn phong, tên nhân vật, cách xưng hô, v.v) với cấu trúc rất chuyên nghiệp, sát với nội dung và thể loại truyện (Đặc biệt xử lý riêng bối cảnh Tiên hiệp, Đô thị, Game v.v...)."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Tóm Tắt & Đánh Giá Truyện Chi Tiết:",
+                "text": "Sau khi phân tích ngữ cảnh, AI tự động tạo ra một bản tóm tắt và đánh giá cực kỳ chi tiết bao gồm Bối cảnh truyện, Hành trình nhân vật, Hệ thống tu luyện, Điểm mạnh và Kết luận để bạn xem tổng quan truyện cực đã."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.1.10",
+        "title": "Nâng Cấp Smart Fix & Cấm Chống Convert Triệt Để",
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Cấm Văn Phong Convert Khung Xương:",
+                "text": "Hệ thống bổ sung luật CẤM AI lạm dụng các từ/câu Hán Việt tối nghĩa ghép từ raw kiểu convert (như 'thanh thanh sở sở', 'y cựu', 'phủ dục', 'hi tiếu đả náo', 'tễ thân'...). Ép buộc AI phải diễn đạt chuẩn văn học, thoát ý, thuần Việt 100% trong lời văn."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Phân Tích & Hướng Giải Quyết:",
+                "text": "Thêm bước Phân tích tùy chọn ở tab Sửa lỗi. AI sẽ đọc yêu cầu và đoạn trích, sau đó đưa ra danh sách Hướng giải quyết (những gì cần Tìm và Thay thế) dưới dạng văn bản. Người dùng có thể kiểm tra và tự gõ sửa lại Hướng giải quyết này trước khi chạy lệnh thực thi, giúp sửa lỗi cực kỳ chuẩn xác ngay từ lần đầu."
+            },
+            {
+                "icon": "Image",
+                "bold": "Đính Kèm Ảnh Minh Họa:",
+                "text": "Tính năng Sửa lỗi (Smart Fix) nay đã hỗ trợ đính kèm ảnh chụp màn hình minh họa lỗi. AI sẽ nhìn vào ảnh để nhận diện chính xác các từ bị sai, lỗi hiển thị hoặc lỗi ngữ cảnh mà người dùng đang nhắc tới."
+            },
+            {
+                "icon": "Zap",
+                "bold": "Tối Ưu Hệ Thống Tag Chéo:",
+                "text": "Phát triển hệ thống Dynamic XML Tags để tối ưu riêng cho model gemini-2.5-pro (vốn bị lỗi quên tag vuông [[[...]]]). Giờ đây, gemini-2.5-pro sẽ sử dụng chuẩn <FILE_ID> độc lập để tránh bị mất file, trong khi các model khác (3.1/Flash) vẫn sử dụng chuẩn ngoặc vuông tốt nhất."
+            },
+            {
+                "icon": "Type",
+                "bold": "Chuẩn Hóa Số Liệu & Ngày Tháng:",
+                "text": "Ép buộc chuyển các từ chỉ số lượng đếm được và ngày tháng bằng chữ sang số Ả Rập chuẩn (ví dụ: ngày 05 tháng 06 năm 2025)."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.1.9",
+        "title": "Sửa Lỗi Prompt, Tiêu Đề & Ngoại Ngữ",
+        "changes": [
+            {
+                "icon": "Wand",
+                "bold": "Khắc Phục Lỗi Xưng Hô Cổ Trang:",
+                "text": "Sửa lỗi prompt phân tích bị nhận diện sai xưng hô cho Cổ trang/Tiên hiệp (ngăn chặn triệt để tình trạng gán nhầm xưng hô 'anh-em', 'tôi-cậu' vào bối cảnh cổ đại)."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Vá Lỗi Mất Tiêu Đề & Nuốt Dòng:",
+                "text": "Tăng cường chỉ thị dịch thuật, yêu cầu AI bảo toàn tuyệt đối tiêu đề chương và các đoạn cuối file, ngăn chặn việc dịch mất chữ/đoạn cuối khi thực hiện batch."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Nhận Diện Dịch Đa Ngôn Ngữ:",
+                "text": "Tích hợp và ép buộc AI dịch sạch mọi ngôn ngữ ngoại lai (Tiếng Thái, Nga/Cyrillic, Hàn, Nhật...); đồng thời bộ đếm Smart Fix tự động quét sót và sửa lại nếu còn sót dính raw tiếng Thái."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Cập Nhật Các Lỗi Vặt Khác:",
+                "text": "Gộp các cập nhật còn thiếu từ phiên bản 11.1.8 sang 11.1.9 bao gồm tối ưu lại quy tắc bắt giới hạn và xử lý batch an toàn."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.1.8",
+        "title": "Cơ Chế Tag XML & Khôi Phục Ký Tự",
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Cơ Chế Tag XML Mới:",
+                "text": "Nâng cấp hệ thống tag phân tách file sang định dạng 3 ngoặc vuông [[[FILE_ID: X]]] và [[[END_FILE_ID: X]]]. Định dạng này giúp AI nhận diện cấu trúc tốt hơn, khắc phục triệt để lỗi gộp file hoặc bỏ sót file khi dịch batch ngắn."
+            },
+            {
+                "icon": "Image",
+                "bold": "Thuật Toán Khôi Phục (Recovery) Mới:",
+                "text": "Chuyển đổi thuật toán khôi phục file lỗi từ đếm số đoạn văn (paragraph) sang đếm số ký tự (character count). Giúp chia tách chính xác các file bị AI gộp nhầm mà không bị ảnh hưởng bởi việc AI tự ý xóa dấu xuống dòng."
+            },
+            {
+                "icon": "Settings",
+                "bold": "Tối Ưu Batch Limits:",
+                "text": "Đưa thông số batch mặc định về mức an toàn 15/15/10 (v3.1/v3/v2.5) để đảm bảo độ ổn định cao nhất, đồng thời sửa lỗi F5 bị trả về thông số cũ."
+            },
+            {
+                "icon": "Image",
+                "bold": "Tối Ưu Ảnh Bìa (Cover Art):",
+                "text": "Tối ưu hóa tính năng sao lưu và khôi phục ảnh bìa khi xuất/nhập file Backup (.json), đảm bảo ảnh bìa luôn được giữ nguyên vẹn."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.1.7",
+        "title": "Tối Ưu Batch & Quy Tắc Dịch",
+        "changes": [
+            {
+                "icon": "Settings",
+                "bold": "Tăng Giới Hạn Batch:",
+                "text": "Nâng số lượng tệp xử lý trong một batch lên 20 tệp cho model v3.1/v3 và 15 tệp cho model v2.5, giúp tăng tốc độ dịch tổng thể."
+            },
+            {
+                "icon": "Zap",
+                "bold": "Tối Ưu Quy Tắc & Tag:",
+                "text": "Cập nhật các quy tắc mới và tinh chỉnh hệ thống tag, giúp quá trình dịch batch mượt mà và ổn định hơn đáng kể."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.1.6",
+        "title": "Mở Khóa 64K Output & Tối Ưu Tốc Độ",
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Mở Khóa 64K Output Tokens:",
+                "text": "Áp dụng giới hạn Output Token mới (65.536 tokens) cho toàn bộ các tác vụ (Dịch thuật, Phân tích, Trích xuất, Sáng tác). Giúp ứng dụng hoạt động mượt mà, không bị ngắt quãng khi xử lý lượng dữ liệu lớn."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Tinh Chỉnh Thời Gian & Kết Nối:",
+                "text": "Tối ưu hóa thời gian kết nối, phản hồi và trả kết quả giữa các tệp streaming. Tăng thời gian chờ tối đa để đảm bảo các batch lớn không bị cắt ngang do timeout."
+            },
+            {
+                "icon": "PenTool",
+                "bold": "Nâng Cấp Sáng Tác Truyện:",
+                "text": "Tự động tính toán và đồng bộ độ dài chương mới sáng tác cho tương đương với độ dài trung bình của các chương trong bản EPUB tham khảo."
+            },
+            {
+                "icon": "Settings",
+                "bold": "Tối Ưu Batch Limits:",
+                "text": "Điều chỉnh lại số tệp trong batch (v3.1 và v3 giảm từ 20 xuống 15) để cân bằng hoàn hảo giữa tốc độ và độ ổn định khi xử lý lượng ký tự lớn."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.1.5",
+        "title": "Hoàn Thiện Sáng Tác & Tự Động Hóa EPUB",
+        "changes": [
+            {
+                "icon": "PenTool",
+                "bold": "Hoàn Thiện Tính Năng Sáng Tác:",
+                "text": "Bổ sung mục tiêu số chương, tự động theo dõi tiến độ, hỗ trợ viết nhiều chương cùng lúc. Tự động thêm prompt 'Happy Ending' khi gần đạt mục tiêu. Hỗ trợ Backup/Restore tiến độ qua file EPUB."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Tự Động Hóa EPUB:",
+                "text": "Tự động chạy Chuẩn hóa tiêu đề, Định dạng tiêu đề và Lọc rác ngay trước khi xuất EPUB. Khắc phục triệt để lỗi chèn tên file raw vào tiêu đề chương."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Nâng Cấp Smart Start:",
+                "text": "Thêm mục nhập 'Quy tắc bổ sung' ngay từ bước Phân tích nhanh. Mặc định chọn phân tích toàn bộ (Full) cho Phân tích chuyên sâu."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Tinh Chỉnh Quy Tắc Thông Minh:",
+                "text": "Sau khi phân tích chuyên sâu và hợp nhất ngữ cảnh, hệ thống sử dụng các model Pro để tự động viết lại và hoàn thiện 'Quy tắc bổ sung' một cách chuyên nghiệp nhất."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.1.4",
+        "title": "Bộ Lọc Gộp Chương, Smart Fix & Nâng Cấp Editable",
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Bộ Lọc Gộp Chương:",
+                "text": "Thêm chức năng lọc và chọn những tệp bị lỗi không tách dòng, ghép toàn bộ đoạn văn liên tục."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Nâng Cấp Smart Fix:",
+                "text": "Tích hợp tính năng định dạng lại các tệp bị gộp chương. Hệ thống sẽ kiểm tra chéo với bản raw để tách đoạn chuẩn xác, nếu không được sẽ tiến hành dịch lại để đảm bảo chất lượng."
+            },
+            {
+                "icon": "Zap",
+                "bold": "Tối Ưu Editable (Trình Biên Tập):",
+                "text": "Nâng cấp nút 'Check Raw' với mũi tên lên/xuống giúp nhảy nhanh đến các vị trí sót raw, tiết kiệm thời gian tìm kiếm. Hỗ trợ hiển thị đầy đủ trên cả giao diện điện thoại."
+            },
+            {
+                "icon": "MessageCircle",
+                "bold": "Cải Tiến Prompt Designer:",
+                "text": "Nâng cấp đề xuất 'Quy Tắc Bổ Sung Tailor-Made' trong phần phân tích sâu. Đưa ra các đề xuất chi tiết và chuyên nghiệp hơn về cách xưng hô, phân tích tên riêng, đặc biệt tối ưu cho các bộ truyện đa thể loại (hiện đại đan xen võng du, tiên hiệp...)."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Cập Nhật Khác:",
+                "text": "Fix lỗi tiêu đề chương và nâng cấp tag chế độ batch."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.1.3",
+        "title": "Tab Sáng Tác, Bộ Lọc An Toàn & Nâng Cấp Editable",
+        "changes": [
+            {
+                "icon": "PenTool",
+                "bold": "Tab Sáng Tác Mới:",
+                "text": "Ra mắt Tab Sáng Tác (Creative Tab) hoàn toàn mới, hỗ trợ các công cụ viết truyện, tạo prompt và quản lý ý tưởng sáng tạo."
+            },
+            {
+                "icon": "ShieldCheck",
+                "bold": "Lách Bộ Lọc An Toàn (ANTI-CENSORSHIP):",
+                "text": "Thêm chỉ thị mạnh vào Prompt hệ thống để lách bộ lọc an toàn của AI. Tự động sử dụng từ ngữ nghệ thuật hóa, nói giảm nói tránh cho nội dung nhạy cảm (NSFW/Gore) để đảm bảo dịch và phân tích thành công. Bổ sung thông báo lỗi rõ ràng nếu nội dung quá nhạy cảm và vẫn bị API từ chối."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Chế Độ Nghệ Thuật Hóa:",
+                "text": "Thêm tính năng Nghệ thuật hóa (Artistic Mode) giúp câu văn trở nên bay bổng, mượt mà và mang đậm chất văn học hơn."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Từ Điển Mới:",
+                "text": "Cập nhật và mở rộng hệ thống từ điển, tăng cường độ chính xác cho các thuật ngữ đặc thù và tên riêng."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Nâng Cấp Editable (Trình Biên Tập):",
+                "text": "Thêm các nút 'Lưu & Chương trước', 'Lưu & Chương tiếp' vào giao diện Editor. Phím mũi tên qua lại giờ đây hoạt động tương đương với nút X (Bỏ qua & Chuyển chương) giúp thao tác linh hoạt hơn."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.1.2",
+        "title": "Tối Ưu Hóa Lưu Trữ & Hiệu Năng",
+        "changes": [
+            {
+                "icon": "Download",
+                "bold": "Nén Dữ Liệu (GZIP):",
+                "text": "Tích hợp thuật toán nén dữ liệu cho IndexedDB, giảm 80-90% dung lượng lưu trữ, khắc phục triệt để lỗi QuotaExceededError (trắng xóa mất data) khi dịch batch lớn trên môi trường Iframe của AI Studio."
+            },
+            {
+                "icon": "Layout",
+                "bold": "Tối Ưu Hiệu Năng UI:",
+                "text": "Thêm cơ chế Throttle (giới hạn tần suất) khi cập nhật giao diện trong quá trình stream dịch thuật, ngăn chặn tình trạng treo/crash trình duyệt do React phải re-render quá nhiều lần."
+            },
+            {
+                "icon": "ShieldCheck",
+                "bold": "Lưu Trữ An Toàn:",
+                "text": "Bổ sung cơ chế bảo vệ (Try-Catch) cho toàn bộ các thao tác với localStorage, giúp ứng dụng hoạt động ổn định ngay cả trong chế độ ẩn danh (Incognito) hoặc môi trường bị hạn chế quyền truy cập."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.1.1",
+        "title": "Nâng Cấp Phân Tích & Sửa Lỗi Thông Minh",
+        "changes": [
+            {
+                "icon": "Wand",
+                "bold": "Hỗ Trợ Tải Ảnh Minh Họa Lỗi:",
+                "text": "Tính năng 'Sửa Lỗi Theo Yêu Cầu' nay đã cho phép đính kèm hình ảnh chụp màn hình đoạn dịch lỗi. AI sẽ kết hợp hình ảnh và yêu cầu của bạn để hiểu rõ ngữ cảnh và đưa ra quy tắc sửa lỗi chính xác hơn."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Review & Tóm Tắt Truyện Chi Tiết Hơn:",
+                "text": "Nâng cấp prompt phân tích truyện. AI giờ đây sẽ tạo ra bài review và tóm tắt cực kỳ chi tiết theo cấu trúc Markdown rõ ràng, bao gồm: Tổng quan, Bối cảnh, Hành trình nhân vật, Hệ thống tu luyện, Điểm mạnh và Nhận xét."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.1.0",
+        "title": "Tái Cấu Trúc & Nâng Cấp Trải Nghiệm Biên Tập",
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Tái Cấu Trúc Ứng Dụng (Refactoring):",
+                "text": "Cấu trúc lại toàn bộ mã nguồn, tách các logic phức tạp thành các Custom Hooks riêng biệt (useCoreState, useFileHandler, useAppHandlers, v.v.) giúp ứng dụng hoạt động ổn định, dễ bảo trì và mở rộng hơn."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Sửa Lỗi Theo Yêu Cầu:",
+                "text": "Bổ sung tính năng sửa lỗi theo yêu cầu (Custom Prompt) trong Tab Sửa Lỗi (Smart Fix). Người dùng giờ đây có thể tự do nhập yêu cầu sửa lỗi cụ thể cho AI thay vì chỉ dùng các tùy chọn mặc định."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Phím Tắt Biên Tập (Shortcuts):",
+                "text": "Bổ sung các phím tắt hữu ích trong màn hình Biên tập (Editor): Ctrl + S (Lưu), Ctrl + Enter (Lưu & Chuyển file tiếp theo), Alt + D (Thêm từ điển) giúp tăng tốc độ làm việc."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Highlight Từ Điển Trực Tiếp:",
+                "text": "Thêm chế độ xem 'Dict' trong Editor. Các từ có trong từ điển sẽ được highlight trực tiếp trên bản dịch. Khi trỏ chuột (hover) vào từ, nghĩa gốc (Raw) sẽ hiện ra, giúp đối chiếu cực kỳ nhanh chóng."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Xuất File Word (DOCX):",
+                "text": "Bổ sung tính năng xuất toàn bộ bản dịch ra định dạng Word (.docx) bên cạnh các định dạng TXT và EPUB đã có."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Tối Ưu Hóa Auto-Save & Chống Crash:",
+                "text": "Thay đổi cơ chế tự động lưu (Auto-save) từ lưu liên tục mỗi giây sang lưu định kỳ (mặc định 2 phút) và lưu khi hoàn tất. Khắc phục triệt để lỗi tràn bộ nhớ (Out-Of-Memory) và trắng trang khi dịch Batch số lượng lớn. Đã thêm concurrency vào dependency array để cập nhật ngay khi có thay đổi."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Cấu Hình Luồng (Concurrency) Thông Minh:",
+                "text": "Bổ sung chế độ 'Auto' cho số luồng dịch. Hệ thống tự động điều chỉnh số luồng tối ưu dựa trên chế độ dịch (Flash, Normal, Pro, Full) và tình trạng Quota của các model, giúp tối đa hóa tốc độ mà không bị lỗi. Vẫn hỗ trợ chọn luồng thủ công. Đã đặt mặc định là 'Auto' khi reset dữ liệu."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Auto-Retry Thông Minh:",
+                "text": "Nâng cấp cơ chế tự động thử lại khi gọi API lỗi bằng thuật toán Exponential Backoff (thử lại sau 2s, 4s, 8s...). Giúp ứng dụng vượt qua các lỗi mạng tạm thời hoặc lỗi 429 Too Many Requests một cách mượt mà hơn."
+            },
+            {
+                "icon": "Zap",
+                "bold": "Tối Ưu Xử Lý Đa Luồng (Parallel Processing):",
+                "text": "Tính năng sửa lỗi thông minh (Smart Fix) theo yêu cầu giờ đây hỗ trợ xử lý đa luồng (2 luồng cùng lúc), giúp tăng tốc độ sửa lỗi cho các bộ truyện dài."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.0.11",
+        "title": "Tối Ưu Tên Nhật Bản & Giao Diện",
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Nhận Diện Tên Nhật Bản:",
+                "text": "Bổ sung quy tắc nhận diện tên riêng Nhật Bản (Light Novel/Manga) vào Prompt hệ thống. AI giờ đây sẽ chú ý hơn đến các tên có 1 âm tiết (Sho, Aki) hoặc có tiền tố/hậu tố, tránh nhầm lẫn tên nhân vật với động từ đứng liền kề."
+            },
+            {
+                "icon": "Zap",
+                "bold": "Tối Ưu Thanh Cuộn (Scrollbar):",
+                "text": "Tăng kích thước thanh cuộn (scrollbar) trên giao diện máy tính (từ 4px lên 10px) giúp thao tác kéo thả, cuộn trang bằng chuột dễ dàng và thuận tiện hơn."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.0.10",
+        "title": "Khắc Phục Timeout & Chống Lặp Từ",
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Nới Lỏng Timeout:",
+                "text": "Tăng thời gian chờ kết nối và chờ luồng dữ liệu (stream) cho các file dài hoặc khi server phản hồi chậm, giúp khắc phục triệt để lỗi Connection Timeout và Stream Timeout."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Chống Lặp Từ (Hallucination):",
+                "text": "Cập nhật Prompt hệ thống và bổ sung bộ lọc Regex thông minh để tự động dọn dẹp các ký tự/từ ngữ bị lặp lại vô nghĩa (ví dụ: aaaaaa), ngăn chặn tình trạng AI 'ảo giác'."
+            },
+            {
+                "icon": "Layout",
+                "bold": "Cải Thiện Giao Diện Thống Kê:",
+                "text": "Cấu trúc lại phần hiển thị trạng thái file (Tổng, Xử lý, Xong, Lỗi/Chờ) thành 2 cột gọn gàng và dễ nhìn hơn trên thanh Header."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.0.9",
+        "title": "Sửa Lỗi Định Dạng & Tối Ưu Hệ Thống",
+        "changes": [
+            {
+                "icon": "Type",
+                "bold": "Chuẩn Hóa Tiêu Đề:",
+                "text": "Sửa lỗi xử lý dấu ngoặc kép và dấu câu trong tiêu đề chương. Giữ nguyên tiền tố chương gốc (Quyển, Tập, Hồi...) thay vì ép buộc thành 'Chương'. Ngăn chặn việc cắt sai tiêu đề nhiều vế và sửa lỗi ngược dấu ngoặc kép khi tách dòng."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Tối Ưu Smart Fix:",
+                "text": "Khắc phục các vấn đề tồn đọng của tính năng Smart Fix từ bản 11.0.8, giúp quá trình sửa lỗi thông minh hoạt động ổn định và chính xác hơn."
+            },
+            {
+                "icon": "Cpu",
+                "bold": "Xử Lý Timeout Model Flash:",
+                "text": "Khắc phục triệt để lỗi timeout khi sử dụng các model Flash (Gemini 2.5 Flash, Gemini 3.0 Flash), đảm bảo quá trình dịch thuật và xử lý diễn ra mượt mà không bị gián đoạn."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.0.8",
+        "title": "Giao Diện Thu Gọn & Tối Ưu Hiệu Năng",
+        "changes": [
+            {
+                "icon": "Layout",
+                "bold": "Giao Diện Thu Gọn:",
+                "text": "Thêm tính năng thu gọn thanh điều hướng (Sidebar) và thanh công cụ bên dưới (Bottom Bar) giúp mở rộng không gian làm việc, giao diện gọn gàng và không rối mắt. Các thanh trạng thái AI, Batch Config, Ratio và menu dưới được gom thành hàng ngang trượt mượt mà trên mobile."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Công Cụ Hệ Thống:",
+                "text": "Tích hợp trực tiếp các nút chức năng Backup, Restore và Reset toàn bộ App vào thanh công cụ bên dưới để thao tác nhanh chóng và tiện lợi hơn."
+            },
+            {
+                "icon": "Zap",
+                "bold": "Tối Ưu Tab Biên Tập:",
+                "text": "Khi chuyển sang tab Biên Tập, hệ thống sẽ mặc định hiển thị Trang 1 thay vì 'Tất cả'. Điều này giúp tránh tình trạng giật lag khi tải các bộ truyện dài hàng ngàn chương."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Review Truyện Chi Tiết:",
+                "text": "Chức năng Phân Tích Nhanh (Auto Analyze) giờ đây sẽ tạo ra một bài Review chi tiết, đánh giá sâu sắc về cốt truyện, nhân vật và điểm mạnh/yếu thay vì chỉ tóm tắt ngắn gọn 7-10 dòng như trước."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Smart Auto V2:",
+                "text": "Nâng cấp chế độ Auto Continue V2 thông minh hơn, tự động nhận diện và tiếp tục các tiến trình dịch thuật, chuẩn hóa tiêu đề và sửa lỗi mà không cần can thiệp thủ công."
+            },
+            {
+                "icon": "Type",
+                "bold": "Tối Ưu Tiêu Đề & EPUB:",
+                "text": "Cải thiện thuật toán nhận diện và chuẩn hóa tiêu đề. Khắc phục triệt để lỗi giao diện tách chương và xuất EPUB bị khuất màn hình trên thiết bị di động hoặc khi xoay ngang. Sửa lỗi AI nhận diện nhầm định dạng thời gian (ví dụ: 9:10pm) thành tiêu đề chương."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Bảo Mật Dữ Liệu:",
+                "text": "Loại bỏ cảnh báo mất dữ liệu trên Iframe do hệ thống đồng bộ Real-time Sync (BroadcastChannel) và Safe Save đã hoạt động ổn định, đảm bảo an toàn tuyệt đối cho dữ liệu của bạn."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Khắc Phục Lỗi Treo & Lưu Chọn Lọc:",
+                "text": "Sửa lỗi file bị treo ở trạng thái 'Đang xử lý' (Streaming/Repairing) sau khi dịch xong do xung đột lưu tự động. Thêm tính năng 'Lưu DB' cho phép lưu nhanh các file đã chọn trong bộ lọc, tự động đánh dấu hoàn thành để tránh dịch lại."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.0.7",
+        "title": "Sửa lỗi Tiêu Đề & Bộ Đếm Đa Luồng",
+        "changes": [
+            {
+                "icon": "Wand",
+                "bold": "Sửa lỗi nhận diện Tiêu Đề:",
+                "text": "Khắc phục tình trạng thuật toán chuẩn hóa tiêu đề và tạo EPUB nhầm lẫn các dòng bắt đầu bằng số (ví dụ: '52 viên vụ chi tâm', '46 binh sĩ') thành tiêu đề chương. Thuật toán mới thông minh hơn, chỉ nhận diện các dòng ngắn và có cấu trúc giống tiêu đề thực sự."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Sửa lỗi Bộ Đếm Xử Lý:",
+                "text": "Sửa lỗi bộ đếm 'Đang xử lý' trên thanh trạng thái hiển thị sai số lượng file khi chạy đa luồng (2 model cùng lúc). Bộ đếm giờ đây cập nhật chính xác tổng số file đang được xử lý theo thời gian thực."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.0.6",
+        "title": "Smart Fix Upgrade, Ratio Fixes & Data Protection",
+        "changes": [
+            {
+                "icon": "Wand",
+                "bold": "Nâng Cấp Smart Fix:",
+                "text": "Smart Fix giờ đây tự động gom các file bị lỗi lệch tỷ lệ (dựa trên Ratio Control) và các file 'bê nguyên xi' văn phong convert để dịch lại. Toàn bộ quá trình Smart Fix được ép buộc sử dụng các model Pro để đảm bảo chất lượng cao nhất."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Sửa Lỗi Ratio Control:",
+                "text": "Khắc phục triệt để lỗi tính toán sai lệch tỷ lệ do sai số dấu phẩy động (ví dụ: 2.40 < 2.4), giúp hệ thống nhận diện file lỗi chính xác tuyệt đối."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Bảo Vệ Reset App:",
+                "text": "Bổ sung hộp thoại xác nhận cảnh báo nguy hiểm khi bấm nút 'Reset Toàn Bộ App', ngăn chặn việc vô tình xóa sạch dữ liệu do click nhầm."
+            },
+            {
+                "icon": "Save",
+                "bold": "Đồng Bộ Đa Tab & Safe Save:",
+                "text": "Thêm cơ chế Real-time Sync (BroadcastChannel) và Safe Save. Ngăn chặn tuyệt đối lỗi 'trắng trơn' (mất dữ liệu) khi mở app ở nhiều tab hoặc khi trình duyệt tạm dừng tab chạy ngầm."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.0.5",
+        "title": "UI Polish & Smart Duplicate Removal",
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Xóa Trùng Thông Minh:",
+                "text": "Nâng cấp thuật toán Xóa Trùng: Tự động bỏ qua tiêu đề chương và khoảng trắng thừa, nhận diện chính xác các file raw trùng lặp dù có bị sai lệch nhỏ về định dạng."
+            },
+            {
+                "icon": "Layout",
+                "bold": "Giao Diện Mới:",
+                "text": "Tinh chỉnh lại toàn bộ giao diện, mang đến trải nghiệm mượt mà, hiện đại và dễ sử dụng hơn. Các nút bấm và công cụ được bố trí lại hợp lý."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Sửa Lỗi:",
+                "text": "Khắc phục một số lỗi nhỏ trong quá trình phân tích, dịch thuật và hiển thị. Cải thiện độ ổn định tổng thể của ứng dụng."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.0.4",
+        "title": "Converter Tools & Time Estimation",
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Global Find & Replace:",
+                "text": "Công cụ Mass Edit mạnh mẽ hỗ trợ Regex, cho phép tìm và thay thế hàng loạt trên tất cả các file, tiết kiệm 90% thời gian biên tập."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Dictionary Enforce:",
+                "text": "Chế độ 'Ép buộc' cho từ điển: Tự động quét và sửa lại các thuật ngữ quan trọng (tên nhân vật, chiêu thức) sau khi dịch để đảm bảo độ chính xác 100%."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Smart Time Estimation:",
+                "text": "Bộ đếm thông minh dự tính thời gian hoàn thành dựa trên tốc độ thực tế, giúp bạn chủ động hơn với Deadline."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Chapter Merger:",
+                "text": "Tính năng gộp nhiều file chương nhỏ thành một file lớn, giúp quản lý mục lục Ebook gọn gàng và chuyên nghiệp hơn."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.0.3",
+        "title": "Gemini 3.0 Pro Sunset & Workflow Optimization",
+        "changes": [
+            {
+                "icon": "Cpu",
+                "bold": "Removed Gemini 3.0 Pro:",
+                "text": "Loại bỏ hoàn toàn model Gemini 3.0 Pro (đã ngừng hỗ trợ). Cập nhật toàn bộ quy trình để sử dụng Gemini 3.1 Pro, 2.5 Pro và 3.0 Flash."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Workflow Optimization:",
+                "text": "Tối ưu hóa luồng Phân tích (2 luồng), Normal Mode (2 luồng), Pro Mode (1 luồng) và Full Mode (3 model). Tự động fallback sang Flash để lưu dữ liệu thô khi hết Quota Pro."
+            },
+            {
+                "icon": "Layout",
+                "bold": "UI Cleanup:",
+                "text": "Loại bỏ nút Smart Start cũ ở tab Ngữ cảnh để tinh gọn giao diện."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.0.2",
+        "title": "API Key Manager & Stability",
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "API Key Manager:",
+                "text": "Nâng cấp trình quản lý API Key: Tự động kiểm tra trạng thái Key, loại bỏ Key chết khỏi Pool, và cải thiện giao diện nhập liệu."
+            },
+            {
+                "icon": "Layout",
+                "bold": "UI Polishing:",
+                "text": "Tinh chỉnh lại giao diện người dùng, sửa các lỗi hiển thị nhỏ trên mobile và tối ưu hóa trải nghiệm thao tác."
+            },
+            {
+                "icon": "Wand",
+                "bold": "Bug Fixes:",
+                "text": "Sửa các lỗi tồn đọng liên quan đến Batch Processing và đồng bộ trạng thái khi chuyển đổi giữa các tab."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.0.1",
+        "title": "Batch Size & Full Tier Optimization",
+        "changes": [
+            {
+                "icon": "Settings",
+                "bold": "Batch Size Fix:",
+                "text": "Sửa lỗi reset data khiến Batch Size bị sai. Giờ đây hệ thống sẽ luôn khôi phục về mức tối ưu 15/15/10 cho các model v3/v3.1/v2.5."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Full Tier Enforced:",
+                "text": "Khắc phục tình trạng chế độ Full Mode bị fallback nhầm sang Normal. Đảm bảo loại trừ hoàn toàn model 2.5 Flash khỏi quá trình dịch ở chế độ Full, chỉ sử dụng các model Pro và 3.0 Flash."
+            },
+            {
+                "icon": "Image",
+                "bold": "Free Flash Image Models:",
+                "text": "Cập nhật thông tin và hỗ trợ đầy đủ cho các model tạo ảnh miễn phí gemini-2.5-flash-image và gemini-3.1-flash-image-preview."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "11.0.0",
+        "title": "Title Normalization & Smart Auto V2",
+        "changes": [
+            {
+                "icon": "Type",
+                "bold": "Chuẩn Hóa Tiêu Đề (Title Normalization):",
+                "text": "Tính năng mới tự động phát hiện và chuẩn hóa định dạng tiêu đề chương (ví dụ: 'Chương 1: Tên Chương') cho toàn bộ truyện, đảm bảo sự đồng nhất."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Smart Auto V2:",
+                "text": "Tích hợp quy trình Chuẩn Hóa Tiêu Đề vào luồng Auto. Cải thiện Smart Fix thông minh hơn: tự động bỏ qua bước sửa lỗi nếu không còn Quota Pro/Flash khả dụng, tránh treo hệ thống."
+            },
+            {
+                "icon": "Zap",
+                "bold": "Load Balancer Upgrade:",
+                "text": "Nâng cấp thuật toán phân tải: Xử lý thông minh các trường hợp Cooldown (chờ 60s) của Google, tự động điều phối sang model khác hoặc bỏ qua tác vụ nếu cần thiết."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "New Feature Tab:",
+                "text": "Tiêu Đề - Công cụ chuyên dụng để xử lý file đã dịch (Chuẩn hóa, Định dạng, Lọc rác)."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "10.9.9",
+        "title": "Full Mode & Hybrid Cover Art",
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Chế Độ Full Mode:",
+                "text": "Ra mắt chế độ dịch toàn diện: Ưu tiên chạy 3 luồng Pro, tự động fallback sang Flash (5 luồng) khi hết Quota. Đảm bảo tốc độ và chất lượng tối đa."
+            },
+            {
+                "icon": "Image",
+                "bold": "Hybrid Cover Art:",
+                "text": "Công nghệ tạo ảnh bìa mới: AI vẽ minh họa (Textless), hệ thống tự động chèn Tên truyện & Tác giả bằng Canvas với font chữ chuẩn, hỗ trợ tiếng Việt tuyệt đối."
+            },
+            {
+                "icon": "Settings",
+                "bold": "Robust Batch Processing:",
+                "text": "Cải thiện cơ chế xử lý Batch với thẻ XML và Regex mới, giảm thiểu tối đa lỗi mất file hoặc gộp nội dung khi dịch nhiều chương."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "10.9.8",
+        "title": "Tối Ưu Phân Tích & Hợp Nhất Ngữ Cảnh",
+        "changes": [
+            {
+                "icon": "Zap",
+                "bold": "Tối Ưu Phân Tích:",
+                "text": "Tăng cường khả năng phân tích tên riêng và ngữ cảnh, tự động điều chỉnh luồng xử lý và fallback sang các model Flash khi cần thiết để đảm bảo tiến độ."
+            },
+            {
+                "icon": "MessageCircle",
+                "bold": "Hợp Nhất Ngữ Cảnh Thô:",
+                "text": "Bổ sung tính năng tự động phát hiện và hợp nhất các đoạn ngữ cảnh thô (do lỗi Quota trước đó) thành một Series Bible hoàn chỉnh."
+            },
+            {
+                "icon": "Image",
+                "bold": "Cải Tiến Ảnh Bìa:",
+                "text": "Nâng cấp prompt tạo ảnh bìa, hỗ trợ chèn tên truyện và tác giả trực tiếp vào thiết kế ảnh một cách tinh tế và rõ nét."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "10.9.7",
+        "title": "Gemini 3.1 Pro & Workflow Overhaul",
+        "changes": [
+            {
+                "icon": "Cpu",
+                "bold": "Model Nâng Cấp:",
+                "text": "Tích hợp model Gemini 3.1 Pro mới nhất, mang lại khả năng dịch và biên tập với độ chính xác và mạch lạc vượt trội."
+            },
+            {
+                "icon": "Zap",
+                "bold": "Quy Trình Dịch Tối Ưu:",
+                "text": "Các chế độ Normal, Pro, và Smart Fix giờ đây sẽ tận dụng sức mạnh của cả 3 model Pro (3.1, 3.0, 2.5) để cho ra kết quả tốt nhất. Chế độ Auto vẫn dùng model Flash để đảm bảo tốc độ."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "10.9.6",
+        "title": "Prompt Update: Numeric Standardization",
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Strict Number Formatting:",
+                "text": "AI bây giờ sẽ ưu tiên dùng số Ả Rập (1, 2, 100...) thay vì số chữ (một, hai, một trăm...) cho các từ chỉ số lượng đếm được. Giữ nguyên Hán Việt cho tên riêng/thành ngữ."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "10.9.5",
+        "title": "Quota Upgrade (Boosted)",
+        "changes": [
+            {
+                "icon": "Settings",
+                "bold": "Increased RPD Limits:",
+                "text": "Nâng giới hạn Request Per Day: Gemini 3.0 Pro & 2.5 Pro lên 100 RPD. Gemini 3.0 Flash & 2.5 Flash lên 500 RPD."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "10.9.4",
+        "title": "Resilience Update",
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Anti-False Positive:",
+                "text": "Tăng ngưỡng chịu lỗi (Error Threshold) từ 2 lên 10 để tránh việc Model bị đánh dấu chết oan khi mạng chập chờn."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Instant Retry Strategy:",
+                "text": "Nếu một Batch bị lỗi nhưng vẫn còn Model khác sống, hệ thống sẽ tự động đưa Batch đó quay lại đầu hàng đợi để thử ngay với Model khác thay vì dừng toàn bộ quy trình."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "10.9.3",
+        "title": "UI/UX & Ratio Control",
+        "changes": [
+            {
+                "icon": "CheckCircle",
+                "bold": "Ratio Control:",
+                "text": "Bổ sung thanh điều chỉnh Ratio Control, cho phép người dùng tùy chỉnh giới hạn tỉ lệ dịch/raw cho từng loại ngôn ngữ."
+            },
+            {
+                "icon": "Layout",
+                "bold": "UI Enhancements:",
+                "text": "Giao diện được tinh chỉnh lại gọn gàng và trực quan hơn, cải thiện trải nghiệm người dùng."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "10.9.2",
+        "title": "Smart Fix & Automation",
+        "changes": [
+            {
+                "icon": "Wand",
+                "bold": "Smart Fix Launch:",
+                "text": "Ra mắt tính năng Smart Fix, tự động phát hiện và đưa vào hàng đợi các chương bị lỗi (lệch ratio, còn raw, lỗi gộp)."
+            },
+            {
+                "icon": "CheckCircle",
+                "bold": "Smart Auto Mode:",
+                "text": "Giới thiệu chế độ Smart Auto, tự động dịch và sửa lỗi toàn bộ truyện chỉ với một cú nhấp chuột."
+            }
+        ],
+        "isLatest": false
+    },
+    {
+        "version": "10.9.1",
+        "title": "Core Engine Refactor",
+        "changes": [
+            {
+                "icon": "Zap",
+                "bold": "Engine Upgrade:",
+                "text": "Nâng cấp lõi dịch thuật, cải thiện khả năng xử lý batch và streaming, giảm thiểu lỗi và tăng tốc độ."
+            },
+            {
+                "icon": "Settings",
+                "bold": "Quota System:",
+                "text": "Tích hợp hệ thống Quota Manager để theo dõi và quản lý giới hạn API của từng model, tránh bị khóa đột ngột."
+            }
+        ],
+        "isLatest": false
+    }
+]
