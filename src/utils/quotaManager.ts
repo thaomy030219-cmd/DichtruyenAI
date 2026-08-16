@@ -74,7 +74,20 @@ class QuotaManager {
     }
     
     // Initialize missing models and check for daily reset
+    this.applyDailyResetIfNeeded();
+  }
+
+  // UPDATED v11.5.9: FIX lỗi "HẾT quota" bị dính mãi dù đã sang ngày mới. Trước đây logic reset
+  // theo ngày (so sánh lastResetDate với ngày hôm nay) CHỈ chạy đúng 1 lần trong loadUsage() —
+  // tức là chỉ chạy khi app KHỞI ĐỘNG (tải trang/F5). Nếu người dùng cứ để tab mở liên tục nhiều
+  // ngày không tải lại trang (rất phổ biến, nhất là khi để chạy dịch qua đêm), logic reset không
+  // bao giờ được gọi lại -> cờ isDepleted bị dính mãi mãi dù ngày mới đã bắt đầu từ lâu và
+  // requestsToday thực ra vẫn đang là 0. Tách logic ra hàm public riêng để có thể gọi lại định kỳ
+  // (xem App.tsx: gọi mỗi khi tab quay lại foreground + set interval định kỳ), không chỉ lúc khởi
+  // động app.
+  public applyDailyResetIfNeeded() {
     const today = new Date().toISOString().split('T')[0];
+    let changed = false;
     
     // Use currentConfigs instead of static import
     this.currentConfigs.forEach(model => {
@@ -89,17 +102,20 @@ class QuotaManager {
           consecutiveErrors: 0,
           consecutiveQuotaErrors: 0
         };
+        changed = true;
       } else {
           // Ensure fields exist for loaded data
           if (this.usage[model.id].consecutiveErrors === undefined) {
               this.usage[model.id].consecutiveErrors = 0;
+              changed = true;
           }
           if (this.usage[model.id].consecutiveQuotaErrors === undefined) {
               this.usage[model.id].consecutiveQuotaErrors = 0;
+              changed = true;
           }
       }
     });
-    this.saveUsage();
+    if (changed) this.saveUsage();
   }
 
   private saveUsage() {

@@ -230,6 +230,33 @@ const App: React.FC = () => {
       };
   }, []);
 
+  // FIX (v11.5.9): "Cờ hết Quota (HẾT) bị dính mãi dù đã sang ngày mới, dù chờ 1-2 ngày vẫn
+  // không tự reset". Nguyên nhân: quotaManager.loadUsage() (nơi so sánh ngày để reset
+  // requestsToday/isDepleted) trước đây CHỈ chạy đúng 1 lần lúc QuotaManager khởi tạo (tức lúc
+  // tải trang/F5) — không có gì kiểm tra lại ngày trong lúc app đang chạy. Người dùng để tab mở
+  // liên tục qua đêm/nhiều ngày (rất phổ biến khi để dịch chạy lâu) thì logic reset không bao giờ
+  // được gọi lại. Áp dụng đúng pattern giám sát định kỳ + visibilitychange giống hệt khối giám sát
+  // hạn dùng (EXPIRY_TS) ở trên để đảm bảo ngày mới luôn được phát hiện dù không F5 trang.
+  useEffect(() => {
+      const checkDailyReset = () => {
+          quotaManager.applyDailyResetIfNeeded();
+          core.setModelUsages(quotaManager.getUsageSnapshot());
+      };
+
+      const intervalId = setInterval(checkDailyReset, 60000); // Mỗi 60s là đủ nhanh, không cần dồn dập như expiry
+
+      const handleVisibility = () => {
+          if (document.visibilityState === 'visible') checkDailyReset();
+      };
+      document.addEventListener('visibilitychange', handleVisibility);
+
+      return () => {
+          clearInterval(intervalId);
+          document.removeEventListener('visibilitychange', handleVisibility);
+      };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   if (!hasSeenIntro || forceShowIntro) {
       return <IntroPage onEnter={() => {
           setHasSeenIntro(true);
