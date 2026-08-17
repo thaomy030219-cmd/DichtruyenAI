@@ -6,10 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Dịch truyện AI - v1.0.2</title>
     
-    <!-- Fonts: Outfit for headings, Inter for body, Playfair/Cinzel for Cover Art, Merriweather/Lora for Content -->
+    <!-- Fonts: Sora for headings (v1.0.2, thay Outfit), Inter for body, Playfair/Cinzel for Cover Art, Merriweather/Lora for Content -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@400;500;600&family=Outfit:wght@500;700;800&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@400;500;600&family=Sora:wght@500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -19,12 +19,25 @@
           extend: {
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
-              display: ['Outfit', 'sans-serif'],
+              // UPDATED v1.0.2: Outfit (bo tròn, mềm) -> Sora (kết cấu hình học, gọn, sắc nét
+              // hơn) — đổi "chất chữ" của MỌI tiêu đề/nút bấm dùng font-display khắp app.
+              display: ['Sora', 'sans-serif'],
               serif: ['Merriweather', 'Lora', 'serif'],
               content: ['Lora', 'serif'],
-              // UPDATED v1.0.2: font tiêu đề văn học riêng cho IntroPage (khác hẳn Outfit dùng
+              // UPDATED v1.0.2: font tiêu đề văn học riêng cho IntroPage (khác hẳn Sora dùng
               // trong app) — hợp với chủ đề "truyện", đã có sẵn link Google Fonts ở trên.
               heading: ['"Playfair Display"', 'serif'],
+            },
+            // UPDATED v1.0.2: Thu gọn thang bo góc mặc định của Tailwind (rounded-lg/xl/2xl/3xl).
+            // Bản trước dùng nguyên bo góc rất lớn của Tailwind (rounded-3xl = 24px) khắp nơi,
+            // tạo cảm giác "bong bóng mềm". Đè lại đúng các mốc này (không cần sửa từng file vì
+            // MỌI nơi trong app đều gọi qua đúng tên class rounded-lg/xl/2xl/3xl có sẵn) để chuyển
+            // sang dáng vẻ gọn, sắc nét hơn — vẫn bo góc mềm mại, chỉ không "phồng" như trước.
+            borderRadius: {
+              'lg': '0.5rem',    // 8px (mặc định Tailwind: 8px, giữ nguyên làm mốc neo)
+              'xl': '0.625rem',  // 10px (mặc định: 12px)
+              '2xl': '0.875rem', // 14px (mặc định: 16px)
+              '3xl': '1.25rem',  // 20px (mặc định: 24px)
             },
             // Typography phụ trợ: line-height rộng hơn cho vùng đọc chương
             // truyện dài (font-content), letter-spacing âm nhẹ cho heading
@@ -101,11 +114,11 @@
             //  elevation-5: modal, dialog (lớp trên cùng)
             //  glow-primary: viền sáng nhẹ cho nút CTA chính (thay shadow-indigo-500 tự phát)
             boxShadow: {
-              'elevation-1': '0 1px 2px 0 rgba(15, 23, 42, 0.04)',
-              'elevation-2': '0 2px 8px -2px rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.06)',
-              'elevation-3': '0 8px 20px -4px rgba(15, 23, 42, 0.12), 0 2px 6px -2px rgba(15, 23, 42, 0.08)',
-              'elevation-4': '0 16px 32px -8px rgba(15, 23, 42, 0.18)',
-              'elevation-5': '0 24px 48px -12px rgba(15, 23, 42, 0.28)',
+              'elevation-1': '0 1px 2px 0 rgba(6, 78, 74, 0.05)',
+              'elevation-2': '0 2px 8px -2px rgba(6, 78, 74, 0.09), 0 1px 2px -1px rgba(6, 78, 74, 0.06)',
+              'elevation-3': '0 8px 20px -4px rgba(6, 78, 74, 0.13), 0 2px 6px -2px rgba(6, 78, 74, 0.09)',
+              'elevation-4': '0 16px 32px -8px rgba(6, 78, 74, 0.19)',
+              'elevation-5': '0 24px 48px -12px rgba(6, 78, 74, 0.30)',
               'glow-primary': '0 0 0 1px rgba(20, 184, 166, 0.15), 0 4px 16px -2px rgba(20, 184, 166, 0.25)',
             },
             // Đường cong chuyển động chuẩn — "smooth" cho hover/transition UI nhỏ,
@@ -153,9 +166,9 @@
       .dark { color-scheme: dark; }
 
       /* Mesh Gradient Background - Light.
-         Bước 2: rút từ 7 vệt màu (đỏ/cam/tím/xanh chen nhau, dễ rối mắt)
-         xuống còn 3 tông xoay quanh primary (indigo) + info (sky) để nền
-         tĩnh, chuyên nghiệp hơn nhưng vẫn có chiều sâu, không phẳng lì. */
+         UPDATED v1.0.2: đổi 3 vệt màu từ indigo/sky/purple (hue 234/199/255 - tông cũ) sang
+         teal/amber (hue 173/38 - khớp với primary teal mới), để nền mờ phía sau xuyên suốt
+         toàn app cũng đổi tông theo, không còn phảng phất sắc xanh dương/tím của bản gốc. */
       .mesh-bg {
         position: fixed;
         top: 0;
@@ -165,20 +178,20 @@
         z-index: -1;
         background-color: #f8fafc;
         background-image: 
-          radial-gradient(at 15% 10%, hsla(234,89%,64%,0.10) 0px, transparent 55%),
-          radial-gradient(at 85% 15%, hsla(199,89%,60%,0.09) 0px, transparent 55%),
-          radial-gradient(at 50% 100%, hsla(255,70%,68%,0.07) 0px, transparent 60%);
+          radial-gradient(at 15% 10%, hsla(173,70%,45%,0.10) 0px, transparent 55%),
+          radial-gradient(at 85% 15%, hsla(38,92%,60%,0.08) 0px, transparent 55%),
+          radial-gradient(at 50% 100%, hsla(160,60%,50%,0.07) 0px, transparent 60%);
         transition: opacity 0.5s ease, background-color 0.4s ease;
       }
 
       /* Dark Mode Mesh Background - Zen Mode.
          Vẫn giữ tinh thần tối giản gần như đen tuyền, nhưng thêm 1 vệt sáng
-         cực nhẹ (glow primary) ở góc trên để có chiều sâu, tránh cảm giác
+         cực nhẹ (glow primary teal) ở góc trên để có chiều sâu, tránh cảm giác
          phẳng/chết của nền đen đặc hoàn toàn. */
       .dark .mesh-bg {
         background-color: #050505; /* True Black / Deepest Gray */
         background-image:
-          radial-gradient(at 20% 0%, hsla(234,80%,60%,0.05) 0px, transparent 45%);
+          radial-gradient(at 20% 0%, hsla(173,70%,45%,0.05) 0px, transparent 45%);
       }
 
       /* Subtle Grid Pattern Overlay */

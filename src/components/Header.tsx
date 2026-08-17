@@ -5,7 +5,7 @@ import {
     Terminal, FileText, Loader2, AlertCircle, Settings,
     Activity, Moon, Sun, ChevronUp, ChevronDown, 
     Scale, HardDrive, Maximize, Minimize,
-    Ban, Hourglass
+    Ban, Hourglass, Languages
 } from 'lucide-react';
 import { ModelQuota, BatchLimits, RatioLimits } from '../types';
 import { TIER_MODELS } from '../constants';
@@ -262,11 +262,14 @@ export const Header: React.FC<HeaderProps> = (props) => {
             {/* Top Bar */}
             <div className="px-3 py-1.5 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-2">
-                    <div className="bg-gradient-to-tr from-primary-600 to-violet-600 p-1 rounded-lg text-white shadow-elevation-1"><Cpu className="w-3.5 h-3.5" /></div>
+                    {/* UPDATED v1.0.2: logomark riêng (icon Languages, viền tròn đơn sắc teal thay vì
+                        vuông bo góc gradient tím-teal của bản gốc) — dấu hiệu nhận diện nhất quán
+                        với huy hiệu ở IntroPage, không còn icon Cpu (chip máy tính) chung chung. */}
+                    <div className="w-6 h-6 rounded-full bg-primary-600 flex items-center justify-center text-white shrink-0"><Languages className="w-3.5 h-3.5" /></div>
                     <div>
-                        <h1 className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-none">Dịch truyện AI - v1.0.2</h1>
+                        <h1 className="text-xs font-display font-bold text-slate-800 dark:text-slate-100 leading-none tracking-tight">Dịch truyện AI <span className="text-primary-500 font-semibold">· v1.0.2</span></h1>
                     </div>
-                    <button onClick={props.onShowIntro} className="px-2 py-0.5 ml-2 text-[10px] font-bold bg-amber-100/50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-500 rounded-lg border border-amber-200/50 dark:border-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1">Về tác giả</button>
+                    <button onClick={props.onShowIntro} className="px-2 py-0.5 ml-2 text-[10px] font-bold bg-amber-100/50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-500 rounded-full border border-amber-200/50 dark:border-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1">Về tác giả</button>
                     <button aria-label="Hướng dẫn sử dụng" onClick={props.onShowChangelog} className="text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1"><HelpCircle className="w-3.5 h-3.5" /></button>
                 </div>
                 
