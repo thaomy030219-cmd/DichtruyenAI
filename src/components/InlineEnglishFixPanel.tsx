@@ -312,7 +312,7 @@ CHỈ TRẢ VỀ CÁC DÒNG ĐÃ SỬA, KHÔNG GIẢI THÍCH.`;
                     <button
                         onClick={handleAIFix}
                         disabled={isWorking || translatedCount === 0}
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-colors"
+                        className="px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-colors"
                     >
                         {isFixingAI ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> AI đang xử lý...</> : <><RefreshCw className="w-3.5 h-3.5" /> AI Fix toàn diện</>}
                     </button>

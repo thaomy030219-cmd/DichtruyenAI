@@ -236,9 +236,9 @@ export const ModalManager: React.FC<ModalManagerProps> = (props) => {
                 <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"> 
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200"> 
                         <div className="p-6"> 
-                            <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2"><RefreshCw className="w-5 h-5 text-indigo-500" /> Dịch lại {props.selectedCount} chương</h3> 
+                            <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2"><RefreshCw className="w-5 h-5 text-primary-500" /> Dịch lại {props.selectedCount} chương</h3> 
                             <label className="flex items-start gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer mb-4 hover:bg-slate-100 transition-colors">
-                                <input type="checkbox" checked={retranslateKeepOld} onChange={e => setRetranslateKeepOld(e.target.checked)} className="mt-1 w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" />
+                                <input type="checkbox" checked={retranslateKeepOld} onChange={e => setRetranslateKeepOld(e.target.checked)} className="mt-1 w-4 h-4 text-primary-600 rounded border-slate-300 focus:ring-primary-500" />
                                 <div className="text-xs">
                                     <span className="font-bold text-slate-700 block">Giữ nội dung cũ?</span>
                                     <span className="text-slate-500">Giữ bản dịch cũ để tham khảo trong Editor (Split View) trong khi chờ bản mới.</span>
@@ -255,7 +255,7 @@ export const ModalManager: React.FC<ModalManagerProps> = (props) => {
                                 <button onClick={() => { props.handleRetranslateConfirm(retranslateKeepOld, 'flash'); props.setShowRetranslateModal(false); }} className="w-full py-2 px-3 bg-sky-50 border border-sky-100 hover:bg-sky-100 text-sky-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-3">
                                     <div className="p-1 bg-white rounded-lg shadow-sm"><Zap className="w-4 h-4" /></div> Flash Mode (Nhanh)
                                 </button>
-                                <button onClick={() => { props.handleRetranslateConfirm(retranslateKeepOld, 'normal'); props.setShowRetranslateModal(false); }} className="w-full py-2 px-3 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-3 ring-1 ring-indigo-200">
+                                <button onClick={() => { props.handleRetranslateConfirm(retranslateKeepOld, 'normal'); props.setShowRetranslateModal(false); }} className="w-full py-2 px-3 bg-primary-50 border border-primary-100 hover:bg-primary-100 text-primary-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-3 ring-1 ring-primary-200">
                                     <div className="p-1 bg-white rounded-lg shadow-sm"><Activity className="w-4 h-4" /></div> Normal Mode (Khuyên dùng)
                                 </button>
                                 <button onClick={() => { props.handleRetranslateConfirm(retranslateKeepOld, 'pro'); props.setShowRetranslateModal(false); }} className="w-full py-2 px-3 bg-purple-50 border border-purple-100 hover:bg-purple-100 text-purple-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-3">

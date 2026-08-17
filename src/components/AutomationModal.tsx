@@ -123,7 +123,7 @@ export const AutomationModal: React.FC<AutomationModalProps> = ({
                             {countdown > 0  && <div className="absolute inset-0 rounded-full border-8 border-rose-200 dark:border-rose-900/30"></div>}
                         </div>
                         <div className="flex-shrink-0">
-                            <h4 className="text-lg font-bold text-indigo-600 dark:text-indigo-400 mb-2">
+                            <h4 className="text-lg font-bold text-primary-600 dark:text-primary-400 mb-2">
                                 {countdown > 0 ? "Đang nghỉ an toàn (Cooldown)..." : `Đang thực hiện bước ${currentStep}...`}
                             </h4>
                             <p className="text-sm text-slate-500 max-w-xs mx-auto font-medium">
@@ -138,7 +138,7 @@ export const AutomationModal: React.FC<AutomationModalProps> = ({
                                 <PauseCircle className="w-4 h-4" /> Hệ thống đang nghỉ ngơi...
                             </div>
                         ) : (
-                            <button onClick={() => setIsMinimized(true)} className="text-xs text-slate-400 font-bold uppercase tracking-widest hover:text-indigo-500 transition-colors flex items-center gap-1 flex-shrink-0">
+                            <button onClick={() => setIsMinimized(true)} className="text-xs text-slate-400 font-bold uppercase tracking-widest hover:text-primary-500 transition-colors flex items-center gap-1 flex-shrink-0">
                                 <Minimize2 className="w-3 h-3" /> Thu nhỏ để làm việc khác
                             </button>
                         )}
@@ -177,13 +177,13 @@ export const AutomationModal: React.FC<AutomationModalProps> = ({
                                     <div
                                         key={step.id}
                                         onClick={() => toggleStep(step.id)}
-                                        className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedSteps.includes(step.id) ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 opacity-60'}`}
+                                        className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedSteps.includes(step.id) ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 opacity-60'}`}
                                     >
-                                        <div className={`mt-0.5 ${selectedSteps.includes(step.id) ? 'text-indigo-600' : 'text-slate-400'}`}>
+                                        <div className={`mt-0.5 ${selectedSteps.includes(step.id) ? 'text-primary-600' : 'text-slate-400'}`}>
                                             {selectedSteps.includes(step.id) ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
                                         </div>
                                         <div>
-                                            <h4 className={`text-sm font-bold ${selectedSteps.includes(step.id) ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-500'}`}>{step.label}</h4>
+                                            <h4 className={`text-sm font-bold ${selectedSteps.includes(step.id) ? 'text-primary-700 dark:text-primary-300' : 'text-slate-500'}`}>{step.label}</h4>
                                             <p className="text-[10px] text-slate-500">{step.desc}</p>
                                         </div>
                                     </div>

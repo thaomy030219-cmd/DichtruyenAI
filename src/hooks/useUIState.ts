@@ -6,12 +6,16 @@ import { loadPersistedLogs, persistLogs, schedulePersistLogs, clearPersistedLogs
 const THEME_KEY = 'app_theme_preference';
 
 export const useUIState = () => {
+    // UPDATED v1.0.2: Đổi mặc định sang chế độ SÁNG (thân thiện, dễ nhìn) thay vì dò theo
+    // prefers-color-scheme của hệ thống (trước đây nhiều máy mặc định dark khiến app luôn mở
+    // ra ở giao diện tối dù người dùng chưa từng chọn). Người dùng vẫn có thể tự bật lại Dark
+    // Mode bằng nút trên Header — lựa chọn đó vẫn được nhớ qua localStorage như cũ.
     const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
         if (typeof window === 'undefined') return false;
         let storedTheme = null;
         try { storedTheme = localStorage.getItem(THEME_KEY); } catch {}
         if (storedTheme) return storedTheme === 'dark';
-        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+        return false;
     });
     const [showSettings, setShowSettings] = useState<boolean>(false);
     const [showLogs, setShowLogs] = useState<boolean>(false);

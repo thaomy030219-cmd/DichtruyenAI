@@ -90,7 +90,7 @@ export const EpubPreviewModal: React.FC<EpubPreviewModalProps> = ({
                             className={`mt-4 px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all flex items-center gap-2
                                 ${isRegenerating 
                                     ? 'bg-slate-200 text-slate-400 cursor-not-allowed dark:bg-slate-800 dark:text-slate-500' 
-                                    : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:hover:bg-indigo-900/50'
+                                    : 'bg-primary-100 text-primary-700 hover:bg-primary-200 dark:bg-primary-900/30 dark:text-primary-400 dark:hover:bg-primary-900/50'
                                 }`}
                         >
                             {isRegenerating ? (

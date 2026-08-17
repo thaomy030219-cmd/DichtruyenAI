@@ -244,7 +244,7 @@ export const GlossaryTable = ({ content, onChange, setConfirmModal }: { content:
                 
                 {selectedIds.size > 0 ? (
                     <>
-                        <button onClick={handleCopySelected} className="p-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200" title="Copy dòng đã chọn"><Copy className="w-4 h-4" /></button>
+                        <button onClick={handleCopySelected} className="p-2 bg-primary-100 text-primary-600 rounded-lg hover:bg-primary-200" title="Copy dòng đã chọn"><Copy className="w-4 h-4" /></button>
                         <button onClick={handleDeleteSelected} className="p-2 bg-rose-100 text-rose-600 rounded-lg hover:bg-rose-200" title="Xóa dòng đã chọn"><Trash2 className="w-4 h-4" /></button>
                     </>
                 ) : (
@@ -286,7 +286,7 @@ export const GlossaryTable = ({ content, onChange, setConfirmModal }: { content:
                                     <>
                                         <td className="px-2 py-1 relative">
                                             <input 
-                                                className={`w-full bg-transparent font-bold outline-none py-1 focus:bg-white dark:focus:bg-slate-900 rounded px-1 ${row.conflict ? 'text-rose-600 dark:text-rose-400' : 'text-indigo-600 dark:text-indigo-400'}`}
+                                                className={`w-full bg-transparent font-bold outline-none py-1 focus:bg-white dark:focus:bg-slate-900 rounded px-1 ${row.conflict ? 'text-rose-600 dark:text-rose-400' : 'text-primary-600 dark:text-primary-400'}`}
                                                 value={row.key}
                                                 onChange={e => handleEdit(row.id, 'key', e.target.value)}
                                                 onClick={(e) => e.stopPropagation()}

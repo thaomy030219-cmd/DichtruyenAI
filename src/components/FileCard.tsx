@@ -44,7 +44,7 @@ const FileCard: React.FC<FileCardProps> = ({
 
     // Helper for Status Background Colors (Pastel)
     const getStatusColor = () => {
-        if (isSelected) return 'bg-indigo-50/80 dark:bg-indigo-900/40 border-indigo-500 ring-1 ring-indigo-500';
+        if (isSelected) return 'bg-primary-50/80 dark:bg-primary-900/40 border-primary-500 ring-1 ring-primary-500';
         switch (file.status) {
             case FileStatus.COMPLETED:
                 if (file.remainingRawCharCount > 0) return 'bg-orange-50/50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900/50 hover:border-orange-300';
@@ -56,7 +56,7 @@ const FileCard: React.FC<FileCardProps> = ({
             case FileStatus.REPAIRING:
                 return 'bg-sky-50/50 dark:bg-sky-950/20 border-sky-200 dark:border-sky-900/50 hover:border-sky-300 animate-pulse';
             default:
-                return 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700';
+                return 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-primary-300 dark:hover:border-primary-700';
         }
     };
 

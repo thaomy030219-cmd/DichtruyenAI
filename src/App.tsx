@@ -266,11 +266,11 @@ const App: React.FC = () => {
 
   // Render
   if (!core.isLoaded) {
-      return ( <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 text-slate-600 animate-in fade-in"> <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-4" /> <h2 className="text-xl font-bold">Đang tải dữ liệu...</h2> </div> );
+      return ( <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 text-slate-600 animate-in fade-in"> <Loader2 className="w-12 h-12 text-primary-600 animate-spin mb-4" /> <h2 className="text-xl font-bold">Đang tải dữ liệu...</h2> </div> );
   }
 
   if (core.isResetting) {
-      return ( <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 text-slate-600 animate-in fade-in"> <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-4" /> <h2 className="text-xl font-bold">Resetting System...</h2> </div> );
+      return ( <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 text-slate-600 animate-in fade-in"> <Loader2 className="w-12 h-12 text-primary-600 animate-spin mb-4" /> <h2 className="text-xl font-bold">Resetting System...</h2> </div> );
   }
 
   return (
@@ -407,7 +407,7 @@ const App: React.FC = () => {
             </p>
             <button 
               onClick={() => window.location.reload()}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-200 dark:shadow-none"
+              className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary-200 dark:shadow-none"
             >
               Tải Lại Trang Ngay
             </button>

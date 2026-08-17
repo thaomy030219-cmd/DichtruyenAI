@@ -43,7 +43,7 @@ const AnalysisSkeleton = () => {
                     <div className="h-3 bg-slate-200 rounded w-10 animate-pulse"></div>
                 </div>
                 <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-400/50 w-2/3 animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite]"></div>
+                    <div className="h-full bg-primary-400/50 w-2/3 animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite]"></div>
                 </div>
             </div>
         </div>
@@ -178,9 +178,9 @@ export const NameAnalysisModal: React.FC<NameAnalysisModalProps> = ({ isOpen, on
                     <div className="space-y-4">
                         <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><ListFilter className="w-3.5 h-3.5"/> Bước 3: Phạm Vi Quét</label>
                         <div className="flex bg-slate-100 p-1.5 rounded-2xl gap-1.5 shadow-inner">
-                             <button onClick={() => setScope('smart')} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${scope === 'smart' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}>Smart Sampling (Nhanh)</button>
-                             <button onClick={() => setScope('range')} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${scope === 'range' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}>Khoảng cụ thể</button>
-                             <button onClick={() => setScope('full')} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${scope === 'full' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}>Toàn Bộ</button>
+                             <button onClick={() => setScope('smart')} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${scope === 'smart' ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}>Smart Sampling (Nhanh)</button>
+                             <button onClick={() => setScope('range')} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${scope === 'range' ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}>Khoảng cụ thể</button>
+                             <button onClick={() => setScope('full')} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${scope === 'full' ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}>Toàn Bộ</button>
                         </div>
 
                         {scope === 'smart' && <SamplingFields head={sampleHead} mid={sampleMid} tail={sampleTail} setHead={setSampleHead} setMid={setSampleMid} setTail={setSampleTail} />}

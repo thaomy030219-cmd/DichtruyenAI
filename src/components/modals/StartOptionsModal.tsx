@@ -17,7 +17,7 @@ export const StartOptionsModal: React.FC<StartOptionsModalProps> = ({ isOpen, on
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
                 <div className="p-6 overflow-y-auto flex-1">
                     <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2 flex-shrink-0">
-                        {isSmartMode ? <Sparkles className="w-6 h-6 text-indigo-500" /> : <div className="text-sky-500"><Zap className="w-6 h-6" /></div>}
+                        {isSmartMode ? <Sparkles className="w-6 h-6 text-primary-500" /> : <div className="text-sky-500"><Zap className="w-6 h-6" /></div>}
                         {isSmartMode ? "Smart AI Auto-Fix" : "Chọn Cấp Độ Dịch"}
                     </h3>
                     <div className="space-y-3">
@@ -33,9 +33,9 @@ export const StartOptionsModal: React.FC<StartOptionsModalProps> = ({ isOpen, on
                             <div className={`p-3 rounded-xl shadow-sm transition-colors ${selectedTier === 'flash' ? 'bg-sky-500 text-white' : 'bg-sky-50 text-sky-500 group-hover:bg-sky-100'}`}><Zap className="w-6 h-6" /></div>
                             <div><h4 className={`font-bold text-sm ${selectedTier === 'flash' ? 'text-sky-800' : 'text-slate-700'}`}>Flash Mode</h4><p className="text-xs text-slate-500">Tốc độ tối đa, tiết kiệm Pro.</p></div>
                         </button>
-                        <button onClick={() => setSelectedTier('normal')} className={`w-full p-4 rounded-2xl flex items-start gap-4 transition-all group text-left border ${selectedTier === 'normal' ? 'bg-indigo-50 border-indigo-300 ring-2 ring-indigo-200 shadow-md' : 'bg-white border-slate-200 hover:border-indigo-200'}`}>
-                            <div className={`p-3 rounded-xl shadow-sm transition-colors ${selectedTier === 'normal' ? 'bg-indigo-500 text-white' : 'bg-indigo-50 text-indigo-500 group-hover:bg-indigo-100'}`}><Activity className="w-6 h-6" /></div>
-                            <div><h4 className={`font-bold text-sm ${selectedTier === 'normal' ? 'text-indigo-800' : 'text-slate-700'}`}>Normal Mode (Khuyên dùng)</h4><p className="text-xs text-slate-500">Dịch bằng Pro Model (2 luồng, không dùng Flash), tối ưu quota.</p></div>
+                        <button onClick={() => setSelectedTier('normal')} className={`w-full p-4 rounded-2xl flex items-start gap-4 transition-all group text-left border ${selectedTier === 'normal' ? 'bg-primary-50 border-primary-300 ring-2 ring-primary-200 shadow-md' : 'bg-white border-slate-200 hover:border-primary-200'}`}>
+                            <div className={`p-3 rounded-xl shadow-sm transition-colors ${selectedTier === 'normal' ? 'bg-primary-500 text-white' : 'bg-primary-50 text-primary-500 group-hover:bg-primary-100'}`}><Activity className="w-6 h-6" /></div>
+                            <div><h4 className={`font-bold text-sm ${selectedTier === 'normal' ? 'text-primary-800' : 'text-slate-700'}`}>Normal Mode (Khuyên dùng)</h4><p className="text-xs text-slate-500">Dịch bằng Pro Model (2 luồng, không dùng Flash), tối ưu quota.</p></div>
                         </button>
                         <button onClick={() => setSelectedTier('pro')} className={`w-full p-4 rounded-2xl flex items-start gap-4 transition-all group text-left border ${selectedTier === 'pro' ? 'bg-purple-50 border-purple-300 ring-2 ring-purple-200 shadow-md' : 'bg-white border-slate-200 hover:border-purple-200'}`}>
                             <div className={`p-3 rounded-xl shadow-sm transition-colors ${selectedTier === 'pro' ? 'bg-purple-500 text-white' : 'bg-purple-50 text-purple-500 group-hover:bg-purple-100'}`}><Sparkles className="w-6 h-6" /></div>
@@ -49,7 +49,7 @@ export const StartOptionsModal: React.FC<StartOptionsModalProps> = ({ isOpen, on
                 </div>
                 <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3 flex-shrink-0">
                     <button onClick={onClose} className="px-6 py-2 text-sm font-bold text-slate-500 hover:text-slate-700">Hủy</button>
-                    <button onClick={() => onConfirm(selectedTier)} className="px-8 py-2 bg-gradient-to-r from-indigo-500 to-sky-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200/50 hover:shadow-indigo-200/80 transition-all flex items-center gap-2">
+                    <button onClick={() => onConfirm(selectedTier)} className="px-8 py-2 bg-gradient-to-r from-primary-500 to-sky-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-primary-200/50 hover:shadow-primary-200/80 transition-all flex items-center gap-2">
                         <Play className="w-4 h-4 fill-current" /> Bắt Đầu
                     </button>
                 </div>

@@ -33,7 +33,7 @@ const LiveTimer = ({ startTime, endTime }: { startTime: number, endTime: number 
     const s = (diff % 60).toString().padStart(2, '0');
 
     return (
-        <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 font-bold min-w-[60px]">
+        <div className="flex items-center gap-1.5 text-primary-600 dark:text-primary-400 font-bold min-w-[60px]">
             <Timer className={`w-3 h-3 ${!endTime ? 'animate-pulse' : ''}`} />
             <span>{h}:{m}:{s}</span>
         </div>
@@ -264,7 +264,7 @@ export const Header: React.FC<HeaderProps> = (props) => {
                 <div className="flex items-center gap-2">
                     <div className="bg-gradient-to-tr from-primary-600 to-violet-600 p-1 rounded-lg text-white shadow-elevation-1"><Cpu className="w-3.5 h-3.5" /></div>
                     <div>
-                        <h1 className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-none">Dịch truyện AI - v1.0.1</h1>
+                        <h1 className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-none">Dịch truyện AI - v1.0.2</h1>
                     </div>
                     <button onClick={props.onShowIntro} className="px-2 py-0.5 ml-2 text-[10px] font-bold bg-amber-100/50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-500 rounded-lg border border-amber-200/50 dark:border-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1">Về tác giả</button>
                     <button aria-label="Hướng dẫn sử dụng" onClick={props.onShowChangelog} className="text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1"><HelpCircle className="w-3.5 h-3.5" /></button>
@@ -389,7 +389,7 @@ export const Header: React.FC<HeaderProps> = (props) => {
                                 <div className="flex items-center gap-3">
                                     <span className="font-bold text-slate-500 dark:text-slate-400 text-[10px] uppercase tracking-wider">Số kí tự tối đa:</span>
                                     <div className="flex items-center gap-1.5">
-                                        <span className="text-[10px] text-indigo-600 font-medium uppercase">Latin:</span>
+                                        <span className="text-[10px] text-primary-600 font-medium uppercase">Latin:</span>
                                         <CustomNumberInput widthClass="w-16" value={props.batchLimits.latin.maxTotalChars ?? ''} onChange={(val: any) => props.setBatchLimits(prev => ({...prev, latin: {...prev.latin, maxTotalChars: val === '' ? 0 : val}}))} />
                                     </div>
                                     <div className="flex items-center gap-1.5">
@@ -427,11 +427,11 @@ export const Header: React.FC<HeaderProps> = (props) => {
                                     </div>
                                 </div>
                                 <div className="flex flex-col items-center gap-0.5">
-                                    <span className="text-[8px] font-bold text-indigo-600">EN/Western</span>
+                                    <span className="text-[8px] font-bold text-primary-600">EN/Western</span>
                                     <div className="flex items-center gap-0.5">
-                                        <CustomNumberInput step={0.1} widthClass="w-14" className="text-indigo-600" value={props.ratioLimits.en?.min ?? DEFAULT_RATIO_LIMITS.en.min} onChange={(val: any) => props.setRatioLimits(prev => ({...prev, en: {...prev.en, min: val}}))} />
+                                        <CustomNumberInput step={0.1} widthClass="w-14" className="text-primary-600" value={props.ratioLimits.en?.min ?? DEFAULT_RATIO_LIMITS.en.min} onChange={(val: any) => props.setRatioLimits(prev => ({...prev, en: {...prev.en, min: val}}))} />
                                         <span className="text-slate-300">-</span>
-                                        <CustomNumberInput step={0.1} widthClass="w-14" className="text-indigo-600" value={props.ratioLimits.en?.max ?? DEFAULT_RATIO_LIMITS.en.max} onChange={(val: any) => props.setRatioLimits(prev => ({...prev, en: {...prev.en, max: val}}))} />
+                                        <CustomNumberInput step={0.1} widthClass="w-14" className="text-primary-600" value={props.ratioLimits.en?.max ?? DEFAULT_RATIO_LIMITS.en.max} onChange={(val: any) => props.setRatioLimits(prev => ({...prev, en: {...prev.en, max: val}}))} />
                                     </div>
                                 </div>
                                 <div className="flex flex-col items-center gap-0.5">
@@ -459,7 +459,7 @@ export const Header: React.FC<HeaderProps> = (props) => {
 
             {/* Global Progress Bar */}
              <div className="w-full h-0.5 bg-slate-100 dark:bg-slate-800 relative group">
-                 <div className="h-full bg-gradient-to-r from-sky-400 via-indigo-500 to-purple-500 transition-all duration-300 ease-out" style={{ width: `${props.progressPercentage || 0}%` }} />
+                 <div className="h-full bg-gradient-to-r from-sky-400 via-primary-500 to-purple-500 transition-all duration-300 ease-out" style={{ width: `${props.progressPercentage || 0}%` }} />
                  {estimatedTimeRemaining && (
                     <div className="absolute bottom-full right-0 mb-1 bg-slate-800 text-white text-[10px] px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity font-mono whitespace-nowrap z-50 pointer-events-none">
                         ETA: {estimatedTimeRemaining}
@@ -469,7 +469,7 @@ export const Header: React.FC<HeaderProps> = (props) => {
 
             <style>{`
                 .config-input {
-                    @apply px-1 py-0.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-center font-mono font-bold text-slate-700 dark:text-slate-200 focus:ring-1 focus:ring-indigo-300 outline-none text-[10px];
+                    @apply px-1 py-0.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-center font-mono font-bold text-slate-700 dark:text-slate-200 focus:ring-1 focus:ring-primary-300 outline-none text-[10px];
                     -moz-appearance: textfield;
                 }
                 /* Hide native spinners completely */

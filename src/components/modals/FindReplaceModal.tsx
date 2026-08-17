@@ -60,7 +60,7 @@ export const FindReplaceModal: React.FC<FindReplaceModalProps> = ({ isOpen, onCl
                                             type="checkbox" 
                                             checked={pair.useRegex} 
                                             onChange={e => handleChange(pair.id, 'useRegex', e.target.checked)}
-                                            className="w-3.5 h-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                            className="w-3.5 h-3.5 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
                                         />
                                         <span className="text-[10px] font-bold text-slate-500 uppercase">Regex</span>
                                     </label>
@@ -70,7 +70,7 @@ export const FindReplaceModal: React.FC<FindReplaceModalProps> = ({ isOpen, onCl
                                             checked={pair.exactMatch !== false} 
                                             onChange={e => handleChange(pair.id, 'exactMatch', e.target.checked)}
                                             disabled={pair.useRegex}
-                                            className="w-3.5 h-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="w-3.5 h-3.5 rounded border-slate-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                         />
                                         <span className={`text-[10px] font-bold uppercase ${pair.useRegex ? 'text-slate-400' : 'text-slate-500'}`}>Khớp nguyên từ</span>
                                     </label>
@@ -84,7 +84,7 @@ export const FindReplaceModal: React.FC<FindReplaceModalProps> = ({ isOpen, onCl
                         </div>
                     ))}
                     
-                    <button onClick={handleAddPair} className="flex items-center gap-2 text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded-lg transition-colors ml-6">
+                    <button onClick={handleAddPair} className="flex items-center gap-2 text-xs font-bold text-primary-600 hover:text-primary-700 bg-primary-50 hover:bg-primary-100 px-3 py-2 rounded-lg transition-colors ml-6">
                         <Plus className="w-3 h-3" /> Thêm Dòng
                     </button>
                 </div>
@@ -95,7 +95,7 @@ export const FindReplaceModal: React.FC<FindReplaceModalProps> = ({ isOpen, onCl
                             Thay Thế Tất Cả
                         </button>
                         {selectedCount > 0 && (
-                            <button onClick={() => { if(pairs.some(p => p.find)) { onReplace(pairs, 'selected'); onClose(); } }} className="w-full py-3 bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100 rounded-xl font-bold transition-all">
+                            <button onClick={() => { if(pairs.some(p => p.find)) { onReplace(pairs, 'selected'); onClose(); } }} className="w-full py-3 bg-primary-50 text-primary-600 border border-primary-200 hover:bg-primary-100 rounded-xl font-bold transition-all">
                                 Chỉ Thay {selectedCount} File Đang Chọn
                             </button>
                         )}

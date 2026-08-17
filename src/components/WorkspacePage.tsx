@@ -287,7 +287,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
                         <div className="flex items-start gap-4">
                             <div className="w-24 text-xs font-bold text-slate-400 uppercase mt-2">Trạng thái:</div>
                             <div className="flex flex-wrap gap-2 flex-1">
-                                {renderFilterBadge("Đã chọn", counts.selected, props.filterStatuses.has('selected'), () => props.toggleFilterStatus('selected'), 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800')}
+                                {renderFilterBadge("Đã chọn", counts.selected, props.filterStatuses.has('selected'), () => props.toggleFilterStatus('selected'), 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-800')}
                                 {renderFilterBadge("Chưa dịch", counts.pending, props.filterStatuses.has('pending'), () => props.toggleFilterStatus('pending'), 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600')}
                                 {renderFilterBadge("Hoàn thành", counts.completed, props.filterStatuses.has('completed'), () => props.toggleFilterStatus('completed'), 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800')}
                                 {renderFilterBadge("Còn Raw", counts.raw, props.filterStatuses.has('raw'), () => props.toggleFilterStatus('raw'), 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800')}
@@ -356,7 +356,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-slate-50/50 dark:bg-slate-900/50" onScroll={handleScroll}>
                 {props.files.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 border-2 border-dashed border-slate-300/50 dark:border-slate-700/50 rounded-3xl bg-white/50 dark:bg-slate-900/50">
-                        <div className="p-8 bg-white dark:bg-slate-800 rounded-full shadow-xl shadow-indigo-100 dark:shadow-none mb-6 animate-bounce"><FileArchive className="w-16 h-16 text-indigo-200 dark:text-indigo-800" /></div>
+                        <div className="p-8 bg-white dark:bg-slate-800 rounded-full shadow-xl shadow-primary-100 dark:shadow-none mb-6 animate-bounce"><FileArchive className="w-16 h-16 text-primary-200 dark:text-primary-800" /></div>
                         <h3 className="text-xl font-display font-bold text-slate-600 dark:text-slate-300 mb-2">Chưa có file nào</h3>
                         <p className="text-sm text-slate-400 dark:text-slate-500 mb-8 max-w-xs text-center">Kéo thả file .txt, .zip, .epub, .pdf vào đây</p>
                         <label className="px-8 py-3 bg-primary-600 text-white rounded-xl font-bold shadow-elevation-3 hover:bg-primary-700 hover:shadow-elevation-4 cursor-pointer transition-all duration-200 ease-smooth flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1">
@@ -366,7 +366,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
                     </div>
                 ) : localVisibleFiles.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 border-2 border-dashed border-slate-300/50 dark:border-slate-700/50 rounded-3xl bg-white/50 dark:bg-slate-900/50">
-                        <div className="p-8 bg-white dark:bg-slate-800 rounded-full shadow-xl shadow-indigo-100 dark:shadow-none mb-6"><FileArchive className="w-16 h-16 text-slate-300 dark:text-slate-600" /></div>
+                        <div className="p-8 bg-white dark:bg-slate-800 rounded-full shadow-xl shadow-primary-100 dark:shadow-none mb-6"><FileArchive className="w-16 h-16 text-slate-300 dark:text-slate-600" /></div>
                         <h3 className="text-xl font-display font-bold text-slate-600 dark:text-slate-300 mb-2">Không có file nào khớp với bộ lọc</h3>
                         <p className="text-sm text-slate-400 dark:text-slate-500 mb-8 max-w-xs text-center">Hãy thử thay đổi hoặc xóa bộ lọc để xem các file khác.</p>
                         <button onClick={props.clearFilters} className="px-8 py-3 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-all duration-200 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1">

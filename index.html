@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>Dịch truyện AI - v1.0.1</title>
+    <title>Dịch truyện AI - v1.0.2</title>
     
     <!-- Fonts: Outfit for headings, Inter for body, Playfair/Cinzel for Cover Art, Merriweather/Lora for Content -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,6 +22,9 @@
               display: ['Outfit', 'sans-serif'],
               serif: ['Merriweather', 'Lora', 'serif'],
               content: ['Lora', 'serif'],
+              // UPDATED v1.0.2: font tiêu đề văn học riêng cho IntroPage (khác hẳn Outfit dùng
+              // trong app) — hợp với chủ đề "truyện", đã có sẵn link Google Fonts ở trên.
+              heading: ['"Playfair Display"', 'serif'],
             },
             // Typography phụ trợ: line-height rộng hơn cho vùng đọc chương
             // truyện dài (font-content), letter-spacing âm nhẹ cho heading
@@ -61,10 +64,13 @@
               // === DESIGN TOKENS (Bước 1) ===
               // Alias ngữ nghĩa cho màu accent chính, dùng thay cho "indigo" rải rác
               // để sau này đổi thương hiệu chỉ cần sửa 1 chỗ.
+              // UPDATED v1.0.2: Đổi từ indigo/tím (lạnh, công nghệ) sang teal/xanh ngọc ấm áp,
+              // thân thiện hơn — đổi đúng 1 chỗ này lan ra toàn bộ nút, viền, điểm nhấn khắp app
+              // vì mọi nơi đều dùng alias `primary-*` thay vì hardcode "indigo".
               primary: {
-                50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc',
-                400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca',
-                800: '#3730a3', 900: '#312e81',
+                50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 300: '#5eead4',
+                400: '#2dd4bf', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e',
+                800: '#115e59', 900: '#134e4a',
               },
               // Màu ngữ nghĩa trạng thái — map theo đúng tông đang dùng
               // (emerald=success, amber=warning, rose=danger, sky=info) để
@@ -100,7 +106,7 @@
               'elevation-3': '0 8px 20px -4px rgba(15, 23, 42, 0.12), 0 2px 6px -2px rgba(15, 23, 42, 0.08)',
               'elevation-4': '0 16px 32px -8px rgba(15, 23, 42, 0.18)',
               'elevation-5': '0 24px 48px -12px rgba(15, 23, 42, 0.28)',
-              'glow-primary': '0 0 0 1px rgba(99, 102, 241, 0.15), 0 4px 16px -2px rgba(99, 102, 241, 0.25)',
+              'glow-primary': '0 0 0 1px rgba(20, 184, 166, 0.15), 0 4px 16px -2px rgba(20, 184, 166, 0.25)',
             },
             // Đường cong chuyển động chuẩn — "smooth" cho hover/transition UI nhỏ,
             // "in-out" cho việc mở/đóng panel, modal, sidebar.

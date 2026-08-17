@@ -216,15 +216,15 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
                     {/* LEFT COLUMN: KEY MANAGEMENT */}
                     <div className="flex-1 space-y-6">
                         {/* ACTIVE KEY PANEL */}
-                        <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50 rounded-2xl p-4">
-                            <h4 className="font-bold text-indigo-900 dark:text-indigo-300 text-sm mb-3 flex items-center gap-2">
+                        <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800/50 rounded-2xl p-4">
+                            <h4 className="font-bold text-primary-900 dark:text-primary-300 text-sm mb-3 flex items-center gap-2">
                                 <Key className="w-4 h-4" /> KEY ĐANG SỬ DỤNG
                             </h4>
                             {activeKeyInfo ? (
                                 <div className="space-y-2">
-                                    <div className="flex items-center justify-between bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-indigo-100 dark:border-indigo-800">
+                                    <div className="flex items-center justify-between bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-primary-100 dark:border-primary-800">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-indigo-600 dark:text-indigo-400 font-mono text-xs border border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/50 rounded px-1.5 py-0.5">#{activeKeyInfo.index + 1}</span>
+                                            <span className="text-primary-600 dark:text-primary-400 font-mono text-xs border border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/50 rounded px-1.5 py-0.5">#{activeKeyInfo.index + 1}</span>
                                             <span className="font-mono text-sm text-slate-700 dark:text-slate-300">{activeKeyInfo.maskedKey}</span>
                                         </div>
                                         <div className="flex items-center gap-2 text-xs font-medium">
@@ -235,13 +235,13 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
                                     </div>
                                     <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 px-1">
                                         <span>Số request thành công: <strong>{activeKeyInfo.successCount}</strong></span>
-                                        <button onClick={handleResetQuota} className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium flex items-center gap-1">
+                                        <button onClick={handleResetQuota} className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium flex items-center gap-1">
                                             <RefreshCw className="w-3 h-3" /> Reset Quota toàn bộ
                                         </button>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="text-sm text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-indigo-100 dark:border-indigo-800">
+                                <div className="text-sm text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-primary-100 dark:border-primary-800">
                                     Chưa có API Key nào được cấu hình
                                 </div>
                             )}
@@ -307,7 +307,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
                             {keyStatuses.length > 0 && (
                                 <div className="max-h-64 overflow-y-auto overscroll-contain w-full space-y-2 p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">
                                     {keyStatuses.map((ks, idx) => (
-                                        <div key={idx} className={`flex items-center justify-between bg-white dark:bg-slate-950 px-3 py-2 rounded-lg border text-sm transition-all ${ks.status === 'Active' ? 'border-indigo-400 dark:border-indigo-600 shadow-sm' : 'border-slate-100 dark:border-slate-800'}`}>
+                                        <div key={idx} className={`flex items-center justify-between bg-white dark:bg-slate-950 px-3 py-2 rounded-lg border text-sm transition-all ${ks.status === 'Active' ? 'border-primary-400 dark:border-primary-600 shadow-sm' : 'border-slate-100 dark:border-slate-800'}`}>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-slate-400 font-mono text-xs border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5">#{idx + 1}</span>
                                                 <span className="font-mono text-slate-700 dark:text-slate-300">{ks.maskedKey}</span>
@@ -376,14 +376,14 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
                         {testResults.length > 0 && (
                             <div className={`p-3 rounded-lg border text-sm ${testResult.status === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800' : testResult.status === 'error' ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}>
                                 <div className="font-bold mb-2 flex items-center gap-2">
-                                    {testResult.status === 'success' ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : testResult.status === 'error' ? <AlertTriangle className="w-4 h-4 text-rose-500" /> : <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />}
+                                    {testResult.status === 'success' ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : testResult.status === 'error' ? <AlertTriangle className="w-4 h-4 text-rose-500" /> : <Loader2 className="w-4 h-4 text-primary-500 animate-spin" />}
                                     Kết quả Test API
                                 </div>
                                 <div className="space-y-1.5 max-h-40 overflow-y-auto no-scrollbar overscroll-contain">
                                     {testResults.map((r, idx) => (
                                         <div key={idx} className="flex items-start gap-2">
                                             {r.status === 'testing' ? (
-                                                <Loader2 className="w-4 h-4 text-indigo-500 animate-spin mt-0.5 flex-shrink-0" />
+                                                <Loader2 className="w-4 h-4 text-primary-500 animate-spin mt-0.5 flex-shrink-0" />
                                             ) : r.status === 'success' ? (
                                                 <span className="text-emerald-500 mt-0.5 flex-shrink-0">✅</span>
                                             ) : (

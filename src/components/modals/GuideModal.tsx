@@ -9,7 +9,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
         <div className="fixed inset-0 z-[160] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"> 
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-white/40 ring-1 ring-black/50"> 
                 {/* Header */}
-                <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-blue-50 to-indigo-50"> 
+                <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-blue-50 to-primary-50"> 
                     <div className="flex items-center gap-3"> 
                         <div className="p-2 bg-white rounded-xl shadow-sm text-blue-600"><GraduationCap className="w-6 h-6" /></div> 
                         <div> <h3 className="font-display font-bold text-lg text-slate-800">Hướng Dẫn Sử Dụng (Dành Cho Người Mới)</h3> </div> 
@@ -21,7 +21,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                     <button onClick={() => setActiveTab('intro')} className={`flex-1 min-w-[120px] py-4 text-sm font-bold border-b-2 transition-all flex items-center justify-center gap-2 ${activeTab === 'intro' ? 'border-sky-500 text-sky-600 bg-sky-50/30' : 'border-transparent text-slate-500 hover:bg-slate-50'}`}>
                         <Info className="w-4 h-4"/> Tổng Quan
                     </button> 
-                    <button onClick={() => setActiveTab('flow')} className={`flex-1 min-w-[120px] py-4 text-sm font-bold border-b-2 transition-all flex items-center justify-center gap-2 ${activeTab === 'flow' ? 'border-indigo-500 text-indigo-600 bg-indigo-50/30' : 'border-transparent text-slate-500 hover:bg-slate-50'}`}>
+                    <button onClick={() => setActiveTab('flow')} className={`flex-1 min-w-[120px] py-4 text-sm font-bold border-b-2 transition-all flex items-center justify-center gap-2 ${activeTab === 'flow' ? 'border-primary-500 text-primary-600 bg-primary-50/30' : 'border-transparent text-slate-500 hover:bg-slate-50'}`}>
                         <Play className="w-4 h-4"/> Quy Trình 4 Bước
                     </button> 
                     <button onClick={() => setActiveTab('detailed')} className={`flex-1 min-w-[120px] py-4 text-sm font-bold border-b-2 transition-all flex items-center justify-center gap-2 ${activeTab === 'detailed' ? 'border-emerald-500 text-emerald-600 bg-emerald-50/30' : 'border-transparent text-slate-500 hover:bg-slate-50'}`}>
@@ -47,7 +47,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
-                                    <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 mb-4"><Brain className="w-6 h-6"/></div>
+                                    <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 mb-4"><Brain className="w-6 h-6"/></div>
                                     <h5 className="font-bold text-lg text-slate-800 mb-2">Thông Minh Hơn</h5>
                                     <p className="text-slate-600">AI hiểu ngữ cảnh, tự động nhận biết tên nhân vật, chiêu thức và xưng hô (Huynh/Muội, Ta/Nàng) tùy theo thể loại truyện.</p>
                                 </div>
@@ -72,7 +72,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                     {/* TAB 2: FLOW */}
                     {activeTab === 'flow' && (
                         <div className="space-y-8 animate-in fade-in duration-300">
-                            <h4 className="font-bold text-xl text-indigo-700 mb-4">Quy Trình 4 Bước Đơn Giản</h4>
+                            <h4 className="font-bold text-xl text-primary-700 mb-4">Quy Trình 4 Bước Đơn Giản</h4>
                             
                             <div className="relative border-l-2 border-slate-200 ml-3 space-y-10 pl-8 py-2">
                                 {/* Step 1 */}
@@ -96,7 +96,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                                 </div>
                                 {/* Step 3 */}
                                 <div className="relative">
-                                    <span className="absolute -left-[41px] w-8 h-8 rounded-full bg-indigo-500 text-white flex items-center justify-center font-bold text-sm ring-4 ring-white">3</span>
+                                    <span className="absolute -left-[41px] w-8 h-8 rounded-full bg-primary-500 text-white flex items-center justify-center font-bold text-sm ring-4 ring-white">3</span>
                                     <h5 className="font-bold text-lg text-slate-800">Chạy Dịch Thuật (Run)</h5>
                                     <p className="text-slate-600 mt-1">Sau khi Auto xong, nhấn <b>"Chạy Tự Động"</b> hoặc đóng cửa sổ Auto và nhấn nút <b>"BẮT ĐẦU"</b> ở góc phải.</p>
                                     <div className="mt-3 flex gap-4">
@@ -104,8 +104,8 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                                             <b className="block text-slate-700 mb-1">Flash Mode</b>
                                             Tốc độ cao. Dùng cho bản nháp hoặc truyện dễ.
                                         </div>
-                                        <div className="flex-1 bg-indigo-50 p-3 rounded-lg text-xs border border-indigo-100">
-                                            <b className="block text-indigo-700 mb-1">Normal Mode (Khuyên dùng)</b>
+                                        <div className="flex-1 bg-primary-50 p-3 rounded-lg text-xs border border-primary-100">
+                                            <b className="block text-primary-700 mb-1">Normal Mode (Khuyên dùng)</b>
                                             Cân bằng. Dịch bằng model xịn, sửa lỗi bằng model nhanh.
                                         </div>
                                     </div>
@@ -181,7 +181,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                                     </div>
                                 </div>
                                 <div className="flex gap-4 bg-white p-4 rounded-xl border border-slate-200">
-                                    <div className="p-3 bg-indigo-100 text-indigo-600 rounded-lg h-fit"><Layout className="w-5 h-5"/></div>
+                                    <div className="p-3 bg-primary-100 text-primary-600 rounded-lg h-fit"><Layout className="w-5 h-5"/></div>
                                     <div>
                                         <h5 className="font-bold text-slate-800">Editor Song Song</h5>
                                         <p className="text-slate-600 mt-1">Bấm vào tên file để mở trình chỉnh sửa. Bên trái là bản gốc, bên phải là bản dịch. Có chế độ soi lỗi Raw và đồng bộ cuộn.</p>
