@@ -170,12 +170,19 @@ export const smartExecution = async <T>(
             if (error.statusText) msg += " " + error.statusText.toLowerCase();
             
             const isQuotaError = msg.includes('429') || msg.includes('exceeded quota') || msg.includes('quota exceeded') || msg.includes('resource exhausted') || msg.includes('quota');
-            const isInvalidKey = msg.includes('api key not valid') || msg.includes('api_key_invalid') || (error.status === 400 && msg.includes('key')) || msg.includes('401 unauthorized');
+            // UPDATED v1.0.2: bổ sung "không tìm thấy api key" (thông báo getAiClient() ném ra khi
+            // biến môi trường GEMINI_API_KEY trống/không được nạp — hay gặp nhất khi bản Publish
+            // chưa cấu hình đúng Secrets trong AI Studio). Trước đây lỗi này không khớp điều kiện
+            // nào, bị rơi xuống nhánh lỗi chung ở cuối hàm, âm thầm tích lũy consecutiveErrors và
+            // SAU 25-105 LẦN THỬ mới bị đánh dấu "hết Quota" — khiến người dùng tưởng lầm là vấn đề
+            // quota trong khi gốc rễ là thiếu Key ngay từ đầu. Giờ nhận diện và báo lỗi rõ ràng, tức
+            // thì thay vì chờ tích lũy.
+            const isInvalidKey = msg.includes('api key not valid') || msg.includes('api_key_invalid') || (error.status === 400 && msg.includes('key')) || msg.includes('401 unauthorized') || msg.includes('không tìm thấy api key');
             const isSafetyError = !isQuotaError && (msg.includes('bộ lọc an toàn') || msg.includes('safety') || msg.includes('blocklist') || msg.includes('prohibited_content'));
             const isHallucinationError = msg.includes('lặp từ hoặc mất thẻ') || msg.includes('tỷ lệ >') || msg.includes('vượt giới hạn');
             
             if (isInvalidKey) {
-                 throw new Error("API Key không hợp lệ hoặc đã bị khóa.", { cause: error });
+                 throw new Error("API Key không hợp lệ, đã bị khóa, hoặc chưa được cấu hình (kiểm tra mục Secrets nếu đang chạy bản Publish trên AI Studio).", { cause: error });
             }
             
             if (isSafetyError) {
@@ -249,9 +256,22 @@ export const smartExecution = async <T>(
                 }
             }
 
+            // UPDATED v1.0.2: FIX lỗi nghiêm trọng — 403 (Permission Denied) TRƯỚC ĐÂY bị coi là
+            // "hết Quota" (gọi markAsDepleted), khiến quota bị đánh dấu "HẾT" vĩnh viễn dù request
+            // đầu tiên trong ngày còn chưa thực hiện được lần nào (0 request). 403 và "hết Quota"
+            // (429/Resource Exhausted) là 2 LOẠI LỖI HOÀN TOÀN KHÁC NHAU:
+            //   - 429/Resource Exhausted = Key ĐÚNG, chỉ là đã dùng hết định mức trong ngày.
+            //   - 403/Permission Denied = Key SAI/bị chặn/bị giới hạn quyền truy cập — có thể do
+            //     Key bị giới hạn theo domain (HTTP referrer restriction) chỉ cho phép domain
+            //     preview của AI Studio, không có domain của bản Publish (Cloud Run) trong danh
+            //     sách cho phép. Đây chính là nguyên nhân phổ biến nhất gây ra hiện tượng "chạy
+            //     tốt trong AI Studio nhưng lỗi khi Publish" — Reset Quota không giải quyết được
+            //     vì vấn đề gốc không nằm ở quota.
+            // Sửa: KHÔNG markAsDepleted() nữa. Chỉ loại model này khỏi danh sách thử của LƯỢT NÀY
+            // (temporaryBlacklist, không ảnh hưởng tới trạng thái quota lưu trong ngày), đồng thời
+            // in rõ nguyên nhân thật + hướng khắc phục ra log để người dùng tự sửa đúng chỗ.
             if (error.status === 403 || msg.includes('403') || msg.includes('permission_denied')) {
-                if (onLog) onLog(`⛔ CẢNH BÁO 403 FORBIDDEN trên model ${selectedId}: API Key hiện tại không có quyền truy cập.`);
-                quotaManager.markAsDepleted(selectedId);
+                if (onLog) onLog(`⛔ LỖI QUYỀN TRUY CẬP (403) trên model ${selectedId} — KHÔNG PHẢI hết Quota. API Key hiện tại bị từ chối truy cập. Nguyên nhân thường gặp: Key bị giới hạn theo domain (HTTP referrer restriction) trong Google Cloud Console/AI Studio API Key settings chưa cho phép domain của bản Publish này. Vào Google AI Studio > API Keys, kiểm tra lại giới hạn của Key đang dùng.`);
                 temporaryBlacklist.push(selectedId);
                 continue;
             }
