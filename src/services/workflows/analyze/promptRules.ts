@@ -13,8 +13,8 @@ export const optimizePrompt = async (
 ): Promise<string> => {
   const ai = getAiClient();
   // User requested 3.1 Pro. We keep 3.0 Pro as a high-quality backup, but remove 2.5 to ensure quality.
-  const candidates = ['gemini-3.1-pro-preview', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
-  if (candidates.length === 0) candidates.push('gemini-3.1-pro-preview', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
+  const candidates = ['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
+  if (candidates.length === 0) candidates.push('gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
   const filledTemplate = replacePromptVariables(promptTemplate, storyInfo);
   const isGameOrWestern = storyInfo.genres.some(g => ['Light Novel', 'Isekai', 'Fantasy', 'Đồng Nhân', 'Võng Du', 'Game'].includes(g)) || storyInfo.worldSetting.some(s => ['Phương Tây/Magic', 'Võng Du/Game'].includes(s));
   
@@ -96,8 +96,8 @@ ${filledTemplate}`;
           return await smartExecution(proModels, performTask, "Optimize Prompt (Pro)", undefined, proModels[0]);
       } catch (e) {
           console.warn("Pro model failed for optimizePrompt, falling back to Flash.", e);
-          const fallbackModels = ['gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
-          if (fallbackModels.length === 0) fallbackModels.push('gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
+          const fallbackModels = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
+          if (fallbackModels.length === 0) fallbackModels.push('gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
           return await smartExecution(fallbackModels, performTask, "Optimize Prompt (Flash)", undefined, fallbackModels[0]);
       }
   } catch {
@@ -172,8 +172,8 @@ CHỈ TRẢ VỀ NỘI DUNG QUY TẮC BỔ SUNG theo đúng format trên, không
         return await smartExecution(proModels, performTask, "Quy Tắc Bổ Sung", undefined, proModels[0]);
     } catch (e) {
         console.warn("Pro model failed for refineAdditionalRules, falling back to Flash.", e);
-        const fallbackModels = ['gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
-        if (fallbackModels.length === 0) fallbackModels.push('gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
+        const fallbackModels = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
+        if (fallbackModels.length === 0) fallbackModels.push('gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
         return await smartExecution(fallbackModels, performTask, "Quy Tắc Bổ Sung (Flash)", undefined, fallbackModels[0]);
     }
 };
@@ -222,8 +222,8 @@ ${mergedContext}`;
         return await smartExecution(proModels, performTask, "Tinh Chỉnh Tóm Tắt Truyện", undefined, proModels[0]);
     } catch (e) {
         console.warn("Pro model failed for refineSummary, falling back to Flash.", e);
-        const fallbackModels = ['gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
-        if (fallbackModels.length === 0) fallbackModels.push('gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
+        const fallbackModels = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
+        if (fallbackModels.length === 0) fallbackModels.push('gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
         return await smartExecution(fallbackModels, performTask, "Tinh Chỉnh Tóm Tắt (Flash)", undefined, fallbackModels[0]);
     }
 };

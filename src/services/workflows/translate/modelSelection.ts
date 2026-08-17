@@ -38,43 +38,43 @@ export const getEffectiveModelsForTier = (
 
     // RULE 2: Pro Tier
     // - Translate: 3.1 Pro
-    // - Auto Fix: 3.6 Flash > 3.0 Flash Preview > 3.5 Flash
+    // - Auto Fix: 3.7 Flash > 3.6 Flash > 3.0 Flash Preview > 3.5 Flash
     if (tier === 'pro') {
         if (taskType === 'translate') {
             return getFallback(['gemini-3.1-pro-preview']);
         } else {
-            return getFallback(['gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash']);
+            return getFallback(['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash']);
         }
     }
 
     // RULE 3: Normal Tier
-    // - Translate: 3.1 Pro > 3.6 Flash > 3.5 Flash
+    // - Translate: 3.1 Pro > 3.7 Flash > 3.6 Flash > 3.5 Flash
     // - Auto Fix: 3.0 Flash > 3.5 Flash Lite > 3.1 Flash Lite
     if (tier === 'normal') {
         if (taskType === 'translate') {
-            return getFallback(['gemini-3.1-pro-preview', 'gemini-3.6-flash', 'gemini-3.5-flash']);
+            return getFallback(['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash']);
         } else {
             return getFallback(['gemini-3-flash-preview', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite']);
         }
     }
 
     // RULE 4: Full Tier
-    // - Translate: 3.1 Pro > 3.6 Flash > 3.0 Flash > 3.5 Flash
+    // - Translate: 3.1 Pro > 3.7 Flash > 3.6 Flash > 3.0 Flash > 3.5 Flash
     // - Auto Fix: 3.5 Flash Lite > 3.1 Flash Lite
     if (tier === 'full') {
         if (taskType === 'translate') {
-            return getFallback(['gemini-3.1-pro-preview', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash']);
+            return getFallback(['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash']);
         } else {
             return getFallback(['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite']);
         }
     }
 
     // RULE 5: Flash Tier
-    // - Translate: 3.6 Flash > 3.0 Flash > 3.5 Flash
+    // - Translate: 3.7 Flash > 3.6 Flash > 3.0 Flash > 3.5 Flash
     // - Auto Fix: 3.5 Flash Lite > 3.1 Flash Lite
     if (tier === 'flash') {
         if (taskType === 'translate') {
-            return getFallback(['gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash']);
+            return getFallback(['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash']);
         } else {
             return getFallback(['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite']);
         }
@@ -94,5 +94,5 @@ export const getEffectiveModelsForTier = (
         return ['openrouter:google/gemma-4-26b-a4b-it:free'];
     }
 
-    return ['gemini-3.6-flash'];
+    return ['gemini-3.7-flash', 'gemini-3.6-flash'];
 };

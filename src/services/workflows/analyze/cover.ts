@@ -144,8 +144,8 @@ export const addTextToCover = async (imageFile: File, title: string, author: str
 };
 
 export const createCoverPrompt = async (storyInfo: StoryInfo, summary: string, enabledModels?: string[]): Promise<string> => {
-    const candidates = ['gemini-3.1-pro-preview', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
-    if (candidates.length === 0) candidates.push('gemini-3.1-pro-preview', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
+    const candidates = ['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
+    if (candidates.length === 0) candidates.push('gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
     
     const instruct = `Bạn là Prompt Engineer xuất sắc chuyên viết prompt cho hệ thống AI tạo ảnh. Bằng tiếng Anh (bắt buộc), hãy phân tích tóm tắt truyện dưới đây và viết 1 PROMPT DUY NHẤT (dưới 500 ký tự) để AI vẽ bìa sách.
 yêu cầu trong prompt tiếng anh đó: Aspect ratio 3:4, no text, clean art, masterpiece, epic scale, high contrast, cinematic lighting, phù hợp thể loại: ${storyInfo.genres.join(', ')}.

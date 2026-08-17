@@ -59,8 +59,8 @@ export const autoAnalyzeStory = async (
         const batch = chunks.slice(i, i + CONCURRENCY);
         const batchPromises = batch.map((chunk) => {
             // Use Flash models: 3.5 Flash and 3.0 Flash
-            const flashModels = ['gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
-            if (flashModels.length === 0) flashModels.push('gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
+            const flashModels = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
+            if (flashModels.length === 0) flashModels.push('gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
             
             // Ưu tiên sử dụng 3.6 Flash làm model chính
             const performAnalysis = async (mid: string) => {
@@ -128,8 +128,8 @@ LƯU Ý QUAN TRỌNG:
 
     let synthesis: any;
     {
-        const fallbackModels = ['gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
-        if (fallbackModels.length === 0) fallbackModels.push('gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
+        const fallbackModels = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
+        if (fallbackModels.length === 0) fallbackModels.push('gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
         synthesis = await smartExecution(fallbackModels, async mid => {
             const res = await getAiClient().models.generateContent({ 
                 model: mid, 
@@ -145,7 +145,7 @@ LƯU Ý QUAN TRỌNG:
             if (!parsed) {
                 console.warn("safeJsonParse failed for synthesis, attempting AI JSON repair...");
                 const repairRes = await getAiClient().models.generateContent({
-                    model: 'gemini-3.6-flash',
+                    model: 'gemini-3.7-flash',
                     contents: "Fix this invalid JSON and return ONLY valid JSON without markdown blocks:\n\n" + (res.text || ""),
                     config: { responseMimeType: 'application/json', safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }
                 });
