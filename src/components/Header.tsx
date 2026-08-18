@@ -213,45 +213,64 @@ export const Header: React.FC<HeaderProps> = (props) => {
         // Calculate Wait Time
         const cooldownRemaining = Math.max(0, (usage.cooldownUntil || 0) - now);
         const isCoolingDown = cooldownRemaining > 0;
+        const rpdPct = Math.min(100, Math.round((requestsToday / Math.max(1, config.rpdLimit)) * 100));
+
+        // UPDATED v1.0.2: Vẽ lại hoàn toàn — bỏ kiểu "khung viền đổi màu toàn khối" của bản gốc,
+        // thay bằng 1 vạch màu trạng thái mảnh bên trái (giống thẻ trạng thái server/uptime) +
+        // thanh tiến trình mini thể hiện % dùng RPD trực quan thay vì chỉ hiện số khô khan.
+        const stateColor = isDepleted ? 'bg-rose-500' : isCoolingDown ? 'bg-amber-500' : isEnabled ? 'bg-primary-500' : 'bg-slate-300 dark:bg-slate-700';
 
         return (
-            <div key={config.id} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 ease-smooth whitespace-nowrap shadow-elevation-1 min-w-[140px]
-                ${isDepleted ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900' : 
-                  isCoolingDown ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900' :
-                  isEnabled ? 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:shadow-elevation-2 hover:-translate-y-px' : 
-                  'bg-slate-50 dark:bg-slate-900 border-transparent opacity-60 grayscale'}`}>
-                
-                {isDepleted ? <Ban className="w-3.5 h-3.5 text-rose-500 shrink-0" /> : <input type="checkbox" checked={isEnabled} onChange={() => props.toggleModel(config.id)} className="w-3.5 h-3.5 rounded border-slate-300 text-sky-600 focus:ring-sky-500 cursor-pointer shrink-0"/>}
+            <div key={config.id} className={`relative flex items-stretch gap-0 rounded-md overflow-hidden transition-all duration-200 ease-smooth whitespace-nowrap shadow-elevation-1 min-w-[148px] bg-white dark:bg-slate-800
+                ${isEnabled && !isDepleted ? 'hover:shadow-elevation-2 hover:-translate-y-px' : 'opacity-70'}`}>
+                <div className={`w-1 shrink-0 ${stateColor}`} />
+                <div className="flex items-center gap-2 px-2.5 py-1.5 w-full">
+                    {isDepleted ? <Ban className="w-3.5 h-3.5 text-rose-500 shrink-0" /> : (
+                        <button
+                            onClick={() => props.toggleModel(config.id)}
+                            aria-label={isEnabled ? 'Tắt model' : 'Bật model'}
+                            className={`w-3.5 h-3.5 rounded-sm border shrink-0 flex items-center justify-center transition-colors ${isEnabled ? 'bg-primary-500 border-primary-500' : 'border-slate-300 dark:border-slate-600'}`}
+                        >
+                            {isEnabled && <CheckCircle className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
+                        </button>
+                    )}
 
-                <div className="flex flex-col w-full">
-                    <div className="flex items-center justify-between gap-2">
-                        <span className={`text-[11px] font-bold ${isDepleted ? 'text-rose-600 dark:text-rose-400' : 'text-slate-800 dark:text-slate-200'}`} title={config.name}>
-                            {config.name.replace('Gemini ', '')}
-                        </span>
-                        {isDepleted ? (
-                            <span className="text-[8px] font-black text-rose-500 border border-rose-200 dark:border-rose-800 bg-white dark:bg-slate-900 px-1 rounded-sm leading-tight">HẾT</span>
+                    <div className="flex flex-col w-full">
+                        <div className="flex items-center justify-between gap-2">
+                            <span className={`text-[11px] font-display font-semibold ${isDepleted ? 'text-rose-600 dark:text-rose-400' : 'text-slate-800 dark:text-slate-200'}`} title={config.name}>
+                                {config.name.replace('Gemini ', '')}
+                            </span>
+                            {isDepleted ? (
+                                <span className="text-[8px] font-black text-rose-500 leading-tight shrink-0">HẾT</span>
+                            ) : (
+                                <button aria-label="Test tốc độ" onClick={() => props.handleTestModel(config.id)} disabled={!!props.testingModelId} className="p-0.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-400 hover:text-primary-600 transition-colors shrink-0">
+                                    {props.testingModelId === config.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Logic hiển thị Stats (Vẫn hiện khi Hết RPD) */}
+                        {isCoolingDown && !isDepleted ? (
+                            <div className="text-[10px] font-bold text-amber-600 dark:text-amber-500 flex items-center gap-1 animate-pulse mt-0.5">
+                                <Hourglass className="w-2.5 h-2.5" /> Chờ {(cooldownRemaining/1000).toFixed(0)}s
+                            </div>
                         ) : (
-                            <button aria-label="Test tốc độ" onClick={() => props.handleTestModel(config.id)} disabled={!!props.testingModelId} className="p-0.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-400 hover:text-sky-600 transition-colors">
-                                {props.testingModelId === config.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
-                            </button>
+                            <>
+                                <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
+                                    <span className={isDepleted ? "text-rose-600 dark:text-rose-400 font-bold" : ""}>
+                                        {requestsToday}/{config.rpdLimit}
+                                    </span>
+                                    <span className={`font-bold ${isDepleted ? "text-rose-400" : isRpmFull ? "text-amber-600 animate-pulse" : "text-primary-600"}`}>
+                                        {currentRpmCount}/{config.rpmLimit} RPM
+                                    </span>
+                                </div>
+                                {/* Thanh tiến trình mini — thay cho việc chỉ hiện số suông */}
+                                <div className="w-full h-[3px] bg-slate-100 dark:bg-slate-700 rounded-full mt-1 overflow-hidden">
+                                    <div className={`h-full rounded-full transition-all ${isDepleted ? 'bg-rose-400' : 'bg-primary-400'}`} style={{ width: `${isDepleted ? 100 : rpdPct}%` }} />
+                                </div>
+                            </>
                         )}
                     </div>
-                    
-                    {/* Logic hiển thị Stats (Vẫn hiện khi Hết RPD) */}
-                    {isCoolingDown && !isDepleted ? (
-                        <div className="text-[10px] font-bold text-amber-600 dark:text-amber-500 flex items-center gap-1 animate-pulse mt-0.5">
-                            <Hourglass className="w-2.5 h-2.5" /> Chờ {(cooldownRemaining/1000).toFixed(0)}s
-                        </div>
-                    ) : (
-                        <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
-                            <span className={isDepleted ? "text-rose-600 dark:text-rose-400 font-bold" : ""}>
-                                {requestsToday}/{config.rpdLimit}
-                            </span>
-                            <span className={`font-bold ${isDepleted ? "text-rose-400" : isRpmFull ? "text-amber-600 animate-pulse" : "text-sky-600"}`}>
-                                {currentRpmCount}/{config.rpmLimit} RPM
-                            </span>
-                        </div>
-                    )}
                 </div>
             </div>
         );
@@ -276,7 +295,7 @@ export const Header: React.FC<HeaderProps> = (props) => {
                 <div className="flex items-center gap-1 relative z-50">
                     {props.startTime && (
                         <div className="hidden md:flex items-center gap-2 px-2 py-1 bg-slate-50 dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 text-[10px] font-mono font-medium text-slate-600 dark:text-slate-300 shadow-sm">
-                            <Clock className="w-3 h-3 text-sky-500" />
+                            <Clock className="w-3 h-3 text-primary-500" />
                             <LiveTimer startTime={props.startTime} endTime={props.endTime} />
                         </div>
                     )}
@@ -323,11 +342,11 @@ export const Header: React.FC<HeaderProps> = (props) => {
                             <span className="font-bold text-slate-700 dark:text-slate-200">{formatNumber(props.stats.total)}</span>
                         </div>
                         <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1.5 text-sky-500 dark:text-sky-400">
+                            <div className="flex items-center gap-1.5 text-primary-500 dark:text-primary-400">
                                 <Activity className="w-3 h-3" />
                                 <span>Xử lý:</span>
                             </div>
-                            <span className="font-bold text-sky-700 dark:text-sky-300">{formatNumber(props.stats.processing)}</span>
+                            <span className="font-bold text-primary-700 dark:text-primary-300">{formatNumber(props.stats.processing)}</span>
                         </div>
                         <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-1.5 text-emerald-500 dark:text-emerald-400">
@@ -422,11 +441,11 @@ export const Header: React.FC<HeaderProps> = (props) => {
                             
                             <div className="flex items-center gap-3 pl-2 border-l border-slate-200 dark:border-slate-700">
                                 <div className="flex flex-col items-center gap-0.5">
-                                    <span className="text-[8px] font-bold text-sky-600">VN/Convert</span>
+                                    <span className="text-[8px] font-bold text-primary-600">VN/Convert</span>
                                     <div className="flex items-center gap-0.5">
-                                        <CustomNumberInput step={0.1} widthClass="w-14" className="text-sky-600" value={props.ratioLimits.vn?.min ?? DEFAULT_RATIO_LIMITS.vn.min} onChange={(val: any) => props.setRatioLimits(prev => ({...prev, vn: {...prev.vn, min: val}}))} />
+                                        <CustomNumberInput step={0.1} widthClass="w-14" className="text-primary-600" value={props.ratioLimits.vn?.min ?? DEFAULT_RATIO_LIMITS.vn.min} onChange={(val: any) => props.setRatioLimits(prev => ({...prev, vn: {...prev.vn, min: val}}))} />
                                         <span className="text-slate-300">-</span>
-                                        <CustomNumberInput step={0.1} widthClass="w-14" className="text-sky-600" value={props.ratioLimits.vn?.max ?? DEFAULT_RATIO_LIMITS.vn.max} onChange={(val: any) => props.setRatioLimits(prev => ({...prev, vn: {...prev.vn, max: val}}))} />
+                                        <CustomNumberInput step={0.1} widthClass="w-14" className="text-primary-600" value={props.ratioLimits.vn?.max ?? DEFAULT_RATIO_LIMITS.vn.max} onChange={(val: any) => props.setRatioLimits(prev => ({...prev, vn: {...prev.vn, max: val}}))} />
                                     </div>
                                 </div>
                                 <div className="flex flex-col items-center gap-0.5">
@@ -462,7 +481,7 @@ export const Header: React.FC<HeaderProps> = (props) => {
 
             {/* Global Progress Bar */}
              <div className="w-full h-0.5 bg-slate-100 dark:bg-slate-800 relative group">
-                 <div className="h-full bg-gradient-to-r from-sky-400 via-primary-500 to-purple-500 transition-all duration-300 ease-out" style={{ width: `${props.progressPercentage || 0}%` }} />
+                 <div className="h-full bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600 transition-all duration-300 ease-out" style={{ width: `${props.progressPercentage || 0}%` }} />
                  {estimatedTimeRemaining && (
                     <div className="absolute bottom-full right-0 mb-1 bg-slate-800 text-white text-[10px] px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity font-mono whitespace-nowrap z-50 pointer-events-none">
                         ETA: {estimatedTimeRemaining}

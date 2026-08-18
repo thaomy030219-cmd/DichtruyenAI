@@ -54,7 +54,7 @@ const FileCard: React.FC<FileCardProps> = ({
                 return 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/50 hover:border-rose-300';
             case FileStatus.PROCESSING:
             case FileStatus.REPAIRING:
-                return 'bg-sky-50/50 dark:bg-sky-950/20 border-sky-200 dark:border-sky-900/50 hover:border-sky-300 animate-pulse';
+                return 'bg-primary-50/50 dark:bg-primary-950/20 border-primary-200 dark:border-primary-900/50 hover:border-primary-300 animate-pulse';
             default:
                 return 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-primary-300 dark:hover:border-primary-700';
         }
@@ -76,7 +76,7 @@ const FileCard: React.FC<FileCardProps> = ({
                         ${file.status === FileStatus.COMPLETED ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400' : 
                         file.status === FileStatus.ERROR ? 'bg-rose-100 text-rose-500 dark:bg-rose-900/50 dark:text-rose-400' : 
                         isRepairing ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/50 dark:text-purple-400' : 
-                        isProcessing ? 'bg-sky-100 text-sky-600 dark:bg-sky-900/50 dark:text-sky-400' : 
+                        isProcessing ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400' : 
                         'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'}`}>
                         {file.status === FileStatus.COMPLETED ? <CheckCircle className="w-4 h-4" /> : 
                             file.status === FileStatus.ERROR ? <AlertCircle className="w-4 h-4" /> : 
@@ -122,7 +122,7 @@ const FileCard: React.FC<FileCardProps> = ({
                             title={file.errorMessage}
                             className={`text-[9px] font-bold px-1 py-0.5 rounded border flex items-center gap-0.5
                             ${file.status === FileStatus.ERROR ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-900/50 cursor-help' : 
-                            isProcessing ? 'bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 border-sky-100 dark:border-sky-900/50' : 
+                            isProcessing ? 'bg-primary-50 dark:bg-primary-950/30 text-primary-600 dark:text-primary-400 border-primary-100 dark:border-primary-900/50' : 
                             'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-700'}`}>
                             {file.status === FileStatus.ERROR ? (
                                 <><AlertCircle className="w-2.5 h-2.5" /> {(file.errorMessage?.includes('an toàn') || file.errorMessage?.includes('Safety')) ? 'Safety Filter' : file.errorMessage?.includes('tiêu đề') ? 'Mất Header' : file.errorMessage?.includes('thiếu nội dung') ? 'Thiếu ND' : file.errorMessage?.includes('bịa đặt nội dung') ? 'Thừa ND' : file.errorMessage?.includes('chưa dịch hết') ? 'Sót Raw' : file.errorMessage?.includes('nhầm kết quả') ? 'Trả Nhầm' : 'Lỗi'}</>
@@ -162,7 +162,7 @@ const FileCard: React.FC<FileCardProps> = ({
                                     <div className={`px-1 rounded text-[8px] font-bold flex items-center justify-center min-w-[24px]
                                     ${isRatioSuspicious ? 'bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400' : 
                                         ratioPercent > 200 ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400' :
-                                        'bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-400'}`} title="Tỷ lệ dịch">
+                                        'bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400'}`} title="Tỷ lệ dịch">
                                     {ratioPercent}%
                                 </div>
                             </div>

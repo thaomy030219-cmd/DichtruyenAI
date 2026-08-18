@@ -192,9 +192,9 @@ export const EpubPreviewModal: React.FC<EpubPreviewModalProps> = ({
                             </div>
                         </div>
 
-                        <div className="bg-sky-50 dark:bg-sky-900/20 p-4 rounded-xl border border-sky-100 dark:border-sky-800/50">
-                            <h4 className="text-xs font-bold text-sky-700 dark:text-sky-400 uppercase mb-2">Trợ Lý Local sẽ tự động:</h4>
-                            <ul className="text-xs text-sky-800 dark:text-sky-300 space-y-1 list-disc pl-4">
+                        <div className="bg-primary-50 dark:bg-primary-900/20 p-4 rounded-xl border border-primary-100 dark:border-primary-800/50">
+                            <h4 className="text-xs font-bold text-primary-700 dark:text-primary-400 uppercase mb-2">Trợ Lý Local sẽ tự động:</h4>
+                            <ul className="text-xs text-primary-800 dark:text-primary-300 space-y-1 list-disc pl-4">
                                 <li>Lọc sạch ký tự rác (*, #, =, ---).</li>
                                 <li>Đưa tiêu đề về đầu dòng để tạo Mục Lục (TOC) chuẩn.</li>
                                 <li>Thụt đầu dòng đoạn văn và giãn dòng đôi.</li>
@@ -209,7 +209,7 @@ export const EpubPreviewModal: React.FC<EpubPreviewModalProps> = ({
                         </button>
                         <button 
                             onClick={() => onConfirm(localInfo, localCover, localFont)}
-                            className="px-8 py-3 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white rounded-xl font-bold shadow-lg shadow-rose-200/50 dark:shadow-none transition-all flex items-center gap-2 text-sm"
+                            className="px-8 py-3 bg-gradient-to-r from-primary-500 to-emerald-500 hover:from-primary-400 hover:to-emerald-400 text-white rounded-xl font-bold shadow-lg shadow-primary-200/50 dark:shadow-none transition-all flex items-center gap-2 text-sm"
                         >
                             <Book className="w-4 h-4" /> Xuất Bản Ngay
                         </button>

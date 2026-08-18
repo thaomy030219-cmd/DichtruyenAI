@@ -331,33 +331,36 @@
          .no-scrollbar đã vá ở Bước 4. Nghĩa là 21 nút này trước giờ hiển
          thị KHÔNG có kích thước/khoảng đệm/hover/focus gì cả. Định nghĩa
          lại đúng theo kiểu dáng các nút liền kề (Thêm/Paste) đã có sẵn. */
+      /* UPDATED v1.0.2: Vẽ lại dáng nút — từ hình vuông bo góc nhẹ + hover xám phẳng (giống hệt
+         bản gốc) sang dạng "pill" bo tròn hoàn toàn + hover tông teal thương hiệu, để 21 nút
+         trong thanh công cụ dưới cùng có "chất" khác hẳn dù vẫn giữ nguyên bố cục/chức năng. */
       .action-btn {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        min-width: 40px;
-        height: 40px;
+        min-width: 42px;
+        height: 42px;
         padding: 4px;
-        border-radius: 0.5rem;
+        border-radius: 9999px;
         border: 1px solid transparent;
         cursor: pointer;
         transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
       }
       .action-btn:hover {
-        background-color: #f8fafc; /* slate-50 */
-        border-color: #e2e8f0; /* slate-200 */
+        background-color: #f0fdfa; /* primary-50 (teal) */
+        border-color: #99f6e4; /* primary-200 (teal) */
       }
       .dark .action-btn:hover {
-        background-color: #1e293b; /* slate-800 */
-        border-color: #334155; /* slate-700 */
+        background-color: rgba(20, 184, 166, 0.12);
+        border-color: rgba(20, 184, 166, 0.3);
       }
       .action-btn:active {
         transform: scale(0.95);
       }
       .action-btn:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 2px #818cf8; /* primary-400 */
+        box-shadow: 0 0 0 2px #2dd4bf; /* primary-400 (teal) */
       }
       .action-btn:disabled {
         opacity: 0.5;

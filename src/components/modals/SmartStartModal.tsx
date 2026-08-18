@@ -68,10 +68,10 @@ export const SmartStartModal: React.FC<SmartStartModalProps> = ({ isOpen, onClos
                                     <span className="text-[9px] text-slate-500">Tự động thiết kế Prompt riêng</span>
                                 </div>
                             </label>
-                            <label className={`flex items-center gap-3 p-3 rounded-2xl border cursor-pointer transition-all ${useSearch ? 'bg-sky-50 border-sky-200' : 'bg-white border-slate-200'}`}>
-                                <input type="checkbox" checked={useSearch} onChange={e => setUseSearch(e.target.checked)} className="w-4 h-4 text-sky-600 rounded" />
+                            <label className={`flex items-center gap-3 p-3 rounded-2xl border cursor-pointer transition-all ${useSearch ? 'bg-primary-50 border-primary-200' : 'bg-white border-slate-200'}`}>
+                                <input type="checkbox" checked={useSearch} onChange={e => setUseSearch(e.target.checked)} className="w-4 h-4 text-primary-600 rounded" />
                                 <div className="text-xs">
-                                    <span className="font-bold text-sky-700 block">Google Search</span>
+                                    <span className="font-bold text-primary-700 block">Google Search</span>
                                     <span className="text-[9px] text-slate-500">Truy tìm thực thể (Gemini 3 Pro)</span>
                                 </div>
                             </label>
@@ -81,7 +81,7 @@ export const SmartStartModal: React.FC<SmartStartModalProps> = ({ isOpen, onClos
 
                 <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3 shrink-0">
                      <button onClick={onSkip} className="px-6 py-2.5 text-slate-400 font-bold hover:text-slate-600 text-sm">Bỏ Qua</button>
-                     <button onClick={() => onConfirm(useSearch, storyInfo.additionalRules || "", {start: sampleHead, middle: sampleMid, end: sampleTail})} className="flex-1 py-3 bg-gradient-to-r from-primary-500 to-purple-600 text-white rounded-2xl font-bold shadow-lg shadow-primary-200/50 transition-all flex items-center justify-center gap-2">
+                     <button onClick={() => onConfirm(useSearch, storyInfo.additionalRules || "", {start: sampleHead, middle: sampleMid, end: sampleTail})} className="flex-1 py-3 bg-gradient-to-r from-primary-500 to-emerald-500 text-white rounded-2xl font-bold shadow-lg shadow-primary-200/50 transition-all flex items-center justify-center gap-2">
                         <Sparkles className="w-5 h-5" /> Kích Hoạt Smart Start
                     </button>
                 </div>

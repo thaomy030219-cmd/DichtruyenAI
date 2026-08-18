@@ -91,7 +91,7 @@ export const FindReplaceModal: React.FC<FindReplaceModalProps> = ({ isOpen, onCl
 
                 <div className="p-6 border-t border-slate-100 bg-slate-50">
                     <div className="flex flex-col gap-2">
-                        <button onClick={() => { if(pairs.some(p => p.find)) { onReplace(pairs, 'all'); onClose(); } }} className="w-full py-3 bg-sky-500 hover:bg-sky-600 text-white rounded-xl font-bold shadow-lg shadow-sky-200/50 transition-all">
+                        <button onClick={() => { if(pairs.some(p => p.find)) { onReplace(pairs, 'all'); onClose(); } }} className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-bold shadow-lg shadow-primary-200/50 transition-all">
                             Thay Thế Tất Cả
                         </button>
                         {selectedCount > 0 && (

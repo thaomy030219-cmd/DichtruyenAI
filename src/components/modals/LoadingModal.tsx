@@ -58,7 +58,7 @@ export const LoadingModal: React.FC<LoadingModalProps> = ({ isOpen, progress, on
                 <h3 className="text-xl font-bold text-slate-800 mb-2">Đang Xử Lý...</h3>
                 <p className="text-sm text-slate-500 mb-6 text-center animate-pulse">{progress.message}</p>
                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
-                    <div className="h-full bg-gradient-to-r from-primary-500 to-purple-500 transition-all duration-300" style={{ width: `${percent}%` }}></div>
+                    <div className="h-full bg-gradient-to-r from-primary-500 to-emerald-500 transition-all duration-300" style={{ width: `${percent}%` }}></div>
                 </div>
                 <div className="flex justify-between w-full text-xs font-bold text-slate-400 mb-2">
                     {progress.total === 100 ? (

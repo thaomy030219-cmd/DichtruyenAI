@@ -98,33 +98,41 @@ export const MainUI: React.FC<MainUIProps> = (props) => {
                         {isSidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                     </button>
                     <div className="p-4 flex-1 overflow-y-auto custom-scrollbar overflow-x-hidden">
-                        {isSidebarOpen && <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2 whitespace-nowrap">Navigation</h2>}
-                        <div className="space-y-2">
-                            <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 ${isSidebarOpen ? 'px-4' : 'justify-center'} py-3 rounded-xl text-sm font-bold transition-all duration-200 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 ${activeTab === 'dashboard' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 shadow-elevation-1 ring-1 ring-primary-200 dark:ring-primary-800' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200'}`} title="Thông Tin">
-                                <LayoutDashboard className="w-5 h-5 shrink-0" />
-                                {isSidebarOpen && <span className="whitespace-nowrap">Thông Tin</span>}
-                            </button>
-                            <button onClick={() => setActiveTab('knowledge')} className={`w-full flex items-center gap-3 ${isSidebarOpen ? 'px-4' : 'justify-center'} py-3 rounded-xl text-sm font-bold transition-all duration-200 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 ${activeTab === 'knowledge' ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 shadow-elevation-1 ring-1 ring-amber-200 dark:ring-amber-800' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200'}`} title="Tri Thức">
-                                <BookOpen className="w-5 h-5 shrink-0" />
-                                {isSidebarOpen && <span className="whitespace-nowrap">Tri Thức</span>}
-                            </button>
-                            <button onClick={() => { setActiveTab('workspace'); props.setCurrentPage(1); }} className={`w-full flex items-center gap-3 ${isSidebarOpen ? 'px-4' : 'justify-center'} py-3 rounded-xl text-sm font-bold transition-all duration-200 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 ${activeTab === 'workspace' ? 'bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 shadow-elevation-1 ring-1 ring-sky-200 dark:ring-sky-800' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200'}`} title="Biên Tập">
-                                <PenTool className="w-5 h-5 shrink-0" />
-                                {isSidebarOpen && <span className="flex-1 text-left whitespace-nowrap">Biên Tập</span>}
-                                {isSidebarOpen && <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'workspace' ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-500'}`}>{props.files.length}</span>}
-                            </button>
-                            <button onClick={() => setActiveTab('titles')} className={`w-full flex items-center gap-3 ${isSidebarOpen ? 'px-4' : 'justify-center'} py-3 rounded-xl text-sm font-bold transition-all duration-200 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 ${activeTab === 'titles' ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 shadow-elevation-1 ring-1 ring-purple-200 dark:ring-purple-800' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200'}`} title="Sửa Lỗi">
-                                <Wand2 className="w-5 h-5 shrink-0" />
-                                {isSidebarOpen && <span className="whitespace-nowrap">Sửa Lỗi</span>}
-                            </button>
-                            <button onClick={() => setActiveTab('creative')} className={`w-full flex items-center gap-3 ${isSidebarOpen ? 'px-4' : 'justify-center'} py-3 rounded-xl text-sm font-bold transition-all duration-200 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 ${activeTab === 'creative' ? 'bg-pink-50 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 shadow-elevation-1 ring-1 ring-pink-200 dark:ring-pink-800' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200'}`} title="Sáng Tác">
-                                <Sparkles className="w-5 h-5 shrink-0" />
-                                {isSidebarOpen && <span className="whitespace-nowrap">Sáng Tác</span>}
-                            </button>
-                            <button onClick={() => setActiveTab('hanviet')} className={`w-full flex items-center gap-3 ${isSidebarOpen ? 'px-4' : 'justify-center'} py-3 rounded-xl text-sm font-bold transition-all duration-200 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 ${activeTab === 'hanviet' ? 'bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 shadow-elevation-1 ring-1 ring-teal-200 dark:ring-teal-800' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200'}`} title="Tìm Hán Việt">
-                                <Search className="w-5 h-5 shrink-0" />
-                                {isSidebarOpen && <span className="whitespace-nowrap">Tìm Hán Việt</span>}
-                            </button>
+                        {isSidebarOpen && <h2 className="text-[10px] font-display font-bold text-slate-400 uppercase tracking-[0.15em] mb-4 px-2 whitespace-nowrap">Menu Chức Năng</h2>}
+                        {/* UPDATED v1.0.2: Vẽ lại hoàn toàn — bản gốc tô NGUYÊN KHỐI nền theo màu
+                            riêng cho từng tab (xanh dương/vàng/tím/hồng/teal — "cầu vồng"), dễ nhận
+                            diện là bản sao. Giờ CHỈ 1 màu thương hiệu (primary teal) duy nhất cho
+                            mọi trạng thái active, phân biệt bằng: vạch dọc bên trái + icon trong
+                            khung vuông bo góc solid màu (thay vì icon trần đặt cạnh chữ). */}
+                        <div className="space-y-1">
+                            {[
+                                { key: 'dashboard', label: 'Thông Tin', icon: LayoutDashboard, badge: null },
+                                { key: 'knowledge', label: 'Tri Thức', icon: BookOpen, badge: null },
+                                { key: 'workspace', label: 'Biên Tập', icon: PenTool, badge: props.files.length, onClick: () => { setActiveTab('workspace'); props.setCurrentPage(1); } },
+                                { key: 'titles', label: 'Sửa Lỗi', icon: Wand2, badge: null },
+                                { key: 'creative', label: 'Sáng Tác', icon: Sparkles, badge: null },
+                                { key: 'hanviet', label: 'Tìm Hán Việt', icon: Search, badge: null },
+                            ].map(item => {
+                                const isActive = activeTab === item.key;
+                                const Icon = item.icon;
+                                return (
+                                    <button
+                                        key={item.key}
+                                        onClick={item.onClick || (() => setActiveTab(item.key as any))}
+                                        className={`relative w-full flex items-center gap-3 ${isSidebarOpen ? 'pl-3 pr-3' : 'justify-center px-0'} py-2.5 rounded-md text-sm font-display font-semibold transition-all duration-200 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 ${isActive ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                                        title={item.label}
+                                    >
+                                        {isActive && <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-primary-500" />}
+                                        <span className={`w-7 h-7 shrink-0 rounded-md flex items-center justify-center transition-colors ${isActive ? 'bg-primary-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500'}`}>
+                                            <Icon className="w-4 h-4" />
+                                        </span>
+                                        {isSidebarOpen && <span className="flex-1 text-left whitespace-nowrap">{item.label}</span>}
+                                        {isSidebarOpen && item.badge !== null && (
+                                            <span className={`px-2 py-0.5 rounded-full text-[10px] ${isActive ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-500'}`}>{item.badge}</span>
+                                        )}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 </aside>
@@ -153,7 +161,7 @@ export const MainUI: React.FC<MainUIProps> = (props) => {
                             
                             {/* ... (Existing buttons) */}
                             <div className="flex items-center gap-1 shrink-0 bg-slate-50 dark:bg-slate-800/40 rounded-xl p-1">
-                                <label className="flex flex-col items-center justify-center min-w-[40px] h-[40px] px-1 rounded-lg hover:bg-white dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 transition-all duration-200 ease-smooth cursor-pointer group active:scale-95 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-elevation-1 focus-within:ring-2 focus-within:ring-primary-400"> <Plus className="w-3.5 h-3.5 group-hover:scale-110 transition-transform mb-0.5" /> <span className="text-[9px] font-bold uppercase tracking-tight">Thêm</span> <input type="file" multiple accept=".txt,.zip,.epub,.docx,.doc,.pdf" className="hidden" onChange={props.handleFileUpload} /> </label>
+                                <label className="flex flex-col items-center justify-center min-w-[40px] h-[40px] px-1 rounded-lg hover:bg-white dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-200 ease-smooth cursor-pointer group active:scale-95 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-elevation-1 focus-within:ring-2 focus-within:ring-primary-400"> <Plus className="w-3.5 h-3.5 group-hover:scale-110 transition-transform mb-0.5" /> <span className="text-[9px] font-bold uppercase tracking-tight">Thêm</span> <input type="file" multiple accept=".txt,.zip,.epub,.docx,.doc,.pdf" className="hidden" onChange={props.handleFileUpload} /> </label>
                                 <button onClick={() => props.setShowPasteModal(true)} className="flex flex-col items-center justify-center min-w-[40px] h-[40px] px-1 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-all duration-200 ease-smooth group active:scale-95 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"> <Clipboard className="w-3.5 h-3.5 group-hover:scale-110 transition-transform mb-0.5" /> <span className="text-[9px] font-bold uppercase tracking-tight">Paste</span> </button>
                             </div>
                             
@@ -188,14 +196,14 @@ export const MainUI: React.FC<MainUIProps> = (props) => {
                          <button 
                             onClick={handleSmartAutomationClick} 
                             disabled={(props.isProcessing || props.isCustomFixing) && !props.automationState.isRunning} 
-                            className={`action-btn relative ${props.automationState.isRunning ? 'bg-yellow-400 text-red-600 animate-pulse ring-2 ring-red-500' : 'bg-yellow-400 hover:bg-yellow-500 text-red-600'}`}
+                            className={`action-btn relative text-white ${props.automationState.isRunning ? 'bg-gradient-to-br from-amber-400 to-orange-500 animate-pulse ring-2 ring-orange-400' : 'bg-gradient-to-br from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400'}`}
                          >
                             {props.automationState.isRunning ? <Loader2 className="w-3.5 h-3.5 animate-spin mb-0.5" /> : <Zap className="w-3.5 h-3.5 mb-0.5 fill-current" />}
                             <span className="text-[9px] font-black uppercase tracking-tight">AUTO</span>
                          </button>
                          {/* ----------------------- */}
 
-                         <button onClick={() => props.setShowFindReplace(true)} className="action-btn text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400"><Search className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Tìm/Thay</span></button>
+                         <button onClick={() => props.setShowFindReplace(true)} className="action-btn text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400"><Search className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Tìm/Thay</span></button>
                          <button onClick={() => props.handleManualCleanup(props.selectedFiles.size > 0 ? 'selected' : 'all')} className="action-btn text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400"><Wand2 className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Định Dạng</span></button>
                          <button onClick={() => props.handleTitleNormalization(props.selectedFiles.size > 0 ? 'selected' : 'all')} disabled={props.isProcessing || props.isCustomFixing} className="action-btn text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400"><Sparkles className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Tiêu Đề</span></button>
                          <button onClick={props.handleSmartFix} disabled={props.isProcessing || props.isCustomFixing} className={`action-btn transition-colors relative ${fixableCount > 0 ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 hover:scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400'}`}> <Hammer className="w-3.5 h-3.5 mb-0.5" /> <span className="text-[9px] font-bold uppercase tracking-tight">Smart Fix</span> {fixableCount > 0 && ( <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[9px] flex items-center justify-center rounded-full font-bold shadow-sm animate-bounce"> {fixableCount} </span> )} </button>
@@ -212,7 +220,7 @@ export const MainUI: React.FC<MainUIProps> = (props) => {
 
                     {/* Export & Start */}
                     <div className="flex items-center gap-1 shrink-0 bg-slate-50 dark:bg-slate-800/40 rounded-xl p-1">
-                        <button onClick={() => props.setShowRawDownloadModal(true)} className="action-btn text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400"><FileDown className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Raw</span></button>
+                        <button onClick={() => props.setShowRawDownloadModal(true)} className="action-btn text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400"><FileDown className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Raw</span></button>
                         <button onClick={props.handleDownloadTranslatedZip} className="action-btn text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400"><FileArchive className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Zip</span></button>
                         <button onClick={props.handleMergeSelected} className="action-btn text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400"><Layers className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Gộp File</span></button>
                         <button onClick={props.handleDownloadMerged} className="action-btn text-slate-500 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400"><FileText className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Tải Gộp</span></button>
@@ -221,7 +229,7 @@ export const MainUI: React.FC<MainUIProps> = (props) => {
                         
                         <button 
                           onClick={(props.isProcessing || props.isCustomFixing) ? props.stopProcessing : handleSmartAutomationClick} 
-                          className={`flex items-center gap-1.5 px-3 h-10 ml-1 rounded-lg shadow-elevation-2 transition-all duration-200 ease-smooth active:scale-95 font-bold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 ${(props.isProcessing || props.isCustomFixing) ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-200/50' : 'bg-gradient-to-r from-sky-500 to-primary-600 hover:from-sky-400 hover:to-primary-500 shadow-glow-primary'}`}
+                          className={`flex items-center gap-1.5 px-3 h-10 ml-1 rounded-lg shadow-elevation-2 transition-all duration-200 ease-smooth active:scale-95 font-bold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 ${(props.isProcessing || props.isCustomFixing) ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-200/50' : 'bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 shadow-glow-primary'}`}
                       >
                           {(props.isProcessing || props.isCustomFixing) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-current" />}
                           <span className="text-[10px] sm:text-xs">{(props.isProcessing || props.isCustomFixing) ? "DỪNG LẠI" : "BẮT ĐẦU"}</span>
@@ -245,10 +253,10 @@ export const MainUI: React.FC<MainUIProps> = (props) => {
                         <BookOpen className="w-5 h-5" />
                         <span className="text-[10px] font-bold">Từ Điển</span>
                     </button>
-                    <button onClick={() => { setActiveTab('workspace'); props.setCurrentPage(1); }} className={`min-w-[64px] p-2.5 rounded-xl transition-all duration-200 ease-smooth flex flex-col items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 relative ${activeTab === 'workspace' ? 'text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/30' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
+                    <button onClick={() => { setActiveTab('workspace'); props.setCurrentPage(1); }} className={`min-w-[64px] p-2.5 rounded-xl transition-all duration-200 ease-smooth flex flex-col items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 relative ${activeTab === 'workspace' ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
                         <PenTool className="w-5 h-5" />
                         <span className="text-[10px] font-bold">Biên Tập</span>
-                        {props.files.length > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-sky-500 rounded-full border-2 border-white dark:border-slate-900"></span>}
+                        {props.files.length > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-primary-500 rounded-full border-2 border-white dark:border-slate-900"></span>}
                     </button>
                     <button onClick={() => setActiveTab('titles')} className={`min-w-[64px] p-2.5 rounded-xl transition-all duration-200 ease-smooth flex flex-col items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 ${activeTab === 'titles' ? 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
                         <Wand2 className="w-5 h-5" />

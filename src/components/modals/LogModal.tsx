@@ -11,7 +11,7 @@ export const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, logs, clear
             <div className="bg-slate-900 rounded-3xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-700 ring-1 ring-black/50">
                 <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-slate-800 text-sky-400 rounded-xl"><Terminal className="w-5 h-5" /></div>
+                        <div className="p-2 bg-slate-800 text-primary-400 rounded-xl"><Terminal className="w-5 h-5" /></div>
                         <div>
                             <h3 className="font-mono font-bold text-lg text-slate-200">System Deep Logs</h3>
                             <p className="text-xs text-slate-500 font-mono">Nhật ký chi tiết hệ thống (Mới nhất ở trên).</p>
@@ -21,7 +21,7 @@ export const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, logs, clear
                         <button
                             onClick={() => exportSystemLogs(logs)}
                             title="Xuất log ra file .txt để gửi cho dev kiểm tra"
-                            className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-sky-400 transition-colors"
+                            className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-primary-400 transition-colors"
                         >
                             <Download className="w-5 h-5" />
                         </button>

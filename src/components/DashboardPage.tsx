@@ -99,7 +99,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = (props) => {
                             </div>
                         </div>
 
-                         <button onClick={props.handleAutoAnalyze} disabled={props.isAutoAnalyzing} className="w-full py-2.5 bg-gradient-to-r from-primary-500 to-purple-600 hover:from-primary-400 hover:to-purple-500 text-white rounded-xl text-xs font-bold shadow-md shadow-primary-200/50 flex items-center justify-center gap-2 transition-all disabled:opacity-50">
+                         <button onClick={props.handleAutoAnalyze} disabled={props.isAutoAnalyzing} className="w-full py-2.5 bg-gradient-to-r from-primary-500 to-emerald-500 hover:from-primary-400 hover:to-emerald-400 text-white rounded-xl text-xs font-bold shadow-md shadow-primary-200/50 flex items-center justify-center gap-2 transition-all disabled:opacity-50">
                             {props.isAutoAnalyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />} 
                             {props.isAutoAnalyzing ? "Đang xử lý..." : "Auto Phân Tích"}
                         </button>

@@ -132,14 +132,14 @@ export const CreativePage: React.FC<CreativePageProps> = (props) => {
                                     </div>
                                 ) : (
                                     <div className="flex gap-3 items-center">
-                                        <div className="flex-1 bg-white dark:bg-[#0b1120] border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-sky-500/50 transition-colors rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                                            <Database className="w-10 h-10 text-sky-500 mb-4" />
+                                        <div className="flex-1 bg-white dark:bg-[#0b1120] border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-primary-500/50 transition-colors rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                                            <Database className="w-10 h-10 text-primary-500 mb-4" />
                                             <p className="text-[15px] text-slate-600 dark:text-slate-300 font-bold mb-2">Tải lên file truyện đang viết dở (.epub)</p>
                                             <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mb-6 leading-relaxed">AI sẽ tự động trích xuất nội dung, phân tích nhân vật và bối cảnh hiện tại để chuẩn bị viết tiếp mạch truyện, đảm bảo logic.</p>
                                             <input type="file" ref={fileInputRef} onChange={handleEpubUpload} accept=".epub" className="hidden" />
                                             <button 
                                                 disabled={isAnalyzing}
-                                                className="px-8 py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-sky-900/50"
+                                                className="px-8 py-3 bg-primary-600 hover:bg-primary-500 text-white font-bold rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-primary-900/50"
                                             >
                                                 {isAnalyzing ? <RefreshCw className="w-5 h-5 animate-spin"/> : <Upload className="w-5 h-5"/>}
                                                 Chọn file EPUB
@@ -239,7 +239,7 @@ export const CreativePage: React.FC<CreativePageProps> = (props) => {
                                                     </div>
                                                 </div>
                                                 <div className="flex gap-2">
-                                                    <button onClick={() => handleEditChar(c)} className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-sky-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"><Edit className="w-4 h-4" /></button>
+                                                    <button onClick={() => handleEditChar(c)} className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-primary-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"><Edit className="w-4 h-4" /></button>
                                                     <button onClick={() => handleDeleteChar(c.id)} className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-rose-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
                                                 </div>
                                             </div>

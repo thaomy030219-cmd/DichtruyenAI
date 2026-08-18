@@ -18,7 +18,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                 </div> 
                 {/* Tabs */}
                 <div className="flex border-b border-slate-100 bg-white overflow-x-auto no-scrollbar shrink-0"> 
-                    <button onClick={() => setActiveTab('intro')} className={`flex-1 min-w-[120px] py-4 text-sm font-bold border-b-2 transition-all flex items-center justify-center gap-2 ${activeTab === 'intro' ? 'border-sky-500 text-sky-600 bg-sky-50/30' : 'border-transparent text-slate-500 hover:bg-slate-50'}`}>
+                    <button onClick={() => setActiveTab('intro')} className={`flex-1 min-w-[120px] py-4 text-sm font-bold border-b-2 transition-all flex items-center justify-center gap-2 ${activeTab === 'intro' ? 'border-primary-500 text-primary-600 bg-primary-50/30' : 'border-transparent text-slate-500 hover:bg-slate-50'}`}>
                         <Info className="w-4 h-4"/> Tổng Quan
                     </button> 
                     <button onClick={() => setActiveTab('flow')} className={`flex-1 min-w-[120px] py-4 text-sm font-bold border-b-2 transition-all flex items-center justify-center gap-2 ${activeTab === 'flow' ? 'border-primary-500 text-primary-600 bg-primary-50/30' : 'border-transparent text-slate-500 hover:bg-slate-50'}`}>

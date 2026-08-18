@@ -200,10 +200,10 @@ export const NameAnalysisModal: React.FC<NameAnalysisModalProps> = ({ isOpen, on
                         )}
 
                         <div className="pt-2 space-y-4">
-                            <label className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all shadow-sm ${useSearch ? 'bg-sky-50 border-sky-200' : 'bg-white border-slate-200'}`}>
-                                <input type="checkbox" checked={useSearch} onChange={e => setUseSearch(e.target.checked)} className="w-5 h-5 text-sky-600 rounded" />
+                            <label className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all shadow-sm ${useSearch ? 'bg-primary-50 border-primary-200' : 'bg-white border-slate-200'}`}>
+                                <input type="checkbox" checked={useSearch} onChange={e => setUseSearch(e.target.checked)} className="w-5 h-5 text-primary-600 rounded" />
                                 <div className="text-xs">
-                                    <span className="font-bold text-sky-700 block">Kích hoạt AI Search (Google Grounding)</span>
+                                    <span className="font-bold text-primary-700 block">Kích hoạt AI Search (Google Grounding)</span>
                                     <span className="text-[10px] text-slate-500">AI sẽ tự tra cứu thông tin thực thể, địa danh ngoài đời thực để dịch chính xác hơn. (Khuyên dùng Gemini 3 Pro)</span>
                                 </div>
                             </label>

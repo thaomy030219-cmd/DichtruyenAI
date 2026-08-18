@@ -17,7 +17,7 @@ export const RawDownloadModal: React.FC<RawDownloadModalProps> = ({ isOpen, onCl
             <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 p-6">
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
-                        <div className="p-3 bg-sky-50 dark:bg-sky-900/30 rounded-xl text-sky-600 dark:text-sky-400">
+                        <div className="p-3 bg-primary-50 dark:bg-primary-900/30 rounded-xl text-primary-600 dark:text-primary-400">
                             <FileDown className="w-6 h-6" />
                         </div>
                         <div>
@@ -37,14 +37,14 @@ export const RawDownloadModal: React.FC<RawDownloadModalProps> = ({ isOpen, onCl
                         min={1} 
                         value={parts} 
                         onChange={(e) => setParts(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition-all dark:text-slate-200"
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-slate-200"
                     />
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Mặc định là 1 (Tải toàn bộ vào 1 file ZIP)</p>
                 </div>
 
                 <div className="flex gap-3">
                     <button onClick={onClose} className="flex-1 py-3 text-slate-500 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Hủy</button>
-                    <button onClick={() => { onConfirm(parts); onClose(); }} className="flex-1 py-3 text-white font-bold bg-sky-500 rounded-xl hover:bg-sky-600 transition-colors">Tải Về</button>
+                    <button onClick={() => { onConfirm(parts); onClose(); }} className="flex-1 py-3 text-white font-bold bg-primary-500 rounded-xl hover:bg-primary-600 transition-colors">Tải Về</button>
                 </div>
             </div>
         </div>
