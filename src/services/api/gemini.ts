@@ -216,18 +216,31 @@ export const smartExecution = async <T>(
                     continue;
                 }
 
-                if (quotaErrorCount > 2) {
-                     if (onLog) onLog(`⛔ Model ${selectedId} báo lỗi Quota (429) liên tục ${quotaErrorCount} lần. Nhận định đã hết Quota thực sự.`);
-                     quotaManager.markAsDepleted(selectedId);
+                // UPDATED v1.0.2: FIX BUG NGHIÊM TRỌNG — trước đây CHỈ CẦN 3 lần 429 liên tiếp
+                // (quotaErrorCount > 2) là bị coi "hết Quota thực sự" và gọi markAsDepleted(),
+                // BẤT KỂ usage.requestsToday còn cách rpdLimit thật rất xa (vd 9/500, 17/500).
+                // Vấn đề: 429 mà Google trả về ở đây tuyệt đại đa số là do CHẠM RPM (giới hạn số
+                // request/PHÚT — rất thấp, vd 3.1 Pro chỉ 2 RPM), KHÔNG phải chạm RPD (giới hạn
+                // request/NGÀY — mới thật sự là "hết Quota"). RPM là giới hạn TẠM THỜI, chỉ cần
+                // đợi ít lâu là dùng lại được — không nên khoá cả ngày. Lỗi này đặc biệt nghiêm
+                // trọng khi app chạy ở bản Publish dùng CHUNG 1 API Key cho nhiều người cùng lúc:
+                // chỉ cần vài người vô tình gửi request gần nhau là dễ dàng dính đủ 3 lần 429 liên
+                // tiếp dù quota thật của Key vẫn còn rất nhiều, khiến model bị khoá oan cho TẤT CẢ
+                // mọi người dùng chung Key, không chỉ riêng người vừa gặp lỗi.
+                // Sửa: tín hiệu đáng tin cậy DUY NHẤT cho "hết Quota thật" là isHardLimitReached ở
+                // trên (đã kiểm tra đúng theo rpdLimit thật). Ở đây, dù dính 429 liên tục bao nhiêu
+                // lần cũng KHÔNG markAsDepleted nữa — chỉ tăng dần thời gian đợi (backoff), và nếu
+                // đã đợi quá lâu (quotaErrorCount vượt ngưỡng an toàn) thì tạm loại khỏi danh sách
+                // thử của LƯỢT NÀY thôi (temporaryBlacklist, không ảnh hưởng trạng thái quota lưu
+                // trong ngày) để tránh treo vô hạn, model vẫn còn nguyên cơ hội ở lượt dịch kế tiếp.
+                if (quotaErrorCount > 6) {
+                     if (onLog) onLog(`⚠️ Model ${selectedId} dính Quota/Rate limit (429) liên tục ${quotaErrorCount} lần (RPM tạm thời, requestsToday=${usage.requestsToday}/${modelConfig?.rpdLimit ?? '?'} — CHƯA chạm hạn mức ngày thật). Tạm bỏ qua model này cho lượt hiện tại, không khoá cả ngày.`);
                      temporaryBlacklist.push(selectedId);
                      continue;
                 } else {
-                     let waitTimeSeconds = 5;
-                     if (quotaErrorCount === 1) waitTimeSeconds = 5;
-                     else if (quotaErrorCount === 2) waitTimeSeconds = 10;
-                     
+                     const waitTimeSeconds = Math.min(5 * quotaErrorCount, 30);
                      const waitTime = waitTimeSeconds * 1000;
-                     if (onLog) onLog(`⚠️ Model ${selectedId} dính Quota/Rate limit (429). Lần ${quotaErrorCount}, thử lại sau ${waitTimeSeconds}s...`);
+                     if (onLog) onLog(`⚠️ Model ${selectedId} dính Quota/Rate limit (429) tạm thời (RPM). Lần ${quotaErrorCount}, thử lại sau ${waitTimeSeconds}s...`);
                      quotaManager.recordRateLimit(selectedId, waitTime);
                      await new Promise(r => setTimeout(r, waitTime));
                      continue;
