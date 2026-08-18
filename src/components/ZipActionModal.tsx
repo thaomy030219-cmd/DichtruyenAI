@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { FileArchive, Split, Files, X } from 'lucide-react';
+import { BookOpen, Split, Files, X } from 'lucide-react';
 
 interface ZipActionModalProps {
     isOpen: boolean;
@@ -18,11 +18,11 @@ export const ZipActionModal: React.FC<ZipActionModalProps> = ({ isOpen, onClose,
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
                         <div className="p-3 bg-primary-50 rounded-xl text-primary-600">
-                            <FileArchive className="w-6 h-6" />
+                            <BookOpen className="w-6 h-6" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-lg text-slate-800">Tùy Chọn Nhập ZIP</h3>
-                            <p className="text-xs text-slate-500">Phát hiện nhiều file & nội dung lớn.</p>
+                            <h3 className="font-bold text-lg text-slate-800">Tùy Chọn Nhập File</h3>
+                            <p className="text-xs text-slate-500">Phát hiện nhiều phần trong file (chương/tiết/trang).</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
@@ -39,8 +39,8 @@ export const ZipActionModal: React.FC<ZipActionModalProps> = ({ isOpen, onClose,
                             <Files className="w-6 h-6" />
                         </div>
                         <div>
-                            <h4 className="font-bold text-slate-700 group-hover:text-emerald-700 text-sm">Giữ Nguyên (Keep Separate)</h4>
-                            <p className="text-xs text-slate-500 mt-1">Nhập từng file trong ZIP thành từng chương riêng biệt. (Đúng cấu trúc nguồn)</p>
+                            <h4 className="font-bold text-slate-700 group-hover:text-emerald-700 text-sm">Giữ Nguyên Cấu Trúc Gốc</h4>
+                            <p className="text-xs text-slate-500 mt-1">Nhập từng phần có sẵn trong file thành từng chương riêng biệt, không thay đổi gì. Phù hợp nếu file gốc đã chia đúng theo chương.</p>
                         </div>
                     </button>
 
@@ -52,8 +52,8 @@ export const ZipActionModal: React.FC<ZipActionModalProps> = ({ isOpen, onClose,
                             <Split className="w-6 h-6" />
                         </div>
                         <div>
-                            <h4 className="font-bold text-slate-700 group-hover:text-primary-700 text-sm">Gộp & Tách Lại (Merge & Split)</h4>
-                            <p className="text-xs text-slate-500 mt-1">Gộp tất cả lại thành 1 file lớn rồi dùng bộ tách Regex chia nhỏ lại.</p>
+                            <h4 className="font-bold text-slate-700 group-hover:text-primary-700 text-sm">Gộp & Tách Lại Theo Regex</h4>
+                            <p className="text-xs text-slate-500 mt-1">Gộp tất cả lại thành 1 file lớn rồi dùng bộ tách chương (regex) chia lại từ đầu. Nên chọn nếu file gốc chia theo tiết/trang, không có tiêu đề/số chương rõ ràng.</p>
                         </div>
                     </button>
                 </div>

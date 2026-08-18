@@ -12,6 +12,12 @@ export const useFileImport = (core: any, ui: any, onFilesAdded?: () => void) => 
         const updatedStoryInfo = { ...core.storyInfo };
         let infoFound = false;
         let needsExplicitSplit = false;
+        // UPDATED v1.0.2: cờ riêng cho trường hợp EPUB tách sẵn thành NHIỀU file nhỏ theo
+        // tiết/trang (không phải chương chuẩn có tiêu đề/số thứ tự) — các file này thường KHÔNG
+        // đủ "lớn" (dưới ngưỡng hasLargeFile) nên trước đây bị bỏ qua, tự động nhập luôn theo
+        // đúng cấu trúc gốc của EPUB mà không hỏi, dẫn tới chương bị vụn/sai tên. Giờ EPUB nhiều
+        // file luôn được hỏi rõ, không phụ thuộc kích thước.
+        let hasMultiFileEpub = false;
 
         try {
             for (let i = 0; i < fileList.length; i++) {
@@ -73,7 +79,7 @@ export const useFileImport = (core: any, ui: any, onFilesAdded?: () => void) => 
                             }));
                         }
 
-                        if (result.needsSplit && epubFiles.length === 1) { needsExplicitSplit = true; processedNewFiles.push(epubFiles[0]); } else { processedNewFiles.push(...epubFiles); }
+                        if (result.needsSplit && epubFiles.length === 1) { needsExplicitSplit = true; processedNewFiles.push(epubFiles[0]); } else { if (epubFiles.length > 1) hasMultiFileEpub = true; processedNewFiles.push(...epubFiles); }
                     } catch (e: any) { ui.addToast(`Lỗi EPUB: ${e.message}`, 'error'); }
                 } else if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
                     try {
@@ -131,7 +137,7 @@ export const useFileImport = (core: any, ui: any, onFilesAdded?: () => void) => 
             
             const hasLargeFile = processedNewFiles.some(f => f.content.length > 10000);
             
-            if (processedNewFiles.length > 1 && hasLargeFile && !needsExplicitSplit) {
+            if (processedNewFiles.length > 1 && (hasLargeFile || hasMultiFileEpub) && !needsExplicitSplit) {
                 ui.setImportModal({ isOpen: false, pendingFiles: processedNewFiles, tempInfo: infoFound ? updatedStoryInfo : null });
                 ui.setZipActionModal(true);
                 ui.setImportProgress(null);
