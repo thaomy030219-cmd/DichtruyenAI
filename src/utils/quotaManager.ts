@@ -5,6 +5,28 @@ import { MODEL_CONFIGS } from '../constants';
 const STORAGE_KEY = 'gemini_quota_usage_v1';
 const SAFETY_BUFFER_MS = 5000; // Tăng lên 5s để đảm bảo an toàn tuyệt đối cho RPM thấp
 
+// UPDATED v1.0.2: FIX lỗi nghiêm trọng — quota THẬT của Gemini API reset theo đúng NỬA ĐÊM GIỜ
+// PACIFIC (America/Los_Angeles), không phải theo UTC và càng không phải theo giờ Việt Nam. Trước
+// đây code dùng `new Date().toISOString().split('T')[0]` = tính theo NGÀY UTC — 0h UTC (7h sáng
+// giờ VN) không hề trùng với thời điểm Google thực sự reset quota (8h UTC = 0h Pacific = 14-15h
+// chiều giờ VN, tuỳ mùa DST). Hậu quả: có khoảng lệch ~7-8 tiếng mỗi ngày (0h UTC -> 8h UTC) mà bộ
+// đếm HIỂN THỊ trên app đã tự "reset" (tưởng dùng lại được từ đầu), nhưng quota THẬT trên server
+// Google vẫn còn là dữ liệu của NGÀY HÔM TRƯỚC (chưa reset) — dẫn tới hiện tượng gọi API vẫn dính
+// lỗi hết quota thật (429) dù bộ đếm địa phương hiện con số rất thấp, y hệt "hết quota giả".
+// Sửa: tính "ngày hôm nay" đúng theo lịch Pacific Time (dùng Intl.DateTimeFormat, tự động xử lý
+// đúng cả DST) thay vì UTC thô, để thời điểm reset hiển thị khớp với thời điểm Google reset thật.
+const getPacificDateString = (): string => {
+    try {
+        return new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/Los_Angeles',
+            year: 'numeric', month: '2-digit', day: '2-digit'
+        }).format(new Date());
+    } catch {
+        // Fallback cực hiếm khi trình duyệt không hỗ trợ Intl timezone — dùng UTC như cũ.
+        return new Date().toISOString().split('T')[0];
+    }
+};
+
 class QuotaManager {
   private usage: Record<string, ModelUsage> = {};
   private listeners: (() => void)[] = [];
@@ -47,7 +69,7 @@ class QuotaManager {
 
   public clearUsage() {
       this.usage = {};
-      const today = new Date().toISOString().split('T')[0];
+      const today = getPacificDateString();
       this.currentConfigs.forEach(model => {
         this.usage[model.id] = {
           requestsToday: 0,
@@ -86,7 +108,7 @@ class QuotaManager {
   // (xem App.tsx: gọi mỗi khi tab quay lại foreground + set interval định kỳ), không chỉ lúc khởi
   // động app.
   public applyDailyResetIfNeeded() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getPacificDateString();
     let changed = false;
     
     // Use currentConfigs instead of static import
@@ -393,7 +415,7 @@ class QuotaManager {
   }
 
   public resetDailyQuotas() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getPacificDateString();
     for (const key in this.usage) {
         this.usage[key] = {
             ...this.usage[key],
