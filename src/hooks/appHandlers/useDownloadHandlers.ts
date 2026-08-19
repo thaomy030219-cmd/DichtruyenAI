@@ -36,7 +36,7 @@ export const useDownloadHandlers = (core: any, ui: any) => {
             const fileName = generateExportFileName(core.storyInfo.title, core.storyInfo.author, '_Selected.zip');
             await downloadTranslatedAsZip(readyFiles, fileName, (percent, msg) => { 
                 ui.setActionProgress({ current: percent, total: 100, message: msg }); 
-            });
+            }, core.storyInfo.enableTitleFormatting !== false, core.storyInfo.enableAutoFormat !== false, core.storyInfo.enableParagraphSpacing !== false);
             ui.addToast(`Đã tải ${readyFiles.length} file được chọn`, 'success');
         } catch (e: any) { 
             ui.addToast(`Lỗi tải xuống: ${e.message}`, 'error'); 

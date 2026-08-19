@@ -6,7 +6,7 @@ export const useFileExportDownload = (core: any, ui: any) => {
     const handleDownloadMerged = () => {
         ui.setActionProgress({ current: 0, total: 100, message: "Đang gộp và định dạng nội dung (Local AI)..." });
         setTimeout(() => {
-            const content = createMergedFile(core.files, core.storyInfo.enableTitleFormatting !== false, core.storyInfo.enableAutoFormat !== false);
+            const content = createMergedFile(core.files, core.storyInfo.enableTitleFormatting !== false, core.storyInfo.enableAutoFormat !== false, core.storyInfo.enableParagraphSpacing !== false);
             if(!content) { ui.addToast("Chưa có nội dung", 'error'); ui.setActionProgress(null); return; }
             const fileName = generateExportFileName(core.storyInfo.title, core.storyInfo.author, '.txt');
             downloadTextFile(fileName, content);
@@ -21,7 +21,7 @@ export const useFileExportDownload = (core: any, ui: any) => {
         try {
             ui.setActionProgress({ current: 0, total: 100, message: "Đang chuẩn bị ZIP Raw (Auto Clean)..." });
             const fileName = generateExportFileName(core.storyInfo.title, core.storyInfo.author, '_Raw.zip');
-            await downloadRawAsZip(core.files, fileName, splitCount, (percent, msg) => { ui.setActionProgress({ current: percent, total: 100, message: msg }); }, core.storyInfo.enableTitleFormatting !== false, core.storyInfo.enableAutoFormat !== false);
+            await downloadRawAsZip(core.files, fileName, splitCount, (percent, msg) => { ui.setActionProgress({ current: percent, total: 100, message: msg }); }, core.storyInfo.enableTitleFormatting !== false, core.storyInfo.enableAutoFormat !== false, core.storyInfo.enableParagraphSpacing !== false);
             ui.addToast("Đã tải xuống file ZIP raw (Đã lọc rác)", 'success');
         } catch (e: any) { ui.addToast(`Lỗi tạo ZIP: ${e.message}`, 'error'); } finally { ui.setActionProgress(null); }
     };
@@ -32,7 +32,7 @@ export const useFileExportDownload = (core: any, ui: any) => {
         try {
             ui.setActionProgress({ current: 0, total: 100, message: "Đang chuẩn bị ZIP Dịch (Auto Clean)..." });
             const fileName = generateExportFileName(core.storyInfo.title, core.storyInfo.author, '_Dich.zip');
-            await downloadTranslatedAsZip(core.files, fileName, (percent, msg) => { ui.setActionProgress({ current: percent, total: 100, message: msg }); }, core.storyInfo.enableTitleFormatting !== false, core.storyInfo.enableAutoFormat !== false);
+            await downloadTranslatedAsZip(core.files, fileName, (percent, msg) => { ui.setActionProgress({ current: percent, total: 100, message: msg }); }, core.storyInfo.enableTitleFormatting !== false, core.storyInfo.enableAutoFormat !== false, core.storyInfo.enableParagraphSpacing !== false);
             ui.addToast("Đã tải xuống file ZIP các chương dịch (Đã lọc rác & định dạng)", 'success');
         } catch (e: any) { ui.addToast(`Lỗi: ${e.message}`, 'error'); } finally { ui.setActionProgress(null); }
     };

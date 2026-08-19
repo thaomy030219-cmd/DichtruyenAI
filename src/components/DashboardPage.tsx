@@ -186,6 +186,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = (props) => {
 
                         <label className="flex items-center gap-3 cursor-pointer group">
                             <div className="relative">
+                                <input type="checkbox" className="sr-only peer" checked={props.storyInfo.enableParagraphSpacing ?? true} onChange={(e) => props.setStoryInfo({ ...props.storyInfo, enableParagraphSpacing: e.target.checked })} />
+                                <div className={`block w-10 h-6 rounded-full transition-colors duration-200 ease-smooth peer-focus-visible:ring-2 peer-focus-visible:ring-amber-400 peer-focus-visible:ring-offset-2 dark:peer-focus-visible:ring-offset-slate-900 ${props.storyInfo.enableParagraphSpacing !== false ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-700'}`}></div>
+                                <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform ${props.storyInfo.enableParagraphSpacing !== false ? 'translate-x-4' : ''}`}></div>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-amber-600 dark:group-hover:text-amber-400">Chèn dòng trống giữa đoạn văn khi xuất file</span>
+                                <span className="text-[10px] text-slate-500">Tắt nếu không muốn có dòng trống giữa các đoạn khi tải TXT/ZIP — các đoạn sẽ liền nhau, mỗi đoạn 1 dòng. Không ảnh hưởng các tính năng dọn dẹp/sửa lỗi khác ở trên.</span>
+                            </div>
+                        </label>
+
+                        <label className="flex items-center gap-3 cursor-pointer group">
+                            <div className="relative">
                                 <input type="checkbox" className="sr-only peer" checked={props.storyInfo.enableGarbageCleanOnImport ?? true} onChange={(e) => props.setStoryInfo({ ...props.storyInfo, enableGarbageCleanOnImport: e.target.checked })} />
                                 <div className={`block w-10 h-6 rounded-full transition-colors duration-200 ease-smooth peer-focus-visible:ring-2 peer-focus-visible:ring-teal-400 peer-focus-visible:ring-offset-2 dark:peer-focus-visible:ring-offset-slate-900 ${props.storyInfo.enableGarbageCleanOnImport !== false ? 'bg-teal-500' : 'bg-slate-300 dark:bg-slate-700'}`}></div>
                                 <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform ${props.storyInfo.enableGarbageCleanOnImport !== false ? 'translate-x-4' : ''}`}></div>

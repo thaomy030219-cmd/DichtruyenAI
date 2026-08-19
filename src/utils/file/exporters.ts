@@ -4,14 +4,14 @@ import { FileItem, StoryInfo } from '../../types';
 import { cleanContentArtifacts, sanitizeFilename } from './shared';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 
-export const createMergedFile = (files: FileItem[], enableTitleFormatting: boolean = true, enableAutoFormat: boolean = true): string => {
+export const createMergedFile = (files: FileItem[], enableTitleFormatting: boolean = true, enableAutoFormat: boolean = true, enableParagraphSpacing: boolean = true): string => {
   const sortedFiles = [...files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
   return sortedFiles.filter((f) => !!f.translatedContent)
-    .map((f) => cleanContentArtifacts(f.translatedContent || "", enableTitleFormatting, enableAutoFormat).trim())
+    .map((f) => cleanContentArtifacts(f.translatedContent || "", enableTitleFormatting, enableAutoFormat, enableParagraphSpacing).trim())
     .join('\n\n'); 
 };
 
-export const downloadRawAsZip = async (files: FileItem[], filename: string, splitCount: number = 1, onProgress?: (percent: number, msg: string) => void, enableTitleFormatting: boolean = true, enableAutoFormat: boolean = true) => {
+export const downloadRawAsZip = async (files: FileItem[], filename: string, splitCount: number = 1, onProgress?: (percent: number, msg: string) => void, enableTitleFormatting: boolean = true, enableAutoFormat: boolean = true, enableParagraphSpacing: boolean = true) => {
     const sortedFiles = [...files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
     if (onProgress) onProgress(0, "Đang chuẩn bị dữ liệu...");
     
@@ -20,7 +20,7 @@ export const downloadRawAsZip = async (files: FileItem[], filename: string, spli
         sortedFiles.forEach((f, index) => {
             let safeName = sanitizeFilename(f.name);
             if (!safeName.toLowerCase().endsWith('.txt')) safeName += '.txt';
-            zip.file(safeName, cleanContentArtifacts(f.content, enableTitleFormatting, enableAutoFormat));
+            zip.file(safeName, cleanContentArtifacts(f.content, enableTitleFormatting, enableAutoFormat, enableParagraphSpacing));
             if (onProgress && index % 10 === 0) onProgress(Math.round((index / sortedFiles.length) * 20), `Đang thêm file: ${safeName}`);
         });
         if (onProgress) onProgress(20, "Đang nén file Zip...");
@@ -51,7 +51,7 @@ export const downloadRawAsZip = async (files: FileItem[], filename: string, spli
             partFiles.forEach(f => {
                 let safeName = sanitizeFilename(f.name);
                 if (!safeName.toLowerCase().endsWith('.txt')) safeName += '.txt';
-                partZip.file(safeName, cleanContentArtifacts(f.content, enableTitleFormatting, enableAutoFormat));
+                partZip.file(safeName, cleanContentArtifacts(f.content, enableTitleFormatting, enableAutoFormat, enableParagraphSpacing));
             });
             
             if (onProgress) onProgress(Math.round(((i + 1) / splitCount) * 40), `Đang nén phần ${i + 1}/${splitCount}`);
@@ -78,7 +78,7 @@ export const downloadRawAsZip = async (files: FileItem[], filename: string, spli
     }
 };
 
-export const downloadTranslatedAsZip = async (files: FileItem[], filename: string, onProgress?: (percent: number, msg: string) => void, enableTitleFormatting: boolean = true, enableAutoFormat: boolean = true) => {
+export const downloadTranslatedAsZip = async (files: FileItem[], filename: string, onProgress?: (percent: number, msg: string) => void, enableTitleFormatting: boolean = true, enableAutoFormat: boolean = true, enableParagraphSpacing: boolean = true) => {
     const zip = new JSZip();
     const sortedFiles = [...files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
     if (onProgress) onProgress(0, "Đang chuẩn bị...");
@@ -88,7 +88,7 @@ export const downloadTranslatedAsZip = async (files: FileItem[], filename: strin
         const f = readyFiles[i];
         let safeName = sanitizeFilename(f.name);
         if (!safeName.toLowerCase().endsWith('.txt')) safeName += '.txt';
-        zip.file(safeName, cleanContentArtifacts(f.translatedContent!, enableTitleFormatting, enableAutoFormat));
+        zip.file(safeName, cleanContentArtifacts(f.translatedContent!, enableTitleFormatting, enableAutoFormat, enableParagraphSpacing));
         if (onProgress && i % 100 === 0) {
             onProgress(Math.round((i / readyFiles.length) * 20), `Đang thêm: ${safeName}`);
             await new Promise(r => setTimeout(r, 0));
@@ -109,9 +109,9 @@ export const downloadTranslatedAsZip = async (files: FileItem[], filename: strin
     URL.revokeObjectURL(url);
 };
 
-export const createMergedRawFile = (files: FileItem[], enableTitleFormatting: boolean = true, enableAutoFormat: boolean = true): string => {
+export const createMergedRawFile = (files: FileItem[], enableTitleFormatting: boolean = true, enableAutoFormat: boolean = true, enableParagraphSpacing: boolean = true): string => {
   const sortedFiles = [...files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
-  return sortedFiles.map((f) => cleanContentArtifacts(f.content, enableTitleFormatting, enableAutoFormat).trim()).join('\n\n'); 
+  return sortedFiles.map((f) => cleanContentArtifacts(f.content, enableTitleFormatting, enableAutoFormat, enableParagraphSpacing).trim()).join('\n\n'); 
 };
 
 export const downloadTextFile = (filename: string, content: string) => {
@@ -166,7 +166,7 @@ export const downloadDocxFile = async (filename: string, files: FileItem[], stor
       onProgress(Math.round((i / sortedFiles.length) * 100));
       await new Promise(r => setTimeout(r, 0));
     }
-    const content = cleanContentArtifacts(file.translatedContent || file.content, storyInfo.enableTitleFormatting !== false, storyInfo.enableAutoFormat !== false);
+    const content = cleanContentArtifacts(file.translatedContent || file.content, storyInfo.enableTitleFormatting !== false, storyInfo.enableAutoFormat !== false, storyInfo.enableParagraphSpacing !== false);
     const paragraphs = content.split('\n').filter(l => l.trim() !== '').map(line => new Paragraph({
       children: [new TextRun(line.trim())],
       spacing: { line: 360, lineRule: "auto", after: 480 },
@@ -375,7 +375,7 @@ export const generateEpub = async (files: FileItem[], storyInfo: StoryInfo, cove
       if (i % updateStep === 0) { if (onProgress) onProgress(Math.round((i / totalFiles) * 80)); await new Promise(resolve => setTimeout(resolve, 0)); }
       const file = sortedFiles[i];
       const rawContent = file.translatedContent || file.content || "";
-      const content = cleanContentArtifacts(rawContent, storyInfo.enableTitleFormatting !== false, storyInfo.enableAutoFormat !== false);
+      const content = cleanContentArtifacts(rawContent, storyInfo.enableTitleFormatting !== false, storyInfo.enableAutoFormat !== false, storyInfo.enableParagraphSpacing !== false);
       if (!content.trim()) continue;
       const chapterId = `ch${i + 1}`;
       const filename = `Text/${chapterId}.xhtml`;

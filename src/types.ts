@@ -87,6 +87,10 @@ export interface StoryInfo {
   pronounMode?: 'modern' | 'ancient' | 'flexible';
   enableTitleFormatting?: boolean; // Tắt bật chuẩn hóa tiêu đề
   enableAutoFormat?: boolean; // Tắt bật định dạng đoạn văn và lọc rác chung
+  // UPDATED v1.0.2: tách riêng việc "chèn dòng trống giữa các đoạn văn" ra khỏi enableAutoFormat
+  // (trước đây gộp chung, không thể tắt riêng — tắt enableAutoFormat để bỏ dòng trống thì mất
+  // luôn cả các fix lỗi câu/dọn rác khác không liên quan). Mặc định true để giữ đúng hành vi cũ.
+  enableParagraphSpacing?: boolean;
   enableGarbageCleanOnImport?: boolean; // Tắt bật lọc rác sơ bộ (HTML rác, *#=, __/-- lặp...) tự động ngay lúc thêm file (zip/epub/docx/txt/pdf)
   titleFormat?: 'colon' | 'dash' | 'newline' | 'bracket'; // Định dạng tiêu đề chương
   tagFormat?: 'auto' | 'bracket' | 'xml'; // Tùy chọn định dạng tag

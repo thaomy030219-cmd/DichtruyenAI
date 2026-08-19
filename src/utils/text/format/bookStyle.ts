@@ -11,7 +11,8 @@ export const formatBookStyle = (
   rawText?: string,
   enableTitleFormatting: boolean = true,
   titleFormat: 'colon' | 'dash' | 'newline' | 'bracket' = 'colon',
-  enableAutoFormat: boolean = true
+  enableAutoFormat: boolean = true,
+  enableParagraphSpacing: boolean = true
 ): string => {
   if (!text) return text;
 
@@ -434,5 +435,5 @@ export const formatBookStyle = (
     }
   }
 
-  return processedLines.join("\n\n");
+  return processedLines.join(enableParagraphSpacing !== false ? "\n\n" : "\n");
 };

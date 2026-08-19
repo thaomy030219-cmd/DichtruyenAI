@@ -26,12 +26,12 @@ export const resolvePath = (base: string, relative: string) => {
 };
 
 
-export const cleanContentArtifacts = (content: string, enableTitleFormatting: boolean = true, enableAutoFormat: boolean = true): string => {
+export const cleanContentArtifacts = (content: string, enableTitleFormatting: boolean = true, enableAutoFormat: boolean = true, enableParagraphSpacing: boolean = true): string => {
     if (!content) return "";
     let clean = content;
     clean = clean.replace(/^(?:###)?\s*EPUB_CHAPTER_SPLIT\s*.*$/gim, '');
     clean = clean.replace(/^Part \d+ \(Split\)$/gim, '');
     clean = clean.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    clean = formatBookStyle(clean, undefined, enableTitleFormatting, 'colon', enableAutoFormat);
+    clean = formatBookStyle(clean, undefined, enableTitleFormatting, 'colon', enableAutoFormat, enableParagraphSpacing);
     return clean.trim();
 };
