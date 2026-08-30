@@ -1,8 +1,30 @@
 [
     {
+        "version": "1.0.4",
+        "title": "Thiết kế lại không gian dự án và bỏ tạo bìa AI",
+        "isLatest": true,
+        "changes": [
+            {
+                "icon": "LayoutDashboard",
+                "bold": "Dashboard hai cột mới:",
+                "text": "Sắp xếp thông tin tác phẩm, phân loại, cài đặt biên tập và dữ liệu hệ thống trong bốn khối rõ ràng; thanh thao tác được đưa lên phía trên nội dung."
+            },
+            {
+                "icon": "ImageIcon",
+                "bold": "Ảnh bìa thủ công:",
+                "text": "Loại bỏ nút, mã API và quy trình chạy ngầm tạo ảnh bìa bằng AI. Tải ảnh thủ công, backup, restore và nhúng bìa vào EPUB vẫn hoạt động."
+            },
+            {
+                "icon": "PanelLeft",
+                "bold": "Giao diện gọn hơn:",
+                "text": "Danh sách model được thu gọn mặc định, sidebar và thanh công cụ dùng bố cục gần với giao diện quản lý ebook tham chiếu."
+            }
+        ]
+    },
+    {
         "version": "1.0.3",
         "title": "Nâng cấp OpenRouter và tinh gọn danh sách model",
-        "isLatest": true,
+        "isLatest": false,
         "changes": [
             {
                 "icon": "Sparkles",

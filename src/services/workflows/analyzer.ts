@@ -8,6 +8,5 @@
 export * from './analyze/context';
 export * from './analyze/promptRules';
 export * from './analyze/names';
-export * from './analyze/cover';
 export * from './analyze/autoAnalyze';
 export * from './analyze/customError';

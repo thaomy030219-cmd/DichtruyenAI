@@ -7,7 +7,7 @@
 import { StoryInfo } from '../../types';
 import { generateBasePrompt } from '../../constants';
 import { getPronounModeOverride } from '../../prompts';
-import { analyzeStoryContext, analyzeNameBatch, analyzeContextBatch, mergeContexts, optimizePrompt, refineRawContext, refineAdditionalRules, refineSummary, createCoverPrompt, generateCoverImage, addTextToCover } from '../../geminiService';
+import { analyzeStoryContext, analyzeNameBatch, analyzeContextBatch, mergeContexts, optimizePrompt, refineRawContext, refineAdditionalRules, refineSummary } from '../../geminiService';
 import { deduplicateDictionary, extractGlossaryBlocks } from '../../utils/text';
 import { downloadTextFile, sortFiles, getSmartSampledFiles } from '../../utils/fileHelpers';
 
@@ -203,21 +203,6 @@ export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) 
                 downloadTextFile(`${config.updatedStoryInfo.title}_Context.txt`, mergedContext);
                 if (extractedGlossary) {
                     downloadTextFile(`${config.updatedStoryInfo.title}_ExtractedDict.txt`, extractedGlossary);
-                }
-
-                // TRÍ TUỆ BÌA TUYỆT ĐỐI (Cover Design Base)
-                if (!core.coverImage) {
-                    ui.setNameAnalysisProgress({ current: chunks.length, total: chunks.length, stage: "Trí tuệ bìa tuyệt đối: Đang phân tích logic hình ảnh..." });
-                    const coverPrompt = await createCoverPrompt(config.updatedStoryInfo, refinedSummary, core.enabledModels);
-                    core.setStoryInfo((prev: StoryInfo) => ({ ...prev, image_prompt: coverPrompt }));
-                    
-                    ui.setNameAnalysisProgress({ current: chunks.length, total: chunks.length, stage: "Đang vẽ ảnh bìa (Gemini 2.5 Flash Image)..." });
-                    const baseCover = await generateCoverImage(coverPrompt, core.enabledModels);
-                    if (baseCover) {
-                         ui.setNameAnalysisProgress({ current: chunks.length, total: chunks.length, stage: "Đang in Typography chữ lên ảnh bìa..." });
-                         const finalCover = await addTextToCover(baseCover, config.updatedStoryInfo.title || "Vô Danh", config.updatedStoryInfo.author || "Khuyết Danh");
-                         core.setCoverImage(finalCover);
-                    }
                 }
 
             } else {

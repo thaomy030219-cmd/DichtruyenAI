@@ -147,16 +147,16 @@ export const MainUI: React.FC<MainUIProps> = (props) => {
                     {activeTab === 'hanviet' && <SinoVietnameseFixerPage {...props} setAdditionalDictionary={props.setAdditionalDictionary} state={props.sinoVietnameseState} setState={props.setSinoVietnameseState} storyInfo={props.storyInfo} promptTemplate={props.promptTemplate} dictionary={props.additionalDictionary} setStartTime={props.setStartTime} setEndTime={props.setEndTime} addLog={props.addLog} />}
                     
                     {/* 4. GLOBAL BOTTOM ACTION BAR (Responsive) */}
-                    <div className="relative shrink-0 z-30">
+                    <div className="relative order-first shrink-0 z-30">
                         {/* Toggle Button */}
                         <button 
                             onClick={() => setIsBottomBarOpen(!isBottomBarOpen)}
-                            className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-900 border border-b-0 border-slate-200 dark:border-slate-800 rounded-t-xl px-4 py-1 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 flex items-center justify-center transition-colors duration-200 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
+                            className="hidden absolute -top-6 left-1/2 -translate-x-1/2"
                         >
                             {isBottomBarOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
                         </button>
                         
-                        <div className={`bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] transition-all duration-300 overflow-x-auto custom-scrollbar ${isBottomBarOpen ? 'max-h-[40vh] opacity-100 p-1.5 md:p-3' : 'max-h-0 opacity-0 p-0'}`}>
+                        <div className={`bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm transition-all duration-300 overflow-x-auto custom-scrollbar ${isBottomBarOpen ? 'max-h-[40vh] opacity-100 p-1.5 md:p-2' : 'max-h-0 opacity-0 p-0'}`}>
                             <div className="min-w-max mx-auto flex items-center gap-1.5 px-2 pb-1">
                             
                             {/* ... (Existing buttons) */}

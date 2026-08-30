@@ -332,20 +332,6 @@ const App: React.FC = () => {
         handleSplitConfirm={fileHandler.handleSplitConfirm}
         handleZipKeepSeparate={fileHandler.handleZipKeepSeparate}
         handleZipMergeAndSplit={fileHandler.handleZipMergeAndSplit}
-        handleRegenerateCover={async (info) => {
-            const { createCoverPrompt, generateCoverImage, addTextToCover } = await import('./services/workflows/analyzer');
-            const prompt = await createCoverPrompt(info, info.summary || "");
-            const baseCover = await generateCoverImage(prompt, core.enabledModels);
-            if (baseCover) {
-                const finalCover = await addTextToCover(baseCover, info.title, info.author);
-                core.setCoverImage(finalCover);
-                ui.addToast("Tạo ảnh bìa thành công!", "success");
-                return finalCover;
-            } else {
-                ui.addToast("Tạo ảnh bìa thất bại.", "error");
-                return null;
-            }
-        }}
         handleEpubConfirm={async (updatedInfo, updatedCover, customFont) => {
             await appHandlers.handleRemoveJunk('all');
             await engine.handleTitleNormalization('all');
@@ -488,27 +474,6 @@ const App: React.FC = () => {
         quickInput={ui.quickInput}
         setQuickInput={ui.setQuickInput}
         handleQuickParse={appHandlers.handleQuickParse}
-        handleRegenerateCover={async () => { 
-             ui.setIsGeneratingCover(true);
-             try {
-                 const { createCoverPrompt, generateCoverImage, addTextToCover } = await import('./services/workflows/analyzer');
-                 const prompt = await createCoverPrompt(core.storyInfo, core.storyInfo.summary || "");
-                 const baseCover = await generateCoverImage(prompt, core.enabledModels);
-                 if (baseCover) {
-                     const finalCover = await addTextToCover(baseCover, core.storyInfo.title, core.storyInfo.author);
-                     core.setCoverImage(finalCover);
-                     ui.addToast("Tạo ảnh bìa thành công!", "success");
-                 } else {
-                     ui.addToast("Tạo ảnh bìa thất bại.", "error");
-                 }
-             } catch (e: any) {
-                 console.error("Cover generation error:", e);
-                 ui.addToast(`Lỗi tạo ảnh bìa: ${e.message}`, "error");
-             } finally {
-                 ui.setIsGeneratingCover(false);
-             }
-        }}
-        isGeneratingCover={ui.isGeneratingCover}
         handleBackup={fileHandler.handleBackup}
         handleRestore={fileHandler.handleRestore}
         requestResetApp={appHandlers.requestResetApp}

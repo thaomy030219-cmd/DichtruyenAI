@@ -1,5 +1,5 @@
 // Quy trình TỰ ĐỘNG PHÂN TÍCH truyện khi mới thêm truyện (lấy mẫu chương, phân tích qua AI,
-// trả về info + ảnh bìa gợi ý). Đây là hàm điều phối lớn (~195 dòng) — giữ nguyên khối, không
+// trả về thông tin phân tích tác phẩm). Đây là hàm điều phối lớn (~195 dòng) — giữ nguyên khối, không
 // tách nhỏ nội dung để tránh rủi ro đổi hành vi ở bước refactor thuần vị trí code này.
 import { getAiClient, smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
 import { StoryInfo, FileItem } from '../../../types';

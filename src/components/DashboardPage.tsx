@@ -1,270 +1,74 @@
-
 import React from 'react';
-import { 
-    ImageIcon, Upload, RefreshCw, Download, Sparkles, Loader2, 
-    Archive, ArchiveRestore, Trash2, Globe, Tags, Users, Palette, Sword,
-    Wand2, FileUp, GraduationCap, Check
-} from 'lucide-react';
+import { Archive, ArchiveRestore, BookOpen, Check, ImageIcon, RefreshCw, Sparkles, Tags, Trash2, Upload, Wand2 } from 'lucide-react';
 import { StoryInfo } from '../types';
-import { TagInput } from '../components/modals';
-import { AVAILABLE_LANGUAGES, AVAILABLE_GENRES, AVAILABLE_PERSONALITIES, AVAILABLE_SETTINGS, AVAILABLE_FLOWS } from '../constants';
+import { TagInput } from './modals';
+import { AVAILABLE_FLOWS, AVAILABLE_GENRES, AVAILABLE_LANGUAGES, AVAILABLE_PERSONALITIES, AVAILABLE_SETTINGS } from '../constants';
 
 interface DashboardPageProps {
-    storyInfo: StoryInfo;
-    setStoryInfo: React.Dispatch<React.SetStateAction<StoryInfo>>;
-    coverPreviewUrl: string | null;
-    handleCoverUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    handleAutoAnalyze: () => void;
-    isAutoAnalyzing: boolean;
-    autoAnalyzeStatus: string;
-    quickInput: string;
-    setQuickInput: (v: string) => void;
-    handleQuickParse: () => void;
-    handleRegenerateCover: () => void;
-    isGeneratingCover: boolean;
-    handleBackup: () => void;
-    handleRestore: (e: React.ChangeEvent<HTMLInputElement>) => Promise<boolean> | void;
-    requestResetApp: () => void;
-    handleResetQuota: () => void;
-    setShowGuide: (v: boolean) => void;
-    handleRefineSummary: () => void;
+    storyInfo: StoryInfo; setStoryInfo: React.Dispatch<React.SetStateAction<StoryInfo>>;
+    coverPreviewUrl: string | null; handleCoverUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    handleAutoAnalyze: () => void; isAutoAnalyzing: boolean; autoAnalyzeStatus: string;
+    quickInput: string; setQuickInput: (v: string) => void; handleQuickParse: () => void;
+    handleBackup: () => void; handleRestore: (e: React.ChangeEvent<HTMLInputElement>) => Promise<boolean> | void;
+    requestResetApp: () => void; handleResetQuota: () => void; setShowGuide: (v: boolean) => void; handleRefineSummary: () => void;
 }
 
-export const DashboardPage: React.FC<DashboardPageProps> = (props) => {
-    
-    const handleDownloadCover = (e: React.MouseEvent) => {
-        e.preventDefault();
-        if (props.coverPreviewUrl) {
-            const link = document.createElement('a');
-            link.href = props.coverPreviewUrl;
-            link.download = `Cover_${props.storyInfo.title || 'AI_Art'}.png`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-    };
+const Panel = ({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) => (
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3 text-sm font-extrabold uppercase tracking-tight text-slate-800 dark:border-slate-800 dark:text-slate-100">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">{icon}</span>{title}
+        </div>{children}
+    </section>
+);
 
-    return (
-        <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Header Section */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h2 className="text-xl md:text-2xl font-display font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                    <FileUp className="w-6 h-6 text-primary-500" /> Thông Tin Tác Phẩm
-                </h2>
-                <button onClick={() => props.setShowGuide(true)} className="px-4 py-2 bg-white dark:bg-slate-800 border border-primary-200 dark:border-primary-900 text-primary-600 dark:text-primary-400 rounded-xl font-bold text-sm hover:bg-primary-50 dark:hover:bg-primary-900/50 transition-colors duration-200 ease-smooth shadow-elevation-1 flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1">
-                    <GraduationCap className="w-4 h-4" /> Hướng Dẫn Sử Dụng
-                </button>
-            </div>
+const Toggle = ({ checked, onChange, title, note }: { checked: boolean; onChange: (v: boolean) => void; title: string; note: string }) => (
+    <label className="flex cursor-pointer items-start gap-3 rounded-xl p-2 hover:bg-slate-50 dark:hover:bg-slate-800/60">
+        <input type="checkbox" className="peer sr-only" checked={checked} onChange={e => onChange(e.target.checked)} />
+        <span className="mt-0.5 h-5 w-9 shrink-0 rounded-full bg-slate-300 p-0.5 transition peer-checked:bg-emerald-500"><span className="block h-4 w-4 rounded-full bg-white shadow transition peer-checked:translate-x-4" /></span>
+        <span><strong className="block text-xs text-slate-700 dark:text-slate-200">{title}</strong><small className="mt-0.5 block text-[10px] leading-4 text-slate-500">{note}</small></span>
+    </label>
+);
 
-            {/* Main Compact Card */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 md:p-6 shadow-sm border border-slate-200 dark:border-slate-800">
-                <div className="flex flex-col md:flex-row gap-6">
-                    
-                    {/* Compact Cover Section (Fixed Width on Desktop) */}
-                    <div className="w-full md:w-48 shrink-0 flex flex-col gap-3">
-                        <div className="aspect-[2/3] w-full bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 relative overflow-hidden group hover:border-primary-300 dark:hover:border-primary-700 transition-colors shadow-inner">
-                            {props.isGeneratingCover && (
-                                <div className="absolute inset-0 z-20 bg-white/80 dark:bg-slate-900/80 flex flex-col items-center justify-center gap-2 backdrop-blur-sm">
-                                    <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
-                                    <span className="text-[10px] font-bold text-primary-600">Đang vẽ...</span>
-                                </div>
-                            )}
-                            
-                            {props.coverPreviewUrl ? (
-                                <img src={props.coverPreviewUrl} alt="Cover" className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 dark:text-slate-600">
-                                    <ImageIcon className="w-8 h-8 mb-2" />
-                                    <span className="text-[10px] font-bold uppercase text-center px-2">Chưa có ảnh</span>
-                                </div>
-                            )}
-
-                            {/* Hover Actions */}
-                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 z-10 p-2">
-                                <label className="w-full py-1.5 bg-white/20 hover:bg-white text-white hover:text-slate-900 rounded-lg cursor-pointer text-[10px] font-bold backdrop-blur-md transition-all flex items-center justify-center gap-1">
-                                    <Upload className="w-3 h-3" /> Tải Lên
-                                    <input type="file" accept="image/*" className="hidden" onChange={props.handleCoverUpload} />
-                                </label>
-
-                                <button onClick={props.handleRegenerateCover} disabled={props.isGeneratingCover} className="w-full py-1.5 bg-primary-600/80 hover:bg-primary-500 text-white rounded-lg cursor-pointer text-[10px] font-bold backdrop-blur-md transition-all flex items-center justify-center gap-1 disabled:opacity-50">
-                                    {props.isGeneratingCover ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} 
-                                    {props.isGeneratingCover ? "Đang tạo..." : "Tạo Lại (AI)"}
-                                </button>
-
-                                {props.coverPreviewUrl && (
-                                    <button onClick={handleDownloadCover} className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg cursor-pointer text-[10px] font-bold shadow-lg transition-all flex items-center justify-center gap-1">
-                                        <Download className="w-3 h-3" /> Lưu
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-
-                         <button onClick={props.handleAutoAnalyze} disabled={props.isAutoAnalyzing} className="w-full py-2.5 bg-gradient-to-r from-primary-500 to-emerald-500 hover:from-primary-400 hover:to-emerald-400 text-white rounded-xl text-xs font-bold shadow-md shadow-primary-200/50 flex items-center justify-center gap-2 transition-all disabled:opacity-50">
-                            {props.isAutoAnalyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />} 
-                            {props.isAutoAnalyzing ? "Đang xử lý..." : "Auto Phân Tích"}
-                        </button>
-                    </div>
-
-                    {/* Info Inputs Section */}
-                    <div className="flex-1 flex flex-col gap-4 max-w-2xl">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5 block ml-1">Tên Truyện</label>
-                                <input type="text" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base font-bold text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:bg-white dark:focus:bg-slate-900 transition-all shadow-sm" value={props.storyInfo.title || ''} onChange={e => props.setStoryInfo({...props.storyInfo, title: e.target.value})} placeholder="Nhập tên truyện..." />
-                            </div>
-                            <div>
-                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5 block ml-1">Tác Giả</label>
-                                <input type="text" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base font-medium text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:bg-white dark:focus:bg-slate-900 transition-all shadow-sm" value={props.storyInfo.author || ''} onChange={e => props.setStoryInfo({...props.storyInfo, author: e.target.value})} placeholder="Tên tác giả..." />
-                            </div>
-                        </div>
-
-                        <div>
-                            <div className="flex items-center justify-between mb-1.5">
-                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase ml-1">Tóm Tắt / Review (Summary)</label>
-                                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); props.handleRefineSummary(); }} className="shrink-0 whitespace-nowrap text-xs flex items-center gap-1 font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30 px-2 py-1 rounded-md hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors duration-200 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400">
-                                    <Sparkles className="w-3 h-3" /> Tinh Chỉnh {props.storyInfo.contextNotes ? <Check className="w-3 h-3 text-emerald-500 inline-block ml-0.5" /> : ''}
-                                </button>
-                            </div>
-                            <textarea className="w-full h-20 px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-600 dark:text-slate-300 outline-none focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:bg-white dark:focus:bg-slate-900 transition-all resize-none custom-scrollbar" placeholder="Nội dung tóm tắt hoặc review chi tiết (Dùng cho tạo bìa và giới thiệu Ebook)..." value={props.storyInfo.summary || ''} onChange={e => props.setStoryInfo({...props.storyInfo, summary: e.target.value})} />
-                        </div>
-
-                        <div className="relative">
-                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5 block ml-1">Nhập nhanh Thẻ (Paste Text)</label>
-                            <input type="text" className="w-full pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-slate-300 outline-none focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 transition-all shadow-sm" placeholder="VD: Tiên Hiệp, Hệ Thống, Hài Hước..." value={props.quickInput} onChange={e => props.setQuickInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), props.handleQuickParse())} />
-                            <button onClick={props.handleQuickParse} className="absolute bottom-1.5 right-1.5 p-1.5 bg-primary-100 hover:bg-primary-200 dark:bg-primary-900 dark:hover:bg-primary-800 text-primary-600 dark:text-primary-300 rounded-lg transition-colors"><Wand2 className="w-4 h-4" /></button>
-                        </div>
+export const DashboardPage: React.FC<DashboardPageProps> = props => {
+    const update = (patch: Partial<StoryInfo>) => props.setStoryInfo({ ...props.storyInfo, ...patch });
+    const field = "w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-800 dark:focus:bg-slate-900";
+    const label = "mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-slate-500";
+    return <div className="mx-auto w-full max-w-[1500px] p-3 md:p-4">
+        <div className="mb-3 flex items-center justify-between"><div><h2 className="text-lg font-extrabold text-slate-900 dark:text-white">Không gian dự án</h2><p className="text-xs text-slate-500">Thiết lập tác phẩm, phân loại và dữ liệu tại một nơi.</p></div><button onClick={() => props.setShowGuide(true)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 hover:border-emerald-300 hover:text-emerald-600 dark:border-slate-700 dark:bg-slate-900">Hướng dẫn</button></div>
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+            <Panel title="1. Thông tin tác phẩm" icon={<BookOpen className="h-4 w-4" />}>
+                <div className="grid gap-4 sm:grid-cols-[130px_1fr]">
+                    <label className="group relative flex min-h-[205px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 text-center hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-800">
+                        {props.coverPreviewUrl ? <img src={props.coverPreviewUrl} alt="Ảnh bìa" className="absolute inset-0 h-full w-full object-cover" /> : <><ImageIcon className="mb-2 h-8 w-8 text-slate-400" /><b className="text-[11px] text-slate-600 dark:text-slate-300">CHỌN ẢNH BÌA</b><span className="mt-1 text-[9px] text-slate-400">PNG, JPG · tối đa 5MB</span></>}
+                        <span className="absolute inset-x-2 bottom-2 rounded-lg bg-slate-950/70 py-1.5 text-[10px] font-bold text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100"><Upload className="mr-1 inline h-3 w-3" />{props.coverPreviewUrl ? 'Đổi ảnh' : 'Tải ảnh lên'}</span><input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={props.handleCoverUpload} />
+                    </label>
+                    <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3"><div><label className={label}>Tên truyện *</label><input className={field} value={props.storyInfo.title || ''} onChange={e => update({ title: e.target.value })} placeholder="Nhập tên truyện..." /></div><div><label className={label}>Tác giả</label><input className={field} value={props.storyInfo.author || ''} onChange={e => update({ author: e.target.value })} placeholder="Tên tác giả..." /></div></div>
+                        <div><div className="flex items-center justify-between"><label className={label}>Tóm tắt / Review</label><button onClick={props.handleRefineSummary} className="mb-1 text-[10px] font-bold text-emerald-600"><Sparkles className="mr-1 inline h-3 w-3" />Tinh chỉnh {props.storyInfo.contextNotes && <Check className="inline h-3 w-3" />}</button></div><textarea className={`${field} h-[72px] resize-none`} value={props.storyInfo.summary || ''} onChange={e => update({ summary: e.target.value })} placeholder="Nội dung tóm tắt hoặc giới thiệu Ebook..." /></div>
+                        <div><label className={label}>Nhập nhanh thẻ / nguồn tham khảo</label><div className="flex gap-2"><input className={field} value={props.quickInput} onChange={e => props.setQuickInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && props.handleQuickParse()} placeholder="VD: Tiên Hiệp, Hệ Thống, Hài Hước..." /><button onClick={props.handleQuickParse} className="rounded-lg border border-emerald-200 px-3 text-emerald-600"><Wand2 className="h-4 w-4" /></button></div></div>
+                        <button onClick={props.handleAutoAnalyze} disabled={props.isAutoAnalyzing} className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50"><Sparkles className="mr-1.5 inline h-3.5 w-3.5" />{props.isAutoAnalyzing ? (props.autoAnalyzeStatus || 'Đang phân tích...') : 'Auto phân tích'}</button>
                     </div>
                 </div>
-            </div>
-
-            {/* Detailed Classification */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 md:p-6 shadow-sm border border-slate-200 dark:border-slate-800">
-                <h3 className="text-lg font-display font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
-                    <Tags className="w-5 h-5 text-emerald-500" /> Phân Loại Chi Tiết
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
-                    <TagInput label="Ngôn ngữ truyện" icon={<Globe className="w-3.5 h-3.5" />} options={AVAILABLE_LANGUAGES} selected={props.storyInfo.languages} onChange={v => props.setStoryInfo({...props.storyInfo, languages: v})} placeholder="Chọn..." />
-                    <TagInput label="Thể loại" icon={<Tags className="w-3.5 h-3.5" />} options={AVAILABLE_GENRES} selected={props.storyInfo.genres} onChange={v => props.setStoryInfo({...props.storyInfo, genres: v})} placeholder="+ Thể loại"/>
-                    <TagInput label="Tính cách Main" icon={<Users className="w-3.5 h-3.5" />} options={AVAILABLE_PERSONALITIES} selected={props.storyInfo.mcPersonality} onChange={v => props.setStoryInfo({...props.storyInfo, mcPersonality: v})} placeholder="+ Tính cách"/>
-                    <TagInput label="Bối cảnh" icon={<Palette className="w-3.5 h-3.5" />} options={AVAILABLE_SETTINGS} selected={props.storyInfo.worldSetting} onChange={v => props.setStoryInfo({...props.storyInfo, worldSetting: v})} placeholder="+ Bối cảnh"/>
-                    <TagInput label="Lưu phái" icon={<Sword className="w-3.5 h-3.5" />} options={AVAILABLE_FLOWS} selected={props.storyInfo.sectFlow} onChange={v => props.setStoryInfo({...props.storyInfo, sectFlow: v})} placeholder="+ Lưu phái"/>
-                </div>
-            </div>
-
-            {/* Core Settings */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 md:p-6 shadow-sm border border-slate-200 dark:border-slate-800">
-                <h3 className="text-lg font-display font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
-                    <Wand2 className="w-5 h-5 text-primary-500" /> Cài Đặt Biên Tập & Format
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                    <div className="space-y-4">
-                        <label className="flex items-center gap-3 cursor-pointer group">
-                            <div className="relative">
-                                <input type="checkbox" className="sr-only peer" checked={props.storyInfo.enableTitleFormatting ?? true} onChange={(e) => props.setStoryInfo({ ...props.storyInfo, enableTitleFormatting: e.target.checked })} />
-                                <div className={`block w-10 h-6 rounded-full transition-colors duration-200 ease-smooth peer-focus-visible:ring-2 peer-focus-visible:ring-primary-400 peer-focus-visible:ring-offset-2 dark:peer-focus-visible:ring-offset-slate-900 ${props.storyInfo.enableTitleFormatting !== false ? 'bg-primary-500' : 'bg-slate-300 dark:bg-slate-700'}`}></div>
-                                <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform ${props.storyInfo.enableTitleFormatting !== false ? 'translate-x-4' : ''}`}></div>
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-primary-600 dark:group-hover:text-primary-400">Bật chuẩn hóa tiêu đề</span>
-                                <span className="text-[10px] text-slate-500">Tắt nếu muốn giữ nguyên tiêu đề gốc hoàn toàn, không xóa rác trước tiêu đề.</span>
-                            </div>
-                        </label>
-                        
-                        <label className="flex items-center gap-3 cursor-pointer group">
-                            <div className="relative">
-                                <input type="checkbox" className="sr-only peer" checked={props.storyInfo.enableAutoFormat ?? true} onChange={(e) => props.setStoryInfo({ ...props.storyInfo, enableAutoFormat: e.target.checked })} />
-                                <div className={`block w-10 h-6 rounded-full transition-colors duration-200 ease-smooth peer-focus-visible:ring-2 peer-focus-visible:ring-pink-400 peer-focus-visible:ring-offset-2 dark:peer-focus-visible:ring-offset-slate-900 ${props.storyInfo.enableAutoFormat !== false ? 'bg-pink-500' : 'bg-slate-300 dark:bg-slate-700'}`}></div>
-                                <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform ${props.storyInfo.enableAutoFormat !== false ? 'translate-x-4' : ''}`}></div>
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-pink-600 dark:group-hover:text-pink-400">Bật định dạng và lọc rác</span>
-                                <span className="text-[10px] text-slate-500">Tự động sửa lỗi dòng văn bản, lọc kí tự rác, không ảnh hưởng đến tiêu đề.</span>
-                            </div>
-                        </label>
-
-                        <label className="flex items-center gap-3 cursor-pointer group">
-                            <div className="relative">
-                                <input type="checkbox" className="sr-only peer" checked={props.storyInfo.enableParagraphSpacing ?? true} onChange={(e) => props.setStoryInfo({ ...props.storyInfo, enableParagraphSpacing: e.target.checked })} />
-                                <div className={`block w-10 h-6 rounded-full transition-colors duration-200 ease-smooth peer-focus-visible:ring-2 peer-focus-visible:ring-amber-400 peer-focus-visible:ring-offset-2 dark:peer-focus-visible:ring-offset-slate-900 ${props.storyInfo.enableParagraphSpacing !== false ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-700'}`}></div>
-                                <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform ${props.storyInfo.enableParagraphSpacing !== false ? 'translate-x-4' : ''}`}></div>
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-amber-600 dark:group-hover:text-amber-400">Chèn dòng trống giữa đoạn văn khi xuất file</span>
-                                <span className="text-[10px] text-slate-500">Tắt nếu không muốn có dòng trống giữa các đoạn khi tải TXT/ZIP — các đoạn sẽ liền nhau, mỗi đoạn 1 dòng. Không ảnh hưởng các tính năng dọn dẹp/sửa lỗi khác ở trên.</span>
-                            </div>
-                        </label>
-
-                        <label className="flex items-center gap-3 cursor-pointer group">
-                            <div className="relative">
-                                <input type="checkbox" className="sr-only peer" checked={props.storyInfo.enableGarbageCleanOnImport ?? true} onChange={(e) => props.setStoryInfo({ ...props.storyInfo, enableGarbageCleanOnImport: e.target.checked })} />
-                                <div className={`block w-10 h-6 rounded-full transition-colors duration-200 ease-smooth peer-focus-visible:ring-2 peer-focus-visible:ring-teal-400 peer-focus-visible:ring-offset-2 dark:peer-focus-visible:ring-offset-slate-900 ${props.storyInfo.enableGarbageCleanOnImport !== false ? 'bg-teal-500' : 'bg-slate-300 dark:bg-slate-700'}`}></div>
-                                <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform ${props.storyInfo.enableGarbageCleanOnImport !== false ? 'translate-x-4' : ''}`}></div>
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-teal-600 dark:group-hover:text-teal-400">Lọc rác sơ bộ ngay lúc thêm file</span>
-                                <span className="text-[10px] text-slate-500">Tự động xóa thẻ HTML rác, ký tự *#= trơ trọi, chuỗi __/-- lặp... ngay khi thêm file ZIP/EPUB/DOCX/TXT/PDF, không cần chờ mở Bộ Tách Chương.</span>
-                            </div>
-                        </label>
-
-                        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block mb-1">Kiểu hiển thị tiêu đề</label>
-                            <select 
-                                value={props.storyInfo.titleFormat || 'colon'} 
-                                onChange={e => props.setStoryInfo({ ...props.storyInfo, titleFormat: e.target.value as any })}
-                                className="w-full text-sm font-medium px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                disabled={props.storyInfo.enableTitleFormatting === false}
-                            >
-                                <option value="colon">Dấu hai chấm (Chương 1: Tiêu đề)</option>
-                                <option value="dash">Dấu gạch ngang (Chương 1 — Tiêu đề)</option>
-                                <option value="newline">Kéo xuống dòng (Chương 1 \n Tiêu đề)</option>
-                                <option value="bracket">Dạng Ngoặc ([Chương 1]: Tiêu đề)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                         <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block">Định dạng thẻ khóa file (Tag Format) trong Prompt</label>
-                         <p className="text-[10px] text-slate-500 mb-2">Tự động chọn định dạng tag tối ưu cho từng Model (VD: 2.5 Pro hỗ trợ XML tốt hơn).</p>
-                         <div className="flex flex-wrap items-center gap-4">
-                             <label className="flex items-center gap-2 cursor-pointer">
-                                 <input type="radio" name="tagFormat" className="text-primary-600 focus:ring-primary-500" checked={props.storyInfo.tagFormat === 'auto' || !props.storyInfo.tagFormat} onChange={() => props.setStoryInfo({ ...props.storyInfo, tagFormat: 'auto' })} />
-                                 <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Tùy chọn tự động (khuyên dùng)</span>
-                             </label>
-                             <label className="flex items-center gap-2 cursor-pointer">
-                                 <input type="radio" name="tagFormat" className="text-primary-600 focus:ring-primary-500" checked={props.storyInfo.tagFormat === 'bracket'} onChange={() => props.setStoryInfo({ ...props.storyInfo, tagFormat: 'bracket' })} />
-                                 <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Ngoặc vuông <code>[[[FILE]]]</code></span>
-                             </label>
-                             <label className="flex items-center gap-2 cursor-pointer">
-                                 <input type="radio" name="tagFormat" className="text-primary-600 focus:ring-primary-500" checked={props.storyInfo.tagFormat === 'xml'} onChange={() => props.setStoryInfo({ ...props.storyInfo, tagFormat: 'xml' })} />
-                                 <span className="text-sm font-medium text-slate-600 dark:text-slate-300">XML <code>&lt;FILE&gt;</code></span>
-                             </label>
-                         </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* System Tools */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <button onClick={props.handleBackup} className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 p-4 rounded-2xl font-bold text-sm transition-all duration-200 ease-smooth flex items-center justify-center gap-3 border border-slate-200 dark:border-slate-800 shadow-elevation-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 group">
-                    <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500 group-hover:text-primary-500 transition-colors"><Archive className="w-5 h-5" /></div>
-                    Backup (.json)
-                </button>
-                <label className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 p-4 rounded-2xl font-bold text-sm transition-all duration-200 ease-smooth flex items-center justify-center gap-3 border border-slate-200 dark:border-slate-800 shadow-elevation-1 cursor-pointer group focus-within:ring-2 focus-within:ring-primary-400 focus-within:ring-offset-1">
-                    <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500 group-hover:text-emerald-500 transition-colors"><ArchiveRestore className="w-5 h-5" /></div>
-                    Restore Data
-                    <input type="file" accept=".json" className="hidden" onChange={props.handleRestore} />
-                </label>
-                <button onClick={props.handleResetQuota} className="bg-white dark:bg-slate-900 hover:bg-amber-50 dark:hover:bg-amber-900/10 text-amber-600 dark:text-amber-400 p-4 rounded-2xl font-bold text-sm transition-all duration-200 ease-smooth flex items-center justify-center gap-3 border border-amber-100 dark:border-amber-900/30 shadow-elevation-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 group">
-                    <div className="p-2 bg-amber-50 dark:bg-amber-900/30 rounded-full text-amber-400 group-hover:text-amber-600 transition-colors"><RefreshCw className="w-5 h-5" /></div>
-                    Reset Quota
-                </button>
-                <button onClick={props.requestResetApp} className="bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-900/10 text-rose-600 dark:text-rose-400 p-4 rounded-2xl font-bold text-sm transition-all duration-200 ease-smooth flex items-center justify-center gap-3 border border-rose-100 dark:border-rose-900/30 shadow-elevation-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 group">
-                    <div className="p-2 bg-rose-50 dark:bg-rose-900/30 rounded-full text-rose-400 group-hover:text-rose-600 transition-colors"><Trash2 className="w-5 h-5" /></div>
-                    Reset Toàn Bộ App
-                </button>
-            </div>
+            </Panel>
+            <Panel title="2. Phân loại chi tiết" icon={<Tags className="h-4 w-4" />}><div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+                <TagInput icon={<Tags className="h-3 w-3" />} label="Ngôn ngữ truyện" options={AVAILABLE_LANGUAGES} selected={props.storyInfo.languages} onChange={v => update({ languages: v })} placeholder="Chọn ngôn ngữ" />
+                <TagInput icon={<Tags className="h-3 w-3" />} label="Thể loại" options={AVAILABLE_GENRES} selected={props.storyInfo.genres} onChange={v => update({ genres: v })} placeholder="Chọn thể loại" />
+                <TagInput icon={<Tags className="h-3 w-3" />} label="Tính cách nhân vật chính" options={AVAILABLE_PERSONALITIES} selected={props.storyInfo.mcPersonality} onChange={v => update({ mcPersonality: v })} placeholder="Chọn tính cách" />
+                <TagInput icon={<Tags className="h-3 w-3" />} label="Bối cảnh" options={AVAILABLE_SETTINGS} selected={props.storyInfo.worldSetting} onChange={v => update({ worldSetting: v })} placeholder="Chọn bối cảnh" />
+                <TagInput icon={<Tags className="h-3 w-3" />} label="Lưu phái" options={AVAILABLE_FLOWS} selected={props.storyInfo.sectFlow} onChange={v => update({ sectFlow: v })} placeholder="Chọn lưu phái" />
+            </div></Panel>
+            <Panel title="3. Cài đặt biên tập & format" icon={<Wand2 className="h-4 w-4" />}><div className="grid gap-1 sm:grid-cols-2">
+                <Toggle checked={props.storyInfo.enableTitleFormatting !== false} onChange={v => update({ enableTitleFormatting: v })} title="Chuẩn hóa tiêu đề" note="Viết hoa chữ đầu và làm sạch tiêu đề chương." />
+                <Toggle checked={props.storyInfo.enableAutoFormat !== false} onChange={v => update({ enableAutoFormat: v })} title="Định dạng và lọc rác" note="Dọn khoảng trắng, dấu câu và dòng thừa." />
+                <Toggle checked={props.storyInfo.enableParagraphSpacing !== false} onChange={v => update({ enableParagraphSpacing: v })} title="Dòng trống giữa đoạn" note="Giúp bản xuất dễ đọc hơn." />
+                <Toggle checked={props.storyInfo.enableGarbageCleanOnImport !== false} onChange={v => update({ enableGarbageCleanOnImport: v })} title="Lọc rác khi nhập" note="Loại ký tự rác và từ vô nghĩa." />
+            </div></Panel>
+            <Panel title="4. Hệ thống & dữ liệu" icon={<Archive className="h-4 w-4" />}><div className="grid grid-cols-2 gap-3">
+                <button onClick={props.handleBackup} className="rounded-xl border border-slate-200 p-3 text-left hover:border-emerald-300 dark:border-slate-700"><Archive className="mb-2 h-5 w-5 text-emerald-600" /><b className="block text-xs">Backup ngay</b><span className="text-[10px] text-slate-500">Sao lưu toàn bộ dự án</span></button>
+                <label className="cursor-pointer rounded-xl border border-slate-200 p-3 text-left hover:border-emerald-300 dark:border-slate-700"><ArchiveRestore className="mb-2 h-5 w-5 text-emerald-600" /><b className="block text-xs">Restore data</b><span className="text-[10px] text-slate-500">Khôi phục từ file sao lưu</span><input type="file" accept=".json" className="hidden" onChange={props.handleRestore} /></label>
+                <button onClick={props.handleResetQuota} className="rounded-xl border border-amber-200 p-3 text-left hover:bg-amber-50 dark:border-amber-900"><RefreshCw className="mb-2 h-5 w-5 text-amber-500" /><b className="block text-xs">Reset quota</b><span className="text-[10px] text-slate-500">Đặt lại số lượt API</span></button>
+                <button onClick={props.requestResetApp} className="rounded-xl border border-rose-200 p-3 text-left hover:bg-rose-50 dark:border-rose-900"><Trash2 className="mb-2 h-5 w-5 text-rose-500" /><b className="block text-xs">Reset toàn bộ app</b><span className="text-[10px] text-slate-500">Xóa dữ liệu và cài đặt</span></button>
+            </div></Panel>
         </div>
-    );
+    </div>;
 };

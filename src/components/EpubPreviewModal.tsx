@@ -7,20 +7,18 @@ interface EpubPreviewModalProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: (info: StoryInfo, cover: File | null, font: File | null) => void;
-    onRegenerateCover?: (info: StoryInfo) => Promise<File | null>;
     storyInfo: StoryInfo;
     coverImage: File | null;
     totalFiles: number;
 }
 
 export const EpubPreviewModal: React.FC<EpubPreviewModalProps> = ({ 
-    isOpen, onClose, onConfirm, onRegenerateCover, storyInfo, coverImage, totalFiles 
+    isOpen, onClose, onConfirm, storyInfo, coverImage, totalFiles
 }) => {
     const [localInfo, setLocalInfo] = useState<StoryInfo>(storyInfo);
     const [localCover, setLocalCover] = useState<File | null>(coverImage);
     const [coverPreview, setCoverPreview] = useState<string | null>(null);
     const [localFont, setLocalFont] = useState<File | null>(null);
-    const [isRegenerating, setIsRegenerating] = useState(false);
 
     useEffect(() => {
         let url: string | null = null;
@@ -45,18 +43,6 @@ export const EpubPreviewModal: React.FC<EpubPreviewModalProps> = ({
         }
     };
 
-    const handleRegenerate = async () => {
-        if (!onRegenerateCover) return;
-        setIsRegenerating(true);
-        try {
-            const newCover = await onRegenerateCover(localInfo);
-            if (newCover) {
-                setLocalCover(newCover);
-            }
-        } finally {
-            setIsRegenerating(false);
-        }
-    };
 
     if (!isOpen) return null;
 
@@ -83,32 +69,9 @@ export const EpubPreviewModal: React.FC<EpubPreviewModalProps> = ({
                             <input type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
                         </label>
                     </div>
-                    {onRegenerateCover && (
-                        <button 
-                            onClick={handleRegenerate}
-                            disabled={isRegenerating}
-                            className={`mt-4 px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all flex items-center gap-2
-                                ${isRegenerating 
-                                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed dark:bg-slate-800 dark:text-slate-500' 
-                                    : 'bg-primary-100 text-primary-700 hover:bg-primary-200 dark:bg-primary-900/30 dark:text-primary-400 dark:hover:bg-primary-900/50'
-                                }`}
-                        >
-                            {isRegenerating ? (
-                                <>
-                                    <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
-                                    Đang tạo...
-                                </>
-                            ) : (
-                                <>
-                                    <Book className="w-4 h-4" />
-                                    {localCover ? "Tạo Lại Ảnh Bìa (AI)" : "Tạo Ảnh Bìa (AI)"}
-                                </>
-                            )}
-                        </button>
-                    )}
                     <p className="mt-4 text-xs text-slate-500 text-center px-4">
                         Ảnh bìa sẽ được nhúng vào file EPUB. Tỉ lệ khuyến nghị 2:3.<br/>
-                        <span className="text-amber-600 dark:text-amber-500 mt-1 block">Lưu ý: AI hiện tại (Midjourney, Gemini...) thường vẽ sai dấu tiếng Việt. Nếu ảnh bị lỗi chữ, bạn nên dùng ảnh không chữ (clean art) và thêm text bằng Canva/Photoshop.</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 mt-1 block">Bạn có thể tải ảnh khác bằng cách bấm trực tiếp vào khung bìa.</span>
                     </p>
                 </div>
 

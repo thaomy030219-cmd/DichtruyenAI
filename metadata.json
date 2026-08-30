@@ -1,6 +1,6 @@
 {
-  "name": "Remix Dịch \u0026 Biên Tập Truyện AI v1.0.3 (1 Năm)",
-  "description": "Phiên bản v1.0.3: loại bỏ Gemini 3.6 Flash, tích hợp OpenRouter Ox Alpha, dọn các model OpenRouter đã hết miễn phí và tự động làm sạch cấu hình cũ. Giữ nguyên giao diện các nút tải, lọc và tìm kiếm tách rời; bổ sung kiểm thử hồi quy cho danh sách model.",
+  "name": "Remix Dịch \u0026 Biên Tập Truyện AI v1.0.4 (1 Năm)",
+  "description": "Phiên bản v1.0.4: thiết kế lại không gian dự án theo bố cục dashboard hai cột, đưa thanh công cụ lên phía trên và loại bỏ hoàn toàn tính năng tạo ảnh bìa bằng AI. Người dùng vẫn có thể tải ảnh bìa thủ công, sao lưu và xuất EPUB như trước.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

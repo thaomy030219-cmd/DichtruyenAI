@@ -79,7 +79,6 @@ export const useUIState = () => {
     const [quickInput, setQuickInput] = useState('');
     const [isDragging, setIsDragging] = useState(false);
     const [isOptimizingPrompt, setIsOptimizingPrompt] = useState(false);
-    const [isGeneratingCover, setIsGeneratingCover] = useState(false);
     const [autoAnalyzeStatus, setAutoAnalyzeStatus] = useState<string>('');
 
     // Theme Logic
@@ -169,7 +168,6 @@ export const useUIState = () => {
         quickInput, setQuickInput,
         isDragging, setIsDragging,
         isOptimizingPrompt, setIsOptimizingPrompt,
-        isGeneratingCover, setIsGeneratingCover,
         autoAnalyzeStatus, setAutoAnalyzeStatus,
         isAutoAnalyzing
     };

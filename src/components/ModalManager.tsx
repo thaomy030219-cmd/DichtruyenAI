@@ -50,7 +50,6 @@ interface ModalManagerProps {
     showEpubModal: boolean;
     setShowEpubModal: (v: boolean) => void;
     handleEpubConfirm: (info: StoryInfo, cover: File | null, font: File | null) => void;
-    handleRegenerateCover?: (info: StoryInfo) => Promise<File | null>;
     
     // Logs
     showLogs: boolean;
@@ -200,7 +199,7 @@ export const ModalManager: React.FC<ModalManagerProps> = (props) => {
             <SmartStartModal key={props.showSmartStartModal ? 'smart-start-open' : 'smart-start-closed'} isOpen={props.showSmartStartModal} onClose={() => props.setShowSmartStartModal(false)} onConfirm={props.handleSmartStartRun} onSkip={props.handleSkipSmartStart} storyInfo={props.storyInfo} setStoryInfo={props.setStoryInfo} autoOptimize={props.autoOptimizePrompt} setAutoOptimize={props.setAutoOptimizePrompt} step={props.smartStartStep} />
             <ChangelogModal isOpen={props.showChangelog} onClose={() => props.setShowChangelog(false)} />
             <LogModal isOpen={props.showLogs} onClose={() => props.setShowLogs(false)} logs={props.systemLogs} clearLogs={props.clearLogs} />
-            <EpubPreviewModal key={props.showEpubModal ? 'epub-preview-open' : 'epub-preview-closed'} isOpen={props.showEpubModal} onClose={() => props.setShowEpubModal(false)} onConfirm={props.handleEpubConfirm} onRegenerateCover={props.handleRegenerateCover} storyInfo={props.storyInfo} coverImage={props.coverImage} totalFiles={props.files.length} />
+            <EpubPreviewModal key={props.showEpubModal ? 'epub-preview-open' : 'epub-preview-closed'} isOpen={props.showEpubModal} onClose={() => props.setShowEpubModal(false)} onConfirm={props.handleEpubConfirm} storyInfo={props.storyInfo} coverImage={props.coverImage} totalFiles={props.files.length} />
             <PromptDesignerModal 
                 key={props.showPromptDesigner ? 'prompt-designer-open' : 'prompt-designer-closed'} 
                 isOpen={props.showPromptDesigner} 

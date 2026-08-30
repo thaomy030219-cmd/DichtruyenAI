@@ -70,8 +70,6 @@ export interface MainUIProps {
     quickInput: string;
     setQuickInput: (v: string) => void;
     handleQuickParse: () => void;
-    handleRegenerateCover: () => void;
-    isGeneratingCover: boolean;
     handleBackup: () => void;
     handleRestore: (e: React.ChangeEvent<HTMLInputElement>) => Promise<boolean> | void;
     requestResetApp: () => void;
