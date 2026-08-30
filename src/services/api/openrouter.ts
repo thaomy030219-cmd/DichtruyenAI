@@ -1,3 +1,5 @@
+import { DEFAULT_OPENROUTER_MODEL } from '../../constants/openrouterModels';
+
 export interface OpenRouterKeyStatus {
     key: string;
     index: number;
@@ -136,7 +138,7 @@ class OpenRouterKeyManager {
         if (status) {
             const isQuotaError = errorMsg.includes("429") || errorMsg.toLowerCase().includes("rate limit") || errorMsg.toLowerCase().includes("no credits") || errorMsg.toLowerCase().includes("insufficient credits") || errorMsg.toLowerCase().includes("too many requests") || errorMsg.toLowerCase().includes("quota");
             status.status = isQuotaError ? 'Exhausted' : 'Error';
-            // UPDATED v11.5.8: TRƯỚC ĐÂY chỉ rotateToNext() khi lỗi khớp đúng 1 trong các từ khóa
+            // UPDATED v1.0.3: TRƯỚC ĐÂY chỉ rotateToNext() khi lỗi khớp đúng 1 trong các từ khóa
             // quota ở trên -> mọi lỗi khác (vd "Provider returned error", "model unavailable",
             // sai key, lỗi mạng tạm thời từ nhà cung cấp...) bị coi là lỗi thường và KHÔNG nhảy
             // key, khiến app cứ đứng yên thử đi thử lại đúng 1 key dù danh sách còn nhiều key khác
@@ -257,7 +259,7 @@ export const fetchOpenRouter = async (
     }
 
     const modelsArray = model.split(',').map(m => m.trim()).filter(Boolean);
-    const fallbackModels = modelsArray.length > 0 ? modelsArray : ["openrouter/free"];
+    const fallbackModels = modelsArray.length > 0 ? modelsArray : [DEFAULT_OPENROUTER_MODEL];
     
     const primaryModel = fallbackModels[0];
     const modelInfo = await getOpenRouterModelInfo(primaryModel);
@@ -361,7 +363,7 @@ export const fetchOpenRouterStream = async (
     }
 
     const modelsArray = model.split(',').map(m => m.trim()).filter(Boolean);
-    const fallbackModels = modelsArray.length > 0 ? modelsArray : ["openrouter/free"];
+    const fallbackModels = modelsArray.length > 0 ? modelsArray : [DEFAULT_OPENROUTER_MODEL];
 
     let lastError: Error | null = null;
     const maxRetries = 7;

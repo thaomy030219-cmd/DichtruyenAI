@@ -12,9 +12,9 @@ export const analyzeContextBatch = async (
     forcedCandidates?: string[], additionalRules: string = "", enabledModels?: string[]
 ): Promise<string> => {
     const ai = getAiClient();
-    let candidates = forcedCandidates || ['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'];
+    let candidates = forcedCandidates || ['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'];
     candidates = candidates.filter(id => enabledModels?.includes(id) ?? true);
-    if (candidates.length === 0) candidates = forcedCandidates || ['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'];
+    if (candidates.length === 0) candidates = forcedCandidates || ['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'];
     const langs = storyInfo.languages.join(' ').toLowerCase();
     let sourceInstruction = "";
     
@@ -86,8 +86,8 @@ export const mergeContexts = async (
         // FALLBACK: Try Flash models for a "Rough Merge" before giving up
         try {
             console.warn("Merge API (Pro) failed. Trying Flash for Rough Merge.", e);
-            const fallbackModels = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
-            if (fallbackModels.length === 0) fallbackModels.push('gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
+            const fallbackModels = ['gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
+            if (fallbackModels.length === 0) fallbackModels.push('gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
             
             return await smartExecution(fallbackModels, async (modelId) => {
                 const response = await getAiClient().models.generateContent({
@@ -131,8 +131,8 @@ export const analyzeStoryContext = async (files: FileItem[], storyInfo: StoryInf
     }
 
     const results: string[] = [];
-    const targetModels = ['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
-    if (targetModels.length === 0) targetModels.push('gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
+    const targetModels = ['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
+    if (targetModels.length === 0) targetModels.push('gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
     
     const CONCURRENCY = 2;
     let completedChunks = 0;
@@ -146,10 +146,10 @@ export const analyzeStoryContext = async (files: FileItem[], storyInfo: StoryInf
                 let models: string[] = [];
                 if (batchNum <= 3) {
                     models = idx % 2 === 0 
-                             ? ['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash']
-                             : ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'];
+                             ? ['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash']
+                             : ['gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'];
                 } else {
-                    models = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'];
+                    models = ['gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'];
                 }
                 
                 try {
@@ -157,7 +157,7 @@ export const analyzeStoryContext = async (files: FileItem[], storyInfo: StoryInf
                 } catch (e: any) {
                     console.warn(`Primary models failed for chunk ${i + idx}, falling back to Flash for raw analysis.`, e);
                     try {
-                        const flashRes = await analyzeContextBatch(chunk, storyInfo, dictionary, useSearch, ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'], additionalRules + "\nLƯU Ý: ĐÂY LÀ BẢN PHÂN TÍCH THÔ DO HẾT QUOTA. CHỈ TRÍCH XUẤT NHANH CÁC DANH TỪ RIÊNG.", enabledModels);
+                        const flashRes = await analyzeContextBatch(chunk, storyInfo, dictionary, useSearch, ['gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'], additionalRules + "\nLƯU Ý: ĐÂY LÀ BẢN PHÂN TÍCH THÔ DO HẾT QUOTA. CHỈ TRÍCH XUẤT NHANH CÁC DANH TỪ RIÊNG.", enabledModels);
                         progressNote = "\n\n[CẢNH BÁO: Quá trình phân tích bị gián đoạn do hết Quota/Lỗi mạng. Một số phần được lưu dưới dạng phân tích thô bằng Flash.]";
                         return flashRes + "\n[GHI CHÚ: BẢN PHÂN TÍCH THÔ BẰNG FLASH DO HẾT QUOTA]";
                     } catch (flashError) {

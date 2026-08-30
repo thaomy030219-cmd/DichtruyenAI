@@ -75,9 +75,6 @@ export const useFileBackupRestore = (core: any, ui: any) => {
                     if (!validModels.includes('gemini-3.7-flash')) {
                         validModels.push('gemini-3.7-flash');
                     }
-                    if (!validModels.includes('gemini-3.6-flash')) {
-                        validModels.push('gemini-3.6-flash');
-                    }
                     if (!validModels.includes('gemini-3.5-flash-lite')) {
                         validModels.push('gemini-3.5-flash-lite');
                     }

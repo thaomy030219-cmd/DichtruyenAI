@@ -1,6 +1,6 @@
-/* eslint-disable react-hooks/immutability, react-hooks/set-state-in-effect, react-hooks/preserve-manual-memoization */
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/preserve-manual-memoization */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { StoryInfo, FileItem, ModelQuota, BatchLimits, RatioLimits, CreativeState, SinoVietnameseState, FixErrorState } from '../types';
 import { DEFAULT_PROMPT, MODEL_CONFIGS } from '../constants';
 import { DEFAULT_RATIO_LIMITS } from '../constants/ratioLimits';
@@ -8,6 +8,7 @@ import { loadFromStorage, saveToStorage, clearDatabase } from '../utils/storage'
 import { quotaManager } from '../utils/quotaManager';
 import { base64ToFile, fileToBase64 } from '../utils/fileHelpers';
 import { createSafeSetter } from './coreState/createSafeSetter';
+import { DEFAULT_OPENROUTER_MODEL, sanitizeOpenRouterModels } from '../constants/openrouterModels';
 
 const STORAGE_KEY = 'current_session_v1';
 
@@ -57,7 +58,7 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
         try { return localStorage.getItem('app_openrouter_key') || ''; } catch { return ''; }
     });
     const [openRouterModel, setOpenRouterModel] = useState<string>(() => {
-        try { return localStorage.getItem('app_openrouter_model') || 'google/gemma-4-26b-a4b-it:free'; } catch { return 'google/gemma-4-26b-a4b-it:free'; }
+        try { return sanitizeOpenRouterModels(localStorage.getItem('app_openrouter_model') || undefined).join(','); } catch { return DEFAULT_OPENROUTER_MODEL; }
     });
     
     // NEW: Real-time Usage Stats
@@ -198,21 +199,11 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
                 }
 
                 const actualModel = lsModel !== null ? lsModel : data.openRouterModel;
-                if (actualModel) {
-                    if (actualModel.includes('openrouter/free') || actualModel.includes('deepseek/deepseek-chat-v3.1:free') || actualModel.includes('qwen') || actualModel.includes('gpt-oss') || actualModel.includes('gemma-4-31b-it')) {
-                        // Loại bỏ hẳn Auto-Router và Gemma 31B khỏi cấu hình cũ — chỉ giữ lại các
-                        // model trả phí (nếu có) mà người dùng đã tick, cộng thêm Gemma 26B.
-                        const paidLeftover = actualModel.split(',').map((s: string) => s.trim()).filter((m: string) => m && !m.includes(':free') && m !== 'openrouter/free');
-                        setOpenRouterModelSafe(['google/gemma-4-26b-a4b-it:free', ...paidLeftover].join(','));
-                    } else {
-                        setOpenRouterModelSafe(actualModel);
-                    }
-                }
+                setOpenRouterModelSafe(sanitizeOpenRouterModels(actualModel).join(','));
 
                 if (data.enabledModels) {
                     const validModels = data.enabledModels.filter((id: string) => MODEL_CONFIGS.some(m => m.id === id));
                     if (!validModels.includes('gemini-3.7-flash')) validModels.push('gemini-3.7-flash');
-                    if (!validModels.includes('gemini-3.6-flash')) validModels.push('gemini-3.6-flash');
                     if (!validModels.includes('gemini-3.5-flash-lite')) validModels.push('gemini-3.5-flash-lite');
                     if (!validModels.includes('gemini-3.1-flash-lite')) validModels.push('gemini-3.1-flash-lite');
                     if (!validModels.includes('gemini-3.5-flash')) validModels.push('gemini-3.5-flash');
@@ -493,7 +484,7 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
             });
             setConcurrencySafe('auto');
             setOpenRouterKeySafe('');
-            setOpenRouterModelSafe('google/gemma-4-26b-a4b-it:free');
+            setOpenRouterModelSafe(DEFAULT_OPENROUTER_MODEL);
             addToast("Đã Reset toàn bộ dữ liệu!", "success");
         } catch {
             addToast("Lỗi khi reset, vui lòng tải lại trang.", "error");

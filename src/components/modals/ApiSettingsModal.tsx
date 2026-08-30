@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, X, ExternalLink, CheckCircle, AlertTriangle, Loader2, Save, Upload, Play, RefreshCw, Key, ShieldCheck, CheckSquare, Square } from 'lucide-react';
 import { openRouterKeyManager, OpenRouterKeyStatus } from '../../services/api/openrouter';
+import { OPENROUTER_MODELS, sanitizeOpenRouterModels } from '../../constants/openrouterModels';
 
 interface ApiSettingsModalProps {
     isOpen: boolean;
@@ -12,18 +13,7 @@ interface ApiSettingsModalProps {
     setOpenRouterModel: (v: string) => void;
 }
 
-// UPDATED v11.5.8: Trước chỉ có 1 model Gemma trong danh sách chọn thủ công, khiến người
-// dùng tưởng OpenRouter chỉ có đúng 1 model free. Bổ sung thêm các model free đang hoạt
-// động tốt trên OpenRouter (đã xác nhận còn miễn phí tính tới 8/2026), ưu tiên 2 model
-// GPT-OSS của OpenAI (cùng dòng được dùng làm cứu hộ tự động ở streamTranslate.ts) lên đầu.
-const FREE_MODELS = [
-    { id: 'openai/gpt-oss-20b:free', name: 'OpenAI: GPT-OSS 20B (Free)' },
-    { id: 'openai/gpt-oss-120b:free', name: 'OpenAI: GPT-OSS 120B (Free)' },
-    { id: 'google/gemma-4-26b-a4b-it:free', name: 'Google: Gemma 4 26B (Free)' },
-    { id: 'google/gemma-4-31b-it:free', name: 'Google: Gemma 4 31B (Free)' },
-    { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Meta: Llama 3.3 70B (Free)' },
-    { id: 'nvidia/nemotron-3-nano-30b-a3b:free', name: 'NVIDIA: Nemotron 3 Nano 30B (Free)' },
-];
+const FREE_MODELS = OPENROUTER_MODELS.filter(model => model.free);
 
 export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({ 
     isOpen, onClose, openRouterKey, setOpenRouterKey, openRouterModel, setOpenRouterModel
@@ -54,8 +44,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
         if (isOpen) {
             setLocalKey(openRouterKey);
             // Parse comma-separated models, if empty use the 2 default free ones
-            const m = openRouterModel ? openRouterModel.split(',').map(s => s.trim()).filter(Boolean) : FREE_MODELS.filter(m => m.id !== 'openrouter/free').map(m => m.id);
-            setLocalModels(m.length > 0 ? m : FREE_MODELS.filter(m => m.id !== 'openrouter/free').map(m => m.id));
+            setLocalModels(sanitizeOpenRouterModels(openRouterModel));
             setTestResult({ status: null, message: '' });
             
             openRouterKeyManager.syncKeys(openRouterKey);
@@ -407,7 +396,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
                                 <div className="flex items-center justify-between">
                                     <h5 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Miễn Phí (Free)</h5>
                                     <div className="flex items-center gap-2">
-                                        <button onClick={() => setLocalModels(Array.from(new Set([...localModels, ...FREE_MODELS.filter(m => m.id !== 'openrouter/free').map(m => m.id)])))} className="text-[10px] text-primary-500 font-medium hover:text-primary-600 transition-colors duration-200 ease-smooth rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400">Chọn tất cả</button>
+                                        <button onClick={() => setLocalModels(Array.from(new Set([...localModels, ...FREE_MODELS.map(m => m.id)])))} className="text-[10px] text-primary-500 font-medium hover:text-primary-600 transition-colors duration-200 ease-smooth rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400">Chọn tất cả</button>
                                         <button onClick={() => setLocalModels(localModels.filter(m => !FREE_MODELS.map(fm=>fm.id).includes(m)))} className="text-[10px] text-slate-400 font-medium hover:text-slate-600 dark:hover:text-slate-300 transition-colors duration-200 ease-smooth rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400">Bỏ chọn</button>
                                     </div>
                                 </div>

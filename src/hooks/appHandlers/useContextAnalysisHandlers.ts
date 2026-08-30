@@ -109,10 +109,10 @@ export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) 
                 return filtered.length > 0 ? filtered : list;
             };
 
-            // Chế độ Nhanh: ưu tiên hết quota 3.7 Flash > 3.6 Flash > 3.5 Flash > 3.0 Flash preview
-            const QUICK_CHAIN = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'];
-            // Chế độ Sâu, từ batch 4 trở đi: 3.7 Flash > 3.6 Flash > 3.5 Flash > 3.0 Flash preview
-            const DEEP_LATE_CHAIN = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'];
+            // Chế độ Nhanh: ưu tiên hết quota 3.7 Flash > 3.5 Flash > 3.0 Flash preview
+            const QUICK_CHAIN = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'];
+            // Chế độ Sâu, từ batch 4 trở đi: 3.7 Flash > 3.5 Flash > 3.0 Flash preview
+            const DEEP_LATE_CHAIN = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'];
 
             const totalBatches = Math.ceil(chunks.length / CONCURRENCY);
             for (let i = 0; i < chunks.length; i += CONCURRENCY) {
@@ -130,16 +130,16 @@ export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) 
                     let models: string[];
                     if (isDeep) {
                         if (batchNum <= 3) {
-                            // 3 batch đầu: chạy cặp 3.1 Pro + 3.6 Flash song song (mỗi phần trong batch một model chính, model kia làm dự phòng)
+                            // 3 batch đầu: chạy cặp 3.1 Pro + 3.7 Flash song song (mỗi phần trong batch một model chính, model kia làm dự phòng)
                             models = idx % 2 === 0
-                                ? filterEnabled(['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'])
-                                : filterEnabled(['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-3.1-pro-preview']);
+                                ? filterEnabled(['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'])
+                                : filterEnabled(['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-3.1-pro-preview']);
                         } else {
                             // Batch 4 trở đi: toàn bộ 3.7 Flash, hết quota mới rớt xuống 3.6, 3.5 rồi 3.0 preview
                             models = filterEnabled(DEEP_LATE_CHAIN);
                         }
                     } else {
-                        // Chế độ Nhanh: 3.7 Flash > 3.6 Flash > 3.5 Flash > 3.0 Flash preview
+                        // Chế độ Nhanh: 3.7 Flash > 3.5 Flash > 3.0 Flash preview
                         models = filterEnabled(QUICK_CHAIN);
                     }
                     
@@ -151,7 +151,7 @@ export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) 
                         }
                     } catch (e: any) {
                         console.warn(`Primary models failed for chunk ${i + idx}, falling back to Flash chain for raw analysis.`, e);
-                        const rescueModels = filterEnabled(['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview']);
+                        const rescueModels = filterEnabled(['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview']);
                         try {
                             if (config.mode === 'deep_context') {
                                 const flashRes = await analyzeContextBatch(chunk, config.updatedStoryInfo, core.additionalDictionary, config.useSearch, rescueModels, effectiveAdditionalRules + "\nLƯU Ý: ĐÂY LÀ BẢN PHÂN TÍCH THÔ DO HẾT QUOTA. CHỈ TRÍCH XUẤT NHANH CÁC DANH TỪ RIÊNG.", core.enabledModels);

@@ -52,7 +52,7 @@ export const IntroPage: React.FC<{ onEnter: () => void }> = ({ onEnter }) => {
 
           <h1 className="font-heading font-bold text-4xl sm:text-5xl tracking-tight text-teal-950">
             Dịch truyện AI
-            <span className="align-super text-sm sm:text-base font-sans font-bold text-teal-500 ml-2">v1.0.2</span>
+            <span className="align-super text-sm sm:text-base font-sans font-bold text-teal-500 ml-2">v1.0.3</span>
           </h1>
 
           <p className="text-teal-900/60 max-w-md mx-auto text-base">

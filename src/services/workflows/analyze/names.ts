@@ -9,9 +9,9 @@ export const analyzeNameBatch = async (
     additionalRules: string = "", forcedCandidates?: string[], enabledModels?: string[]
 ): Promise<string> => {
     const ai = getAiClient();
-    let candidates = forcedCandidates || (useSearch ? ['gemini-3.1-pro-preview'] : ['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash']);
+    let candidates = forcedCandidates || (useSearch ? ['gemini-3.1-pro-preview'] : ['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash']);
     candidates = candidates.filter(id => enabledModels?.includes(id) ?? true);
-    if (candidates.length === 0) candidates = forcedCandidates || ['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'];
+    if (candidates.length === 0) candidates = forcedCandidates || ['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'];
     const langs = storyInfo.languages.join(' ').toLowerCase();
     let sourceInstruction = "";
     

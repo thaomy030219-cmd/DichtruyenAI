@@ -1,68 +1,28 @@
 [
     {
-        "version": "11.5.7",
-        "title": "Vá Rò Rỉ Marker TITLE_ANCHOR, Dọn Trùng Gần Đúng, Thêm Gemma 4 31B Vào Hậu Kiểm & Vá Lỗi Rơi Nhầm OpenRouter",
+        "version": "1.0.3",
+        "title": "Nâng cấp OpenRouter và tinh gọn danh sách model",
         "isLatest": true,
         "changes": [
             {
+                "icon": "Sparkles",
+                "bold": "Tích hợp OpenRouter Ox Alpha:",
+                "text": "Thêm Ox Alpha vào màn hình quản lý OpenRouter và chuỗi model cứu hộ, ưu tiên thử Ox Alpha trước hai model Gemma miễn phí còn hoạt động."
+            },
+            {
+                "icon": "Trash2",
+                "bold": "Loại model cũ:",
+                "text": "Xóa Gemini 3.6 Flash khỏi cấu hình, luồng dịch, phân tích và bộ lọc. OpenRouter không còn hiển thị GPT-OSS, Llama 3.3 70B và Nemotron 3 Nano sau khi các ID này không còn trong danh sách miễn phí hiện hành."
+            },
+            {
                 "icon": "ShieldCheck",
-                "bold": "Hậu kiểm XML trước khi đóng gói EPUB:",
-                "text": "Mỗi file XML/XHTML tạo ra (content.opf, toc.ncx, nav.xhtml, intro.xhtml, từng chapter-x.xhtml) giờ được parse thử bằng DOMParser trước khi ghi vào zip. Trước đây nếu có ký tự đặc biệt lọt lưới escape, lỗi chỉ lộ ra khi người dùng mở app đọc (Calibre, vbook, Play Books từ chối mở cả file) — giờ báo lỗi ngay lúc tạo, chỉ rõ đúng file nào hỏng."
+                "bold": "Tự làm sạch cấu hình:",
+                "text": "Khi khôi phục phiên cũ, các model OpenRouter hết hạn được loại bỏ tự động; nếu danh sách rỗng, ứng dụng quay về Gemma 4 26B thay vì Auto Router không xác định."
             },
             {
-                "icon": "Zap",
-                "bold": "Tự động nén ảnh bìa EPUB:",
-                "text": "Ảnh bìa được resize về tối đa 1200px chiều rộng và nén JPEG chất lượng 0.8 trước khi nhúng vào EPUB (có fallback dùng ảnh gốc nếu nén lỗi), giảm đáng kể dung lượng file so với nhúng thẳng ảnh gốc 2-5MB tải từ raw."
-            },
-            {
-                "icon": "Feather",
-                "bold": "Sửa lỗi font nhúng EPUB thiếu format() hint:",
-                "text": "Trước đây khai báo @font-face chỉ phân biệt ttf/otf và không có format() hint, khiến 1 số trình đọc (đặc biệt Calibre) không nhận diện đúng, âm thầm fallback về font hệ thống dù đã nhúng font riêng. Giờ nhận diện đủ ttf/otf/woff/woff2 và khai báo đúng format() cho từng loại."
-            },
-            {
-                "icon": "Bug",
-                "bold": "Vá lỗi cú pháp regex khi nhận diện tiêu đề chương trong EPUB:",
-                "text": "Đoạn code cũ dùng \"[Tập|Quyển]?\" — đây là character class chứa ký tự \"|\", vô tình khớp 1 ký tự bất kỳ trong cụm thay vì khớp cả từ \"Tập\"/\"Quyển\". Đã sửa thành \"(?:Tập|Quyển)?\" và mở rộng nhận diện số La Mã/số đếm bằng chữ (\"Chương IV\", \"Chương Năm\") giống bộ nhận diện chương chính, tránh sót tiêu đề khi tách chương cho mục lục EPUB."
-            },
-            {
-                "icon": "Book",
-                "bold": "Chuẩn hoá dấu câu cuối lời thoại trong formatBookStyle:",
-                "text": "Thêm 2 quy tắc: (1) dấu chấm bị đặt ra ngoài dấu ngoặc kép đóng (\"Xin chào”.) được đưa vào trong (\"Xin chào.”) theo đúng chuẩn tiếng Việt; (2) dòng chỉ chứa đúng 1 câu thoại trọn vẹn nhưng thiếu dấu câu kết thúc trước ngoặc đóng thoại được tự động thêm dấu chấm. Chỉ áp dụng cho dòng thoại trọn vẹn, không đụng vào câu thoại nhiều vế ngắt quãng bởi lời dẫn truyện."
-            },
-            {
-                "icon": "FileText",
-                "bold": "Giữ nguyên số thứ tự & mã thời gian khi dịch phụ đề SRT:",
-                "text": "Thêm quy tắc bắt buộc: khi văn bản đầu vào có định dạng phụ đề .srt (khối lặp lại gồm dòng số thứ tự + dòng mã thời gian dạng 00:00:03,500 --> 00:00:05,300), AI phải chép nguyên văn 100% hai dòng đó và chỉ dịch phần lời thoại phía sau, không được coi là định dạng thừa rồi xóa mất. Quy tắc chỉ áp dụng khi nhận diện đúng định dạng phụ đề, không ảnh hưởng văn bản truyện thông thường. Đồng thời đánh dấu quy tắc này (và quy tắc đồng bộ ID file batch đã có từ trước) là bắt buộc giữ nguyên khi chạy tính năng Prompt Tối Ưu theo từng truyện, tránh bị AI lược bỏ khi tái thiết kế prompt."
-            },
-            {
-                "icon": "Eraser",
-                "bold": "Tự động dọn ký tự obfuscation từ raw:",
-                "text": "Bổ sung bước chuẩn hoá: chuyển «» thành dấu ngoặc kép chuẩn (giống 《》 đã có sẵn), gộp [[[ ]]] về [ ] (an toàn với thẻ ID nội bộ vì đã tách trước đó), và xoá dấu chấm giữa (·) chèn xen trong từ để né kiểm duyệt (vd \"g·iết\" -> \"giết\", \"t·ự s·át\" -> \"tự sát\")."
-            },
-            {
-                "icon": "RefreshCw",
-                "bold": "Mở rộng quy tắc đảo ngữ Hán-Việt (V.13):",
-                "text": "Thêm quy tắc riêng cho mệnh đề thời gian/lý do bị đẩy xuống cuối câu kiểu convert (vd \"...thời điểm\" phải đảo lên đầu, \"nguyên nhân căn bản\" phải đưa lên đầu kèm \"là\"), phó từ bị đặt trước động từ thay vì sau, câu hỏi mức độ \"có bao nhiêu X\" phải đảo thành \"X bao nhiêu\", không dịch máy móc reduplication AABB, và vài liên từ/từ Hán Việt tối nghĩa thông dụng còn sót (Nhiên nhi, phản hoàn, ẩn bí)."
-            },
-            {
-                "icon": "ListOrdered",
-                "bold": "Thêm Gemma 4 31B vào danh sách model hậu kiểm (Tier 2), sắp lại thứ tự ưu tiên:",
-                "text": "Trước đây hậu kiểm Tier 2 chỉ dùng 3 model (Gemini 3.5 Flash Lite, 3.1 Flash Lite, Gemma 4 26B), bỏ sót Gemma 4 31B dù model này đã có sẵn trong hệ thống. Đã thêm Gemma 4 31B vào cả lượt hậu kiểm chính lẫn lượt xác nhận chéo, đồng thời chỉnh lại điểm ưu tiên (priority) của 4 model lite/gemma này để thứ tự chọn thực tế là: Gemma 4 31B > Gemini 3.5 Flash Lite > Gemini 3.1 Flash Lite > Gemma 4 26B (số điểm càng thấp càng được ưu tiên chọn trước khi còn quota)."
-            },
-            {
-                "icon": "Bug",
-                "bold": "Vá lỗi rơi nhầm về OpenRouter dù đã dán DeepSeek Key (báo \"hết Quota\" dù key hợp lệ):",
-                "text": "Phát hiện qua log DEBUG thực tế: file được useTranslator.ts gắn tag \"Bàn giao DeepSeek\" rõ ràng (đúng nghĩa hệ thống đã quyết định cần cứu hộ qua DeepSeek), nhưng cờ nội bộ needsRescueFallback trong streamTranslate.ts lại chỉ dò vài cụm từ cố định (\"an toàn\"/\"safety\"/\"nghi vấn lỗi nội dung\"...) trong errorMessage — không xét đến tag \"Bàn giao\" đã có sẵn. Với các lỗi gốc không rơi đúng cụm từ đó (vd \"Thiếu kết quả từ API\", \"Lỗi ngắt kết nối API\"), cờ này bị tính sai thành false, khiến bước chuyển hẳn model sang DeepSeek bị bỏ qua, batch rơi lại dùng model OpenRouter mặc định (dù OpenRouter Key trống) và báo lỗi hết Quota dù DeepSeek Key hoàn toàn hợp lệ. Đã vá tận gốc: chỉ cần file có tag \"Bàn giao OpenRouter\"/\"Bàn giao DeepSeek\" là đủ điều kiện kích hoạt chuyển vệ tinh, không cần dò thêm từ khoá nào khác."
-            },
-            {
-                "icon": "Bug",
-                "bold": "Vá lỗi lộ marker __TITLE_ANCHOR__ ra 3 nơi hiển thị cho người dùng:",
-                "text": "Khi tách chương theo độ dài ký tự (chế độ \"Giữ nguyên\") có bật tùy chọn \"Chèn Title Anchor\", app cố tình chèn tiền tố __TITLE_ANCHOR__: vào đầu dòng tiêu đề trong dữ liệu gửi AI dịch, để AI nhận biết đúng điểm bắt đầu 1 chương khi chương đó bị cắt vụn thành nhiều phần. Marker này vốn được lọc sạch khi xuất bản dịch, nhưng lộ ra ở 3 nơi: panel \"Bản Gốc (Raw)\" và nút \"Copy Raw\" trong Editor, màn hình xem trước ngay sau khi tách trong Bộ Tách Chương, và bản dịch tạm hiển thị real-time lúc đang dịch (streaming). Đã thêm hàm lọc dùng chung và áp dụng tại cả 3 điểm hiển thị này; dữ liệu gốc gửi đi dịch vẫn giữ nguyên marker như thiết kế ban đầu."
-            },
-            {
-                "icon": "ScanSearch",
-                "bold": "Thêm tính năng dọn trùng gần đúng (nút \"Trùng ~\", tách biệt với \"Xóa Trùng\" cũ):",
-                "text": "Tính năng \"Xóa Trùng\" cũ chỉ bắt được các chương trùng khớp tuyệt đối 100% (so 200 ký tự đầu + 100 ký tự cuối), nên bỏ lọt các cặp chương là cùng nội dung nhưng bị đổi vài từ hoặc lược bớt do crawl từ 2 nguồn khác nhau. Nút \"Trùng ~\" mới dùng hệ số Dice/Sørensen trên bigram ký tự để tính % giống nhau giữa mỗi chương với tối đa 40 chương liền trước (bù cho việc 2 nguồn crawl có thể trôi lệch số thứ tự dần dần), ngưỡng mặc định 30% — đã kiểm chứng an toàn, không báo nhầm giữa các chương không liên quan. Chỉ tự động chọn để người dùng tự duyệt (giống cơ chế \"Lọc Rác\"), không tự xóa gì; quét theo từng đợt 250 chương kèm thanh tiến trình để không treo giao diện với truyện nhiều nghìn chương."
+                "icon": "CheckCircle",
+                "bold": "Giữ nguyên thanh công cụ:",
+                "text": "Các nút tải, lọc, tìm kiếm và thao tác tệp tiếp tục hiển thị tách rời như bản hiện tại, không áp dụng menu gộp của bản tham chiếu."
             }
         ]
     },

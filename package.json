@@ -1,12 +1,13 @@
 {
   "name": "dich-va-bien-tap-ai-edition",
   "private": true,
-  "version": "11.5.7",
+  "version": "1.0.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "test": "vitest run --configLoader runner",
     "changelog:add": "node scripts/add-changelog-entry.cjs",
     "preview": "vite preview",
     "zip": "npm pack && mkdir -p public && mv *.tgz public/source.tar.gz"
@@ -33,6 +34,7 @@
     "globals": "^17.3.0",
     "typescript": "~5.8.2",
     "typescript-eslint": "^8.56.0",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "vitest": "^4.1.11"
   }
 }

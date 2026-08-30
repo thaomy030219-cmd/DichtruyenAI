@@ -12,6 +12,7 @@ import { getEffectiveModelsForTier } from './modelSelection';
 import { validateBatchWithAI } from './aiValidation';
 import { performAggregatedRepair, GlobalRepairEntry } from './repair';
 import { getRescueTarget } from './rescueTarget';
+import { DEFAULT_OPENROUTER_MODEL, sanitizeOpenRouterModels } from '../../../constants/openrouterModels';
 
 export const translateBatchStream = async (
     files: { id: string, content: string, name?: string, fileRetryCount?: number, errorMessage?: string }[],
@@ -56,7 +57,7 @@ export const translateBatchStream = async (
         : getEffectiveModelsForTier(tier, 'translate', enabledModels.length > 0 ? enabledModels : allowedModelIds);
 
     if (tier === 'openrouter') {
-        const selected = (openRouterModel || 'google/gemma-4-26b-a4b-it:free').split(',').map(s => s.trim()).filter(Boolean);
+        const selected = sanitizeOpenRouterModels(openRouterModel);
         const freeIds = selected.filter(m => m.includes(':free') || m === 'openrouter/free');
         const paidIds = selected.filter(m => !m.includes(':free') && m !== 'openrouter/free');
         // Free luôn đứng đầu (nếu người dùng có tick) — OpenRouter tự động chuyển sang model kế
@@ -104,19 +105,19 @@ export const translateBatchStream = async (
 
     if (needsRescueFallback) {
         if (inferredRescueTarget === 'openrouter' && hasOpenRouterKeyAvail) {
-        // UPDATED v11.5.8: Ưu tiên model GPT-OSS miễn phí của OpenAI (qua OpenRouter) làm
+        // UPDATED v1.0.3: Ưu tiên model Ox Alpha (qua OpenRouter) làm
         // vệ tinh cứu hộ chính. Vẫn giữ openRouterModel do người dùng chọn (nếu có) lên đầu,
         // sau đó tới GPT-OSS 20B/120B free, cuối cùng mới tới Gemma free làm lưới an toàn
         // cuối nếu cả 2 model GPT-OSS cùng lỗi/hết quota trong lượt gọi đó.
-        const fallBackModel = openRouterModel || 'openai/gpt-oss-20b:free';
+        const fallBackModel = sanitizeOpenRouterModels(openRouterModel).join(',') || DEFAULT_OPENROUTER_MODEL;
 
         const safetyFallbackSet = new Set<string>();
         safetyFallbackSet.add(`openrouter:${fallBackModel}`);
-        safetyFallbackSet.add('openrouter:openai/gpt-oss-20b:free');
-        safetyFallbackSet.add('openrouter:openai/gpt-oss-120b:free');
+        safetyFallbackSet.add('openrouter:stealth/ox-alpha');
         safetyFallbackSet.add('openrouter:google/gemma-4-26b-a4b-it:free');
+        safetyFallbackSet.add('openrouter:google/gemma-4-31b-it:free');
         effectiveModels = Array.from(safetyFallbackSet);
-        if (onLog) onLog(`⚠️ Phát hiện lỗi phức tạp (${hasStrictSafetyError ? 'Safety' : (hasValidationError ? 'Validation' : 'Đã gắn tag Bàn giao')}). Tự động dùng danh sách dự phòng Free OpenRouter (GPT-OSS ưu tiên): ${effectiveModels.join(', ')}...`);
+        if (onLog) onLog(`⚠️ Phát hiện lỗi phức tạp (${hasStrictSafetyError ? 'Safety' : (hasValidationError ? 'Validation' : 'Đã gắn tag Bàn giao')}). Tự động dùng danh sách dự phòng OpenRouter (Ox Alpha ưu tiên): ${effectiveModels.join(', ')}...`);
         } else {
             if (hasStrictSafetyError) {
                 throw new Error("BLOCKLIST: File bị chặn bởi Safety Filter và không có OpenRouter API Key để vượt nghiệm.");

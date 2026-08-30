@@ -1,6 +1,6 @@
 {
-  "name": "Remix Dịch \u0026 Biên Tập Truyện AI v11.5.7 (1 Năm)",
-  "description": "Phiên bản v11.5.7: Vá lỗi lộ marker __TITLE_ANCHOR__ ra 3 nơi hiển thị cho người dùng (panel Bản Gốc/Copy Raw trong Editor, xem trước sau khi tách chương, và bản dịch tạm lúc đang dịch) — đã thêm hàm lọc dùng chung áp dụng tại cả 3 điểm, dữ liệu gốc gửi đi dịch vẫn giữ nguyên marker như thiết kế ban đầu. Thêm tính năng dọn trùng gần đúng (nút \\\"Trùng ~\\\", tách biệt với \\\"Xóa Trùng\\\" cũ) dùng hệ số Dice/Sørensen trên bigram ký tự để bắt các chương giống nội dung nhưng bị đổi vài từ do crawl từ 2 nguồn khác nhau, quét theo đợt 250 chương, chỉ tự chọn để người dùng tự duyệt chứ không tự xóa. Thêm model Gemma 4 31B vào danh sách hậu kiểm Tier 2 (trước đây chỉ có 3.5/3.1 Flash Lite và Gemma 26B), sắp lại thứ tự ưu tiên chọn model hậu kiểm thành 31B \u003e 3.5 Flash Lite \u003e 3.1 Flash Lite \u003e 26B. Vá lỗi batch bị rơi nhầm về OpenRouter (báo hết Quota) dù đã dán DeepSeek Key hợp lệ và file đã được gắn tag \\\"Bàn giao DeepSeek\\\" — nguyên nhân do cờ kích hoạt chuyển vệ tinh chỉ dò từ khoá cố định trong errorMessage mà không xét tag cứu hộ đã có sẵn.",
+  "name": "Remix Dịch \u0026 Biên Tập Truyện AI v1.0.3 (1 Năm)",
+  "description": "Phiên bản v1.0.3: loại bỏ Gemini 3.6 Flash, tích hợp OpenRouter Ox Alpha, dọn các model OpenRouter đã hết miễn phí và tự động làm sạch cấu hình cũ. Giữ nguyên giao diện các nút tải, lọc và tìm kiếm tách rời; bổ sung kiểm thử hồi quy cho danh sách model.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

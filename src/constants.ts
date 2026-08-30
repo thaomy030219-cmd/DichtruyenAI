@@ -32,7 +32,6 @@ export const MODEL_CONFIGS: ModelQuota[] = [
   // Gemini 3.7 Flash (ra mắt 13/8/2026): bản Flash mạnh nhất tính tới hiện tại, ưu tiên cao nhất
   // trong nhóm Flash (priority thấp nhất trong nhóm này = được chọn trước).
   { id: 'gemini-3.7-flash', name: 'Gemini 3.7 Flash (Mới nhất)', rpmLimit: 10, rpdLimit: 500, priority: 3.3 },
-  { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash (Tối ưu)', rpmLimit: 10, rpdLimit: 500, priority: 3.4 },
   // Gemini 3.5 Flash: Giới hạn 500 RPD
   { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash (Kế Tiếp)', rpmLimit: 10, rpdLimit: 500, priority: 4 },
   // Gemini 3.0 Flash: Giới hạn 500 RPD
@@ -54,7 +53,7 @@ export const MODEL_CONFIGS: ModelQuota[] = [
 
 export const TIER_MODELS = {
     PRO_POOL: ['gemini-3.1-pro-preview'], // Reverted: Keep Pro Pool strict
-    FLASH_POOL: ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemma-4-26b-a4b-it', 'gemma-4-31b-it'], // Dùng để dịch trong Flash & Auto-Fix
+    FLASH_POOL: ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemma-4-26b-a4b-it', 'gemma-4-31b-it'], // Dùng để dịch trong Flash & Auto-Fix
 };
 
 export const CONCURRENCY_CONFIG = { 
