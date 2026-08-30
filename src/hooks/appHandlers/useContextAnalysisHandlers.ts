@@ -8,7 +8,7 @@ import { StoryInfo } from '../../types';
 import { generateBasePrompt } from '../../constants';
 import { getPronounModeOverride } from '../../prompts';
 import { analyzeStoryContext, analyzeNameBatch, analyzeContextBatch, mergeContexts, optimizePrompt, refineRawContext, refineAdditionalRules, refineSummary } from '../../geminiService';
-import { deduplicateDictionary, extractGlossaryBlocks } from '../../utils/text';
+import { buildDeepAnalysisChunks, deduplicateDictionary, extractGlossaryBlocks, selectDeepAnalysisFiles } from '../../utils/text';
 import { downloadTextFile, sortFiles, getSmartSampledFiles } from '../../utils/fileHelpers';
 
 export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) => {
@@ -81,27 +81,20 @@ export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) 
             filesToAnalyze = getSmartSampledFiles(filesToAnalyze, config.sampling);
         }
 
-        const chunks: string[] = [];
+        let chunks: string[] = [];
+        let preparationStage = '';
         const isDeepFullStory = config.mode === 'deep_context' && config.scope === 'full';
         if (isDeepFullStory) {
-            // Giữ ranh giới từng chương để AI theo dõi chính xác người nói, tiến trình quan hệ
-            // và thời điểm đổi xưng hô. Chỉ tách thêm khi một chương quá dài.
-            const MAX_CHAPTER_CHARS = 160000;
-            filesToAnalyze.forEach((file, chapterIndex) => {
-                const content = file.content || '';
-                const partCount = Math.max(1, Math.ceil(content.length / MAX_CHAPTER_CHARS));
-                for (let part = 0; part < partCount; part++) {
-                    const body = content.slice(part * MAX_CHAPTER_CHARS, (part + 1) * MAX_CHAPTER_CHARS);
-                    chunks.push(`[MỐC CHƯƠNG ${chapterIndex + 1}/${filesToAnalyze.length}]\nTên tệp/chương: ${file.name}\nPhần: ${part + 1}/${partCount}\n\n${body}`);
-                }
-            });
+            const selectedFiles = selectDeepAnalysisFiles(filesToAnalyze);
+            chunks = buildDeepAnalysisChunks(selectedFiles, filesToAnalyze.length);
+            preparationStage = `Đã chọn ${selectedFiles.length}/${filesToAnalyze.length} chương đại diện, đóng gói thành ${chunks.length} lượt phân tích...`;
         } else {
             const allContent = filesToAnalyze.map(f => f.content).join('\n');
             const CHUNK_SIZE = 800000;
             for (let i = 0; i < allContent.length; i += CHUNK_SIZE) chunks.push(allContent.substring(i, i + CHUNK_SIZE));
         }
         
-        ui.setNameAnalysisProgress({ current: 0, total: chunks.length, stage: `Đang chuẩn bị ${chunks.length} phần dữ liệu...` });
+        ui.setNameAnalysisProgress({ current: 0, total: chunks.length, stage: preparationStage || `Đang chuẩn bị ${chunks.length} phần dữ liệu...` });
         const results: string[] = [];
 
         try {
@@ -129,6 +122,16 @@ export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) 
                 effectiveAdditionalRules = effectiveAdditionalRules
                     ? `${effectiveAdditionalRules}\n\n${pronounOverride}`
                     : pronounOverride;
+            }
+            if (isDeepFullStory) {
+                effectiveAdditionalRules += `
+
+[CHIẾN LƯỢC PHÂN TÍCH NHANH TRUYỆN DÀI]
+- Dữ liệu là mẫu phân tầng phủ đều toàn tuyến truyện; số trong [MỐC CHƯƠNG GỐC X/Y] là vị trí thật.
+- BẮT BUỘC suy ra thế giới, thời đại, thiết chế xã hội và văn phong từ nhiều mốc, không chỉ chương đầu.
+- Với từng cặp nhân vật xuất hiện trong mẫu, ghi HAI CHIỀU A→B và B→A: tự xưng, cách gọi đối phương, sắc thái, mốc bắt đầu/kết thúc và điều kiện đổi quan hệ.
+- Nếu các mốc mâu thuẫn, ưu tiên quy tắc theo giai đoạn và ghi rõ khoảng chương; KHÔNG ép cách xưng hô cuối truyện lên chương đầu.
+- Quan hệ chưa đủ bằng chứng phải ghi là CHƯA XÁC ĐỊNH và dùng cách gọi trung tính; tuyệt đối không tự bịa để lấp khoảng chương không được lấy mẫu.`;
             }
 
             // Bộ lọc theo enabledModels, giữ nguyên thứ tự ưu tiên; nếu lọc ra rỗng thì dùng lại danh sách gốc.

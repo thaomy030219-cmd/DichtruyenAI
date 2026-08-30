@@ -7,3 +7,4 @@ export * from './chapterSplitter';
 export * from './batchValidator';
 export * from './inlineEnglishFixer';
 export * from './similarity';
+export * from './deepAnalysisSampling';
