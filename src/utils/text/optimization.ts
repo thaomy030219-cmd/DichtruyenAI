@@ -1,9 +1,67 @@
 import { REGEX_PATTERNS } from '../../utils/regexPatterns';
 
+const AUTHOR_NOTE_HEADING_RE = /^\s*(?:\[?\s*)?(?:lời\s+(?:của\s+)?tác\s+giả|tác\s+giả\s+(?:có\s+lời|tâm\s+sự|bộc\s+bạch)|đôi\s+lời\s+(?:của\s+)?tác\s+giả|ghi\s+chú\s+(?:của\s+)?tác\s+giả|author(?:'s)?\s+note|a\s*\/\s*n|作者(?:有话说|的?话)|作家说|后记|後記|あとがき)\s*(?:\]?\s*)?(?:[:：\-—]|$)/iu;
+const AUTHOR_SOLICITATION_RE = /(?:xin|cầu|mong)\s+(?:mọi\s+người|các\s+bạn|độc\s+giả)?\s*(?:ủng\s+hộ|bình\s+chọn|bỏ\s+phiếu|vote|theo\s+dõi|đánh\s+giá|đề\s+cử|nguyệt\s+phiếu|hoa|kẹo)|(?:求|请).{0,12}(?:月票|推荐票|收藏|订阅|支持)|(?:please\s+)?(?:vote|subscribe|follow|support)\s+(?:the\s+)?(?:book|story|author|series)/iu;
+const AUTHOR_THANKS_RE = /(?:cảm\s+ơn|cảm\s+tạ|tri\s+ân).{0,40}(?:độc\s+giả|các\s+bạn|mọi\s+người|ủng\s+hộ|theo\s+dõi|đề\s+cử|bình\s+chọn)|(?:感谢|谢谢).{0,24}(?:大家|读者|支持|订阅|收藏|推荐票|月票)|thanks?.{0,30}(?:readers?|everyone|support|reading|following)/iu;
+const AUTHOR_STATUS_RE = /(?:tác\s+giả|mình|tôi).{0,35}(?:xin\s+nghỉ|nghỉ\s+viết|ra\s+chương|đăng\s+chương|lịch\s+đăng|ốm|bận\s+việc)|(?:作者|我).{0,24}(?:请假|停更|更新|生病|有事)|(?:author|i).{0,30}(?:hiatus|update\s+schedule|next\s+chapter|sick|taking\s+a\s+break)/iu;
+const QUOTED_OR_DIALOGUE_START_RE = /^\s*(?:[-–—]|[“”"'「『])/u;
+const IN_STORY_DOCUMENT_RE = /^\s*(?:nhật\s+ký|thư\s+(?:gửi|của|từ)|tin\s+nhắn|ghi\s+chép|trích\s+lục|di\s+thư|diary|letter|message|日记|日記|书信|書信|手记|手記)(?=\s|[:：\-—]|$)/iu;
+
+const isExplicitAuthorNote = (block: string): boolean =>
+    block.length <= 1600 && AUTHOR_NOTE_HEADING_RE.test(block);
+
+const isStrongStandaloneAuthorNote = (block: string): boolean => {
+    const trimmed = block.trim();
+    if (!trimmed || trimmed.length > 600 || QUOTED_OR_DIALOGUE_START_RE.test(trimmed) || IN_STORY_DOCUMENT_RE.test(trimmed)) return false;
+    if (REGEX_PATTERNS.UNIVERSAL_CHAPTER_MATCH.test(trimmed)) return false;
+    return AUTHOR_SOLICITATION_RE.test(trimmed)
+        || AUTHOR_THANKS_RE.test(trimmed)
+        || AUTHOR_STATUS_RE.test(trimmed);
+};
+
+/**
+ * Chỉ lọc lời ngoài truyện ở rìa chương. Không quét/xóa đoạn giữa chương.
+ * Khối có nhãn tác giả rõ ràng ở cuối được coi là một section và bỏ tới hết;
+ * khối không có nhãn chỉ bị bỏ khi khớp tín hiệu mạnh, ngắn và không giống hội thoại.
+ */
+export const removeAuthorNotesAtEdges = (text: string): string => {
+    if (!text) return text;
+
+    const blocks = text.replace(/\r\n?/g, '\n').split(/\n\s*\n/u).map(block => block.trim()).filter(Boolean);
+    if (blocks.length < 2) return text.trim();
+
+    const hasEnoughStoryBefore = (endExclusive: number): boolean =>
+        blocks.slice(0, endExclusive).join('\n\n').length >= 100;
+
+    // Lời tác giả có nhãn rõ ràng ở cuối: xóa trọn section, kể cả phần bộc bạch nhiều đoạn.
+    const tailStart = Math.max(1, blocks.length - 5);
+    for (let index = tailStart; index < blocks.length; index++) {
+        if (isExplicitAuthorNote(blocks[index]) && hasEnoughStoryBefore(index)) {
+            blocks.splice(index);
+            break;
+        }
+    }
+
+    // Không có nhãn: chỉ bóc từng khối cuối có tín hiệu mạnh, dừng ngay ở khối truyện đầu tiên.
+    while (blocks.length > 1 && isStrongStandaloneAuthorNote(blocks[blocks.length - 1]) && hasEnoughStoryBefore(blocks.length - 1)) {
+        blocks.pop();
+    }
+
+    // Ở đầu chương chỉ xóa section khi tìm thấy tiêu đề chương ngay sau nó; nếu không, chỉ
+    // xóa đúng khối có nhãn để tránh nuốt nhầm phần mở đầu/nhật ký của nhân vật.
+    if (blocks.length > 1 && isExplicitAuthorNote(blocks[0])) {
+        const chapterIndex = blocks.slice(1, 5).findIndex(block => REGEX_PATTERNS.UNIVERSAL_CHAPTER_MATCH.test(block));
+        if (chapterIndex >= 0) blocks.splice(0, chapterIndex + 1);
+        else blocks.shift();
+    }
+
+    return blocks.join('\n\n').trim();
+};
+
 export const removeJunkContent = (text: string): string => {
     if (!text) return text;
     
-    let cleanedText = text;
+    let cleanedText = removeAuthorNotesAtEdges(text);
     
     // Convert common HTML break elements to newlines to preserve structure before stripping tags
     cleanedText = cleanedText.replace(/<\s*(?:br|p|\/p)\s*\/?>/gim, '\n');
