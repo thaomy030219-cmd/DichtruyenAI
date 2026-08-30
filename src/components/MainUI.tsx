@@ -4,7 +4,7 @@ import {
     Plus, Clipboard, CheckSquare, ArrowRight, Check, Search, Sparkles, Loader2, 
     Hammer, ListFilter, Eraser, RefreshCw, Trash2, FileDown, FileArchive, 
     FileText, Play, Book, Zap, Wand2, Layers, Split, X,
-    ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Save, Upload, RotateCcw,
+    ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Upload,
     ShieldCheck, AlertTriangle, ExternalLink, ScanSearch
 } from 'lucide-react';
 import { Header } from './Header';
@@ -216,16 +216,6 @@ export const MainUI: React.FC<MainUIProps> = (props) => {
                             </div>
                             
                             <div className="w-2 shrink-0"></div>
-
-                    {/* System Tools */}
-                    <div className="flex items-center gap-1 shrink-0 bg-slate-50 dark:bg-slate-800/40 rounded-xl p-1">
-                        <button onClick={props.handleSaveSelected} className="action-btn text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400"><Save className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Lưu DB</span></button>
-                        <button onClick={props.handleBackup} className="action-btn text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400"><Save className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Backup</span></button>
-                        <label className="flex flex-col items-center justify-center min-w-[40px] h-[40px] px-1 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-200 ease-smooth cursor-pointer group active:scale-95 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus-within:ring-2 focus-within:ring-primary-400" title="Khôi phục"> <Upload className="w-3.5 h-3.5 group-hover:scale-110 transition-transform mb-0.5" /> <span className="text-[9px] font-bold uppercase tracking-tight">Restore</span> <input type="file" accept=".json" className="hidden" onChange={async (e) => { const success = await props.handleRestore(e); if (success) { setActiveTab('workspace'); props.setCurrentPage(1); } }} /> </label>
-                        <button onClick={props.requestResetApp} className="action-btn text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"><RotateCcw className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Reset</span></button>
-                    </div>
-                    
-                    <div className="w-2 shrink-0"></div>
                     
                     {/* Selection Tools */}
                     <div className="flex items-center gap-1 shrink-0 bg-slate-50 dark:bg-slate-800/40 rounded-xl p-1">
