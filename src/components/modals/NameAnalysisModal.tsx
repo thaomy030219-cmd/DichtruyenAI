@@ -177,6 +177,12 @@ export const NameAnalysisModal: React.FC<NameAnalysisModalProps> = ({ isOpen, on
 
                     <div className="space-y-4">
                         <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><ListFilter className="w-3.5 h-3.5"/> Bước 3: Phạm Vi Quét</label>
+                        {mode === 'deep_context' && (
+                            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-[10px] leading-5 text-emerald-800">
+                                <b>Phân tích chuyên sâu được tái sử dụng:</b> chọn <b>Toàn Bộ</b> để quét riêng từng chương, lập quan hệ xưng hô hai chiều và tự tạo prompt dịch. Kết quả được lưu trong dự án/backup; dịch lần sau không tự chạy lại phân tích.
+                                {storyInfo.deepAnalysisCompletedAt && <span className="mt-1 block text-emerald-600">Đã có dữ liệu: {storyInfo.deepAnalysisChapterCount || 0} chương · {new Date(storyInfo.deepAnalysisCompletedAt).toLocaleString('vi-VN')}</span>}
+                            </div>
+                        )}
                         <div className="flex bg-slate-100 p-1.5 rounded-2xl gap-1.5 shadow-inner">
                              <button onClick={() => setScope('smart')} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${scope === 'smart' ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}>Smart Sampling (Nhanh)</button>
                              <button onClick={() => setScope('range')} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${scope === 'range' ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}>Khoảng cụ thể</button>

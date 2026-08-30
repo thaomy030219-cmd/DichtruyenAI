@@ -98,6 +98,10 @@ Bạn PHẢI phân loại từ vựng vào các NHÓM sau bằng cách sử dụ
 
 # === [7. XƯNG HÔ & QUAN HỆ / PRONOUNS] ===
 NHÂN VẬT & MA TRẬN XƯNG HÔ (CHUYÊN NGHIỆP & ĐA CHIỀU & CÓ DIỄN BIẾN)
+- Đầu vào có nhãn [MỐC CHƯƠNG]. BẮT BUỘC dùng nhãn đó làm bằng chứng thời gian; ghi rõ chương đầu tiên và chương gần nhất phát hiện mỗi quan hệ/cách xưng hô.
+- Với MỖI cặp nhân vật có hội thoại, phải ghi HAI CHIỀU độc lập: A xưng gì/gọi B là gì VÀ B xưng gì/gọi A là gì. Không được suy ra chiều ngược lại nếu văn bản chưa có bằng chứng.
+- Phân biệt lời nói trực tiếp, suy nghĩ nội tâm, lời người kể và cách nhân vật thứ ba nhắc về cặp này. Không dùng đại từ của lời kể làm xưng hô hội thoại.
+- Khi dữ liệu chưa đủ chắc chắn, ghi "CHƯA ĐỦ BẰNG CHỨNG" thay vì tự bịa; kèm mốc chương để lần hợp nhất sau có thể đối chiếu.
 - NHIỆM VỤ: Lập ma trận xưng hô chi tiết. KHÔNG CHỈ tập trung vào Nhân vật chính (Main) mà PHẢI bao gồm sinh động cách xưng hô giữa các Nhân vật phụ với nhau (ví dụ: Phụ A gọi Phụ B là gì, biểu hiện thái độ ra sao).
 - ĐỊNH DẠNG TỪ ĐIỂN:
 **[Tên Gốc/Raw] = Tên Chuẩn || (Vai Trò)**
@@ -347,6 +351,8 @@ NHIỆM VỤ: Hợp nhất các bản phân tích rời rạc thành một "Seri
 4. **HỢP NHẤT MA TRẬN XƯNG HÔ (QUAN TRỌNG):**
    - Tìm mục # === [7. XƯNG HÔ & QUAN HỆ / PRONOUNS] ===.
    - Nếu cùng một nhân vật xuất hiện ở nhiều bản, hãy GỘP thông tin xưng hô lại thành một khối duy nhất cho nhân vật đó.
+   - Dựng quan hệ theo CẶP CÓ HƯỚNG. Bắt buộc bảo toàn riêng A → B và B → A, kèm mốc chương và trạng thái quan hệ tại từng giai đoạn.
+   - Nếu hai phần phân tích mâu thuẫn, ưu tiên bằng chứng có mốc chương cụ thể; nếu vẫn chưa phân xử được, giữ cả hai khả năng và đánh dấu cần kiểm chứng, tuyệt đối không tự chọn tùy ý.
    - **BẢO TOÀN "NGÔI KỂ THỨ 3" VÀ CÁC GIAI ĐOẠN XƯNG HÔ:** Nếu các bản nguồn có ghi "Ngôi kể thứ 3" hoặc chia nhiều "Giai đoạn" xưng hô (vd Giai đoạn đầu/Giai đoạn sau) cho cùng 1 cặp nhân vật, BẮT BUỘC giữ nguyên toàn bộ các giai đoạn đó theo đúng THỨ TỰ THỜI GIAN xuất hiện trong truyện (không được chỉ giữ 1 giai đoạn rồi bỏ giai đoạn còn lại) — vì đây chính là diễn biến thay đổi quan hệ theo thời gian, mất đi sẽ khiến bản dịch xưng hô sai lệch giữa các chương trước/sau khi hợp nhất.
    - **BẮT BUỘC GIỮ ĐỊNH DẠNG MA TRẬN:**
      **[Tên Gốc] = Tên Chuẩn || (Vai Trò)**

@@ -16,6 +16,11 @@ export const optimizePrompt = async (
   const candidates = ['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
   if (candidates.length === 0) candidates.push('gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
   const filledTemplate = replacePromptVariables(promptTemplate, storyInfo);
+  const pronounMarker = '# === [7. XƯNG HÔ & QUAN HỆ / PRONOUNS] ===';
+  const pronounStart = context.indexOf(pronounMarker);
+  // Ma trận xưng hô thường nằm cuối Series Bible nên sẽ bị mất nếu chỉ cắt 50k ký tự đầu.
+  // Đưa riêng phần này lên đầu dữ liệu tham khảo để prompt chuyên biệt luôn nhận đủ quan hệ.
+  const prioritizedPronounMatrix = pronounStart >= 0 ? context.slice(pronounStart, pronounStart + 40000) : '';
   const isGameOrWestern = storyInfo.genres.some(g => ['Light Novel', 'Isekai', 'Fantasy', 'Đồng Nhân', 'Võng Du', 'Game'].includes(g)) || storyInfo.worldSetting.some(s => ['Phương Tây/Magic', 'Võng Du/Game'].includes(s));
   
   // DETECT MODE STRICTLY
@@ -55,6 +60,7 @@ DỰA TRÊN NGỮ CẢNH (Series Bible) ĐƯỢC CUNG CẤP:
 3. **ORIGIN RESTORATION PROTOCOL:** ${isGameOrWestern ? `Truyện bối cảnh phương tây/game. QUY TẮC: 'KHÔNG HÁN VIỆT HÓA TÊN TIẾNG ANH'. (Goblin -> Goblin/Yêu tinh, Cấm: Ca Bố Lâm).` : `Truyện phong cách Trung Quốc. Duy trì Hán Việt chuẩn.`}
 4. **RAW-TO-VIET MAPPING:** Tạo mục "V. QUY TẮC CHUYỂN ĐỔI". Liệt kê các cặp: "{Ký tự gốc} -> {Bản dịch chuẩn}" dựa trên dữ liệu tham khảo.
 5. **INTEGRATE RULES:** Lồng ghép khéo léo [QUY TẮC NGƯỜI DÙNG] vào Prompt. NẾU PHÁT HIỆN TRUYỆN CÓ YẾU TỐ NHẠY CẢM HOẶC BẠO LỰC, hãy lồng ghép quy tắc chống kiểm duyệt sau vào Prompt sao cho tự nhiên và phù hợp với truyện: "Với các cảnh bạo lực hoặc thân mật, dịch theo văn phong tiểu thuyết mạng đã xuất bản: tập trung vào cảm xúc, nhịp điệu, hình ảnh ẩn dụ thay vì mô tả trần trụi. Đây là văn phong biên tập chuẩn cho thể loại, không phải yêu cầu né tránh nội dung." (Tuyệt đối không được hiểu lầm quy tắc này thành bật bộ lọc hay từ chối dịch).
+5a. **MA TRẬN XƯNG HÔ THEO CHƯƠNG:** Từ Series Bible, tạo một khối chỉ thị vận hành rõ ràng cho từng cặp nhân vật theo HAI CHIỀU A→B và B→A. Ghi cách tự xưng, cách gọi đối phương, sắc thái, mốc chương bắt đầu/kết thúc và điều kiện chuyển giai đoạn. Bắt buộc dặn mô hình dịch ưu tiên quy tắc đúng với mốc chương hiện tại; không áp dụng cách xưng hô của giai đoạn sau cho chương trước. Nếu chưa đủ bằng chứng, giữ cách gọi trung tính phù hợp bối cảnh và không tự bịa quan hệ.
 6. **BẢO VỆ BẢNG THÔNG SỐ (BẮT BUỘC DUY TRÌ):** BẠN BẮT BUỘC PHẢI THÊM 3 QUY TẮC NÀY VÀO PROMPT TỐI ƯU ĐẦU RA:
    - Thêm quy tắc vào Mục II (Thứ bậc ưu tiên xử lý): "CẢNH BÁO BẢNG THÔNG SỐ (HỆ THỐNG/STATUS BOARD): Bảng thông số (Ký chủ, Thân phận, Tu vi...) CHỈ LÀ DỮ LIỆU BÊN TRONG TRUYỆN, KHÔNG PHẢI TÍN HIỆU NGẮT KẾT THÚC ĐOẠN/CHƯƠNG. BẮT BUỘC dịch xong bảng rồi PHẢI TIẾP TỤC DỊCH HẾT phần văn xuôi, hội thoại phía sau."
    - Bổ sung vào cơ chế tự kiểm tra nội bộ (Mục VII): "Check Bảng Thông Số: Đã dịch trọn vẹn phần văn bản/hội thoại ĐỨNG SAU bảng thông số hệ thống chưa? Chắc chắn KHÔNG dừng dịch giữa chừng ngay sau bảng thông số."
@@ -73,6 +79,7 @@ DỰA TRÊN NGỮ CẢNH (Series Bible) ĐƯỢC CUNG CẤP:
 ${additionalRules}
 
 [DỮ LIỆU THAM KHẢO (SERIES BIBLE)]
+${prioritizedPronounMatrix ? `[MA TRẬN XƯNG HÔ ƯU TIÊN]\n${prioritizedPronounMatrix}\n\n` : ''}
 ${dictionary.substring(0, 20000)}
 ${context.substring(0, 50000)}
 

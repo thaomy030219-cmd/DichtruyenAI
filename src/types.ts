@@ -81,6 +81,10 @@ export interface StoryInfo {
   summary?: string; // Tóm tắt cốt truyện (New v9.0)
   imagePrompt?: string; // Lưu prompt tạo ảnh để tái sử dụng hoặc tham khảo
   additionalRules?: string; // Quy tắc bổ sung từ người dùng (New v10.1)
+  // Được lưu cùng phiên và file backup để không phải phân tích lại khi dịch lần sau.
+  deepAnalysisSignature?: string;
+  deepAnalysisChapterCount?: number;
+  deepAnalysisCompletedAt?: string;
   // Tùy chọn xưng hô khi chạy "Phân Tích Sâu" (deep_context): ép toàn bộ Series Bible/Ma trận
   // xưng hô theo 1 kiểu duy nhất (Hiện đại hoặc Cổ đại) thay vì để AI tự phân loại theo 3 NHÓM
   // A/B/C mặc định. 'flexible' (mặc định) = giữ nguyên hành vi phân tích sâu hiện tại.

@@ -12,6 +12,19 @@ import { deduplicateDictionary, extractGlossaryBlocks } from '../../utils/text';
 import { downloadTextFile, sortFiles, getSmartSampledFiles } from '../../utils/fileHelpers';
 
 export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) => {
+    const createStorySignature = (files: Array<{ id?: string; name?: string; content?: string }>) => {
+        let hash = 2166136261;
+        for (const file of files) {
+            const content = file.content || '';
+            const sample = `${file.id || ''}|${file.name || ''}|${content.length}|${content.slice(0, 256)}|${content.slice(-256)}`;
+            for (let i = 0; i < sample.length; i++) {
+                hash ^= sample.charCodeAt(i);
+                hash = Math.imul(hash, 16777619);
+            }
+        }
+        return `${files.length}-${(hash >>> 0).toString(16)}`;
+    };
+
     const handleSmartStartRun = async (useSearch: boolean, additionalRules: string, sampling: { start: number, middle: number, end: number }) => {
         if (!core.storyInfo.title) { ui.addToast("Vui lòng nhập tên truyện", 'error'); return; }
         try {
@@ -68,10 +81,25 @@ export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) 
             filesToAnalyze = getSmartSampledFiles(filesToAnalyze, config.sampling);
         }
 
-        const allContent = filesToAnalyze.map(f => f.content).join('\n');
-        const chunks = [];
-        const CHUNK_SIZE = 800000;
-        for (let i = 0; i < allContent.length; i += CHUNK_SIZE) chunks.push(allContent.substring(i, i + CHUNK_SIZE));
+        const chunks: string[] = [];
+        const isDeepFullStory = config.mode === 'deep_context' && config.scope === 'full';
+        if (isDeepFullStory) {
+            // Giữ ranh giới từng chương để AI theo dõi chính xác người nói, tiến trình quan hệ
+            // và thời điểm đổi xưng hô. Chỉ tách thêm khi một chương quá dài.
+            const MAX_CHAPTER_CHARS = 160000;
+            filesToAnalyze.forEach((file, chapterIndex) => {
+                const content = file.content || '';
+                const partCount = Math.max(1, Math.ceil(content.length / MAX_CHAPTER_CHARS));
+                for (let part = 0; part < partCount; part++) {
+                    const body = content.slice(part * MAX_CHAPTER_CHARS, (part + 1) * MAX_CHAPTER_CHARS);
+                    chunks.push(`[MỐC CHƯƠNG ${chapterIndex + 1}/${filesToAnalyze.length}]\nTên tệp/chương: ${file.name}\nPhần: ${part + 1}/${partCount}\n\n${body}`);
+                }
+            });
+        } else {
+            const allContent = filesToAnalyze.map(f => f.content).join('\n');
+            const CHUNK_SIZE = 800000;
+            for (let i = 0; i < allContent.length; i += CHUNK_SIZE) chunks.push(allContent.substring(i, i + CHUNK_SIZE));
+        }
         
         ui.setNameAnalysisProgress({ current: 0, total: chunks.length, stage: `Đang chuẩn bị ${chunks.length} phần dữ liệu...` });
         const results: string[] = [];
@@ -193,12 +221,29 @@ export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) 
                          return deduplicateDictionary(newDict);
                      });
                 }
+
+                ui.setNameAnalysisProgress({ current: chunks.length, total: chunks.length, stage: "Đang tạo prompt dịch chuyên biệt từ ma trận xưng hô..." });
+                const updatedDictionary = extractedGlossary
+                    ? deduplicateDictionary(`${core.additionalDictionary || ''}\n${extractedGlossary}`)
+                    : (core.additionalDictionary || '');
+                const analysisStoryInfo = {
+                    ...config.updatedStoryInfo,
+                    summary: refinedSummary,
+                    contextNotes: mergedContext,
+                    additionalRules: finalAdditionalRules
+                };
+                const specializedBasePrompt = generateBasePrompt(analysisStoryInfo.genres, analysisStoryInfo.worldSetting || [], analysisStoryInfo.enableTitleFormatting !== false);
+                const specializedPrompt = await optimizePrompt(specializedBasePrompt, analysisStoryInfo, mergedContext, updatedDictionary, finalAdditionalRules, core.enabledModels);
+                core.setPromptTemplate(specializedPrompt);
                 
                 core.setStoryInfo((prev: StoryInfo) => ({ 
                     ...prev, 
                     summary: refinedSummary,
                     contextNotes: mergedContext,
-                    additionalRules: finalAdditionalRules
+                    additionalRules: finalAdditionalRules,
+                    deepAnalysisSignature: createStorySignature(filesToAnalyze),
+                    deepAnalysisChapterCount: filesToAnalyze.length,
+                    deepAnalysisCompletedAt: new Date().toISOString()
                 }));
                 downloadTextFile(`${config.updatedStoryInfo.title}_Context.txt`, mergedContext);
                 if (extractedGlossary) {
@@ -212,7 +257,9 @@ export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) 
                 ui.setDictTab('custom');
                 downloadTextFile(`${config.updatedStoryInfo.title}_Dictionary.txt`, cleanDictionary);
             }
-            ui.addToast("Phân tích hoàn tất!", "success");
+            ui.addToast(config.mode === 'deep_context'
+                ? "Phân tích chuyên sâu hoàn tất. Series Bible, ma trận xưng hô và prompt đã được lưu để tái sử dụng."
+                : "Phân tích hoàn tất!", "success");
             
             // --- FIX AUTOMATION HANG: Resume automation if running ---
             if (automation.automationState.isRunning && automation.automationState.currentStep === 2) {
