@@ -245,10 +245,6 @@ export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) 
                     deepAnalysisChapterCount: filesToAnalyze.length,
                     deepAnalysisCompletedAt: new Date().toISOString()
                 }));
-                downloadTextFile(`${config.updatedStoryInfo.title}_Context.txt`, mergedContext);
-                if (extractedGlossary) {
-                    downloadTextFile(`${config.updatedStoryInfo.title}_ExtractedDict.txt`, extractedGlossary);
-                }
 
             } else {
                 ui.setNameAnalysisProgress({ current: chunks.length, total: chunks.length, stage: "Đang lọc trùng và tạo từ điển..." });
