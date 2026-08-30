@@ -19,10 +19,12 @@ export const IntroPage: React.FC<{ onEnter: () => void }> = ({ onEnter }) => {
   // Phòng trường hợp trang Intro này được mount từ trước (hiếm khi xảy ra) rồi mới tới giờ hết hạn
   // trong lúc người dùng đang đứng nhìn màn hình Intro (chưa bấm Enter) — tự cập nhật thông báo.
   useEffect(() => {
-    if (ACCESS_CONFIG.EXPIRY_TS && Date.now() > ACCESS_CONFIG.EXPIRY_TS && error !== 'expired') {
-      setError('expired');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const expiryTimer = window.setTimeout(() => {
+      if (ACCESS_CONFIG.EXPIRY_TS && Date.now() > ACCESS_CONFIG.EXPIRY_TS) {
+        setError('expired');
+      }
+    }, 0);
+    return () => window.clearTimeout(expiryTimer);
   }, []);
 
   const handleEnter = () => {
@@ -34,44 +36,45 @@ export const IntroPage: React.FC<{ onEnter: () => void }> = ({ onEnter }) => {
   };
 
   return (
-    <div className="min-h-[100dvh] w-full bg-[#f7faf8] text-teal-950 flex flex-col items-center justify-start pt-16 pb-16 p-4 sm:p-8 font-sans selection:bg-teal-200 overflow-y-auto relative">
+    <div className="min-h-[100dvh] w-full bg-[#f7faf8] text-teal-950 flex flex-col items-center justify-center p-4 sm:p-6 font-sans selection:bg-teal-200 overflow-y-auto relative">
       {/* Ambient background wash — 2 quầng màu mờ, tạo chiều sâu nhẹ nhàng, không lòe loẹt */}
       <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[520px] h-[520px] bg-teal-200/40 rounded-full blur-3xl" />
       <div className="pointer-events-none absolute top-52 right-0 w-[360px] h-[360px] bg-amber-100/50 rounded-full blur-3xl" />
 
-      <div className="max-w-2xl w-full grid gap-10 animate-in fade-in slide-in-from-bottom-8 duration-700 pb-8 relative">
+      <div className="max-w-5xl w-full grid gap-4 animate-in fade-in slide-in-from-bottom-8 duration-700 relative">
 
         {/* Hero */}
-        <div className="text-center space-y-5">
-          <div className="inline-flex items-center gap-2 mx-auto bg-white border border-teal-200 rounded-full pl-2 pr-4 py-1.5 shadow-sm">
-            <span className="w-7 h-7 rounded-full bg-teal-600 text-white flex items-center justify-center shrink-0">
-              <Languages className="w-4 h-4" />
+        <div className="text-center space-y-2.5">
+          <div className="inline-flex items-center gap-2 mx-auto bg-white border border-teal-200 rounded-full pl-1.5 pr-3 py-1 shadow-sm">
+            <span className="w-6 h-6 rounded-full bg-teal-600 text-white flex items-center justify-center shrink-0">
+              <Languages className="w-3.5 h-3.5" />
             </span>
             <span className="text-xs font-semibold text-teal-700 tracking-wide">CÔNG CỤ DỊCH TRUYỆN BẰNG AI</span>
           </div>
 
-          <h1 className="font-heading font-bold text-4xl sm:text-5xl tracking-tight text-teal-950">
+          <h1 className="font-heading font-bold text-3xl sm:text-4xl tracking-tight text-teal-950">
             Dịch truyện AI
             <span className="align-super text-sm sm:text-base font-sans font-bold text-teal-500 ml-2">v1.0.3</span>
           </h1>
 
-          <p className="text-teal-900/60 max-w-md mx-auto text-base">
+          <p className="text-teal-900/60 max-w-md mx-auto text-sm">
             Công cụ dịch truyện chuyên nghiệp bằng AI.
           </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-teal-700/60 font-semibold uppercase tracking-wide pt-1">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-teal-700/60 font-semibold uppercase tracking-wide">
             <span>Thiết kế bởi AI</span>
             <span className="w-1 h-1 rounded-full bg-teal-300" />
             <span>Ý tưởng: Đỗ Xuân Quyết</span>
           </div>
         </div>
 
+        <div className="grid lg:grid-cols-[0.72fr_1.28fr] gap-4 items-stretch">
         {/* Enter Card */}
-        <div className="bg-white border border-teal-100 rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_-12px_rgba(13,148,136,0.25)]">
-          <div className="w-full flex flex-col items-center justify-center gap-5">
+        <div className="bg-white border border-teal-100 rounded-2xl p-5 shadow-[0_8px_30px_-12px_rgba(13,148,136,0.25)] flex items-center">
+          <div className="w-full flex flex-col items-center justify-center gap-3">
             <button
               onClick={handleEnter}
-              className="w-full group relative flex items-center justify-center gap-3 px-8 py-4 bg-teal-600 text-white hover:bg-teal-700 rounded-2xl font-bold text-lg transition-all hover:scale-[1.02] shadow-lg shadow-teal-600/25 hover:shadow-teal-600/40 active:scale-[0.98] shrink-0"
+              className="w-full group relative flex items-center justify-center gap-3 px-6 py-3.5 bg-teal-600 text-white hover:bg-teal-700 rounded-xl font-bold text-base transition-all hover:scale-[1.02] shadow-lg shadow-teal-600/25 hover:shadow-teal-600/40 active:scale-[0.98] shrink-0"
             >
               Bắt đầu
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -97,51 +100,42 @@ export const IntroPage: React.FC<{ onEnter: () => void }> = ({ onEnter }) => {
         </div>
 
         {/* Donate Card — giọng văn gần gũi kiểu "lời cảm ơn" thay vì tiêu đề "Donate" khô khan */}
-        <div className="bg-white border border-teal-100 rounded-3xl p-6 sm:p-8 space-y-6 shadow-[0_8px_30px_-12px_rgba(13,148,136,0.15)]">
-          <div className="flex flex-col items-center text-center space-y-2">
-            <div className="w-14 h-14 shrink-0 bg-amber-50 rounded-2xl flex items-center justify-center border border-amber-200 mb-1">
-              <Coffee className="w-7 h-7 text-amber-500" />
+        <div className="bg-white border border-teal-100 rounded-2xl p-4 space-y-3 shadow-[0_8px_30px_-12px_rgba(13,148,136,0.15)]">
+          <div className="flex items-center gap-3 text-left">
+            <div className="w-10 h-10 shrink-0 bg-amber-50 rounded-xl flex items-center justify-center border border-amber-200">
+              <Coffee className="w-5 h-5 text-amber-500" />
             </div>
-
-            <h3 className="font-heading text-xl font-bold text-teal-950 pt-1">
-              Mời tác giả một cốc cà phê
-            </h3>
-            <p className="text-sm text-teal-900/60 leading-relaxed max-w-sm">
-              Nếu bộ công cụ này hữu ích với bạn, một tách cà phê nho nhỏ sẽ giúp mình có thêm động lực duy trì và phát triển. Cảm ơn tấm lòng của bạn!
-            </p>
+            <div>
+              <h3 className="font-heading text-lg font-bold text-teal-950">Mời tác giả một cốc cà phê</h3>
+              <p className="text-xs text-teal-900/60 leading-relaxed">Một tách cà phê nhỏ sẽ giúp mình có thêm động lực duy trì và phát triển công cụ.</p>
+            </div>
           </div>
 
-          <div className="flex flex-col items-center gap-6 py-6 bg-teal-50/60 rounded-2xl border border-teal-100">
-            <div className="text-center space-y-1.5">
-              <p className="text-xs font-semibold text-teal-600 uppercase tracking-widest">Ngân Hàng Quân Đội (MB Bank)</p>
-              <p className="text-lg font-bold text-teal-950 uppercase tracking-tight">DO XUAN QUYET</p>
-            </div>
-
-            <div className="bg-white p-4 rounded-3xl shadow-lg shadow-teal-900/10 transform transition hover:scale-[1.02] duration-300 border border-teal-100">
+          <div className="grid sm:grid-cols-[auto_1fr] items-center gap-4 p-3 bg-teal-50/60 rounded-xl border border-teal-100">
+            <div className="bg-white p-2 rounded-xl shadow-md shadow-teal-900/10 transform transition hover:scale-[1.02] duration-300 border border-teal-100 mx-auto">
               <img
                 src="/donate-qr.jpg"
                 alt="MB Bank QR Donate"
-                className="w-56 h-56 object-contain rounded-xl"
+                className="w-36 h-36 object-contain rounded-lg"
               />
             </div>
-
-            <p className="text-xs text-teal-700/50 font-medium tracking-widest">QUÉT MÃ ĐỂ CHUYỂN KHOẢN</p>
-
-            {/* Telegram Contact Info */}
-            <div className="flex flex-col items-center text-center space-y-1.5 pt-4 border-t border-teal-100 w-full px-4">
-              <p className="text-sm text-teal-900/70">
-                Inb liên hệ và donate để nhận link cập nhật tính năng và model mới nhất đồng thời tham gia góp ý về tính năng của app.
-              </p>
-              <p className="text-sm text-teal-900/50 mt-1">Vui lòng liên hệ:</p>
-              <div className="space-y-1">
-                <p className="text-sm text-teal-900/70">Telegram cá nhân: <a href="https://t.me/truyendichlinhdi" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:text-teal-700 hover:underline font-semibold">t.me/truyendichlinhdi</a></p>
-                <p className="text-sm text-teal-900/70">Nhóm trao đổi: <span className="text-teal-700/40">đang cập nhật</span></p>
+            <div className="min-w-0 space-y-2 text-center sm:text-left">
+              <div>
+                <p className="text-[10px] font-semibold text-teal-600 uppercase tracking-widest">Ngân Hàng Quân Đội (MB Bank)</p>
+                <p className="text-base font-bold text-teal-950 uppercase tracking-tight">DO XUAN QUYET</p>
+                <p className="text-[10px] text-teal-700/50 font-medium tracking-widest">QUÉT MÃ ĐỂ CHUYỂN KHOẢN</p>
+              </div>
+              <div className="space-y-1 pt-2 border-t border-teal-100">
+                <p className="text-xs text-teal-900/65">Donate để nhận link cập nhật và tham gia góp ý tính năng.</p>
+                <p className="text-xs text-teal-900/70">Telegram: <a href="https://t.me/truyendichlinhdi" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:text-teal-700 hover:underline font-semibold">t.me/truyendichlinhdi</a></p>
+                <p className="text-xs text-teal-900/70">Nhóm trao đổi: <span className="text-teal-700/40">đang cập nhật</span></p>
               </div>
             </div>
           </div>
         </div>
+        </div>
 
-        <div className="text-center flex items-center justify-center gap-1.5 text-xs text-teal-700/40 pb-2">
+        <div className="text-center flex items-center justify-center gap-1.5 text-[11px] text-teal-700/40">
           Làm với <Heart className="w-3 h-3 fill-rose-400 text-rose-400" /> cho cộng đồng dịch truyện Việt
         </div>
 
