@@ -17,8 +17,19 @@ import { SinoVietnameseFixerPage } from './SinoVietnameseFixerPage';
 import { useMainUI, MainUIProps } from '../hooks/pages/useMainUI';
 import { DEFAULT_PROMPT, generateBasePrompt } from '../constants';
 
+const compactNumberFormatter = new Intl.NumberFormat('vi-VN', {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+});
+
 export const MainUI: React.FC<MainUIProps> = (props) => {
     const { activeTab, setActiveTab } = props;
+    const estimatedWords = React.useMemo(() => props.files.reduce((total, file) => {
+        const text = file.translatedContent || file.content || '';
+        const words = text.trim() ? text.trim().split(/\s+/u).length : 0;
+        return total + words;
+    }, 0), [props.files]);
+    const characterCount = props.creativeState?.characters?.length || 0;
     const {
         isSidebarOpen, setIsSidebarOpen,
         isBottomBarOpen, setIsBottomBarOpen,
@@ -158,6 +169,45 @@ export const MainUI: React.FC<MainUIProps> = (props) => {
                         
                         <div className={`bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm transition-all duration-300 overflow-x-auto custom-scrollbar ${isBottomBarOpen ? 'max-h-[40vh] opacity-100 p-1.5 md:p-2' : 'max-h-0 opacity-0 p-0'}`}>
                             <div className="min-w-max mx-auto flex items-center gap-1.5 px-2 pb-1">
+                            {activeTab === 'workspace' && (
+                                <section aria-label="Thống kê biên tập" className="flex h-12 shrink-0 items-stretch gap-1.5">
+                                    {[
+                                        { label: 'Tổng chương', value: props.stats.total },
+                                        { label: 'Nhân vật', value: characterCount },
+                                        { label: 'Từ ước tính', value: compactNumberFormatter.format(estimatedWords) },
+                                    ].map(item => (
+                                        <div key={item.label} className="flex min-w-[92px] flex-col justify-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 dark:border-slate-700 dark:bg-slate-800/70">
+                                            <span className="text-[8px] font-bold uppercase tracking-wide text-slate-400">{item.label}</span>
+                                            <strong className="mt-0.5 text-sm leading-none text-slate-800 dark:text-slate-100">{item.value}</strong>
+                                        </div>
+                                    ))}
+                                    <div className="flex min-w-[132px] items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 dark:border-slate-700 dark:bg-slate-800/70">
+                                        <div className="flex min-w-0 flex-col justify-center">
+                                            <span className="whitespace-nowrap text-[8px] font-bold uppercase tracking-wide text-slate-400">Điểm hoàn thiện</span>
+                                            <strong className="mt-0.5 text-sm leading-none text-primary-600 dark:text-primary-400">{props.progressPercentage}%</strong>
+                                        </div>
+                                        <div className="relative h-9 w-9 shrink-0" role="img" aria-label={`Hoàn thiện ${props.progressPercentage}%`}>
+                                            <svg className="h-9 w-9 -rotate-90" viewBox="0 0 36 36" aria-hidden="true">
+                                                <circle cx="18" cy="18" r="16" fill="none" stroke="currentColor" strokeWidth="3" className="text-slate-200 dark:text-slate-700" />
+                                                <circle
+                                                    cx="18"
+                                                    cy="18"
+                                                    r="16"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="3"
+                                                    strokeLinecap="round"
+                                                    pathLength="100"
+                                                    strokeDasharray="100"
+                                                    strokeDashoffset={100 - Math.min(100, Math.max(0, props.progressPercentage))}
+                                                    className="text-primary-500 transition-all duration-500"
+                                                />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div className="mx-0.5 w-px self-stretch bg-slate-200 dark:bg-slate-700" />
+                                </section>
+                            )}
                             
                             {/* ... (Existing buttons) */}
                             <div className="flex items-center gap-1 shrink-0 bg-slate-50 dark:bg-slate-800/40 rounded-xl p-1">
