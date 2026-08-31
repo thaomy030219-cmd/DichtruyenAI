@@ -193,6 +193,27 @@ const EN_WORD_PATTERN = /(?<!\p{L})([a-zA-Z]+(?:[''][a-zA-Z]+)?(?:\s+[a-zA-Z]+(?
 
 const VI_ACCENT_CHARS = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]/;
 
+const ENGLISH_SIGNAL_WORDS = new Set([
+    'the', 'this', 'that', 'these', 'those', 'there', 'where', 'what', 'who', 'why', 'how', 'and',
+    'but', 'because', 'although', 'while', 'when', 'then', 'than', 'with', 'without', 'from', 'into',
+    'through', 'before', 'after', 'about', 'could', 'would', 'should', 'will', 'have', 'has', 'had',
+    'was', 'were', 'are', 'is', 'been', 'not', 'never', 'only', 'also', 'very', 'just', 'still',
+    'said', 'asked', 'replied', 'looked', 'turned', 'walked', 'thought', 'felt', 'your', 'their',
+    'them', 'they', 'you', 'his', 'her', 'him', 'our', 'can', 'cannot', 'did', 'does', 'chapter'
+]);
+
+const isLikelyEnglishPassage = (phrase: string): boolean => {
+    const words = phrase.toLowerCase().match(/[a-z]+(?:['’][a-z]+)?/g) || [];
+    if (words.length < 3) return false;
+    let score = 0;
+    for (const word of words) {
+        if (ENGLISH_SIGNAL_WORDS.has(word)) score += 2;
+        if (COMMON_EN_VI_MAP[word]) score += 1;
+        if (/(?:tion|sion|ment|ness|able|ible|ously|fully|less|ship|hood|ing|ed|n't|'re|'ve|'ll)$/.test(word)) score += 1;
+    }
+    return score >= 4 || (words.length >= 7 && score >= 3);
+};
+
 const isProperNoun = (word: string): boolean => {
     if (/^[A-Z]{2,}$/.test(word)) return true;
     if (/^[A-Z][a-z]/.test(word)) return true;
@@ -292,7 +313,7 @@ export const detectUnmappedInlineEnglish = (
     };
     extractToWhitelist(dictionaryText);
     extractToWhitelist(contextText);
-    extractToWhitelist(promptText);
+    void promptText;
     
     const results: { lineIndex: number; line: string; enWords: string[] }[] = [];
     const lines = text.split('\n');
@@ -322,13 +343,17 @@ export const detectUnmappedInlineEnglish = (
     
     lines.forEach((line, lineIndex) => {
         if (!line.trim()) return;
-        if (!isVietnameseSentence(line)) return;
         // Bỏ qua dòng tiêu đề chương (số Ả Rập, chữ Hán, La Mã)
         if (/^(Chương|Hồi|Phần|Quyển|Tập|Tiết|Chapter|第)\s*[\d一二三四五六七八九十百千万]+/i.test(line.trim())) return;
         // Bỏ qua dòng ngắn < 5 từ (có thể là tên riêng hoặc tiêu đề phụ)
         if (line.trim().split(/\s+/).length < 5 && /^[A-Z]/.test(line.trim())) return;
         
         const enWords: string[] = [];
+        const trimmed = line.trim();
+        if (!isVietnameseSentence(line) && isLikelyEnglishPassage(trimmed)) {
+            results.push({ lineIndex, line, enWords: [trimmed] });
+            return;
+        }
         let match: RegExpExecArray | null;
         EN_WORD_PATTERN.lastIndex = 0;
         
@@ -342,7 +367,14 @@ export const detectUnmappedInlineEnglish = (
             if (customWhitelist.has(phrase.toLowerCase())) continue;
             if (isModernOrGame && GAME_MODERN_WHITELIST.has(phrase.toLowerCase())) continue;
             if (phrase.length <= 2) continue;
-            if (COMMON_EN_VI_MAP[phrase.toLowerCase()]) continue;
+            if (COMMON_EN_VI_MAP[phrase.toLowerCase()]) {
+                enWords.push(phrase);
+                continue;
+            }
+            if (isLikelyEnglishPassage(phrase)) {
+                enWords.push(phrase);
+                continue;
+            }
             
             const words = phrase.split(/\s+/);
             const isDefiniteEnglish = words.some(w => {

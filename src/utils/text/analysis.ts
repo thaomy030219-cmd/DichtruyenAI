@@ -1,8 +1,9 @@
 import { FOREIGN_CHARS_REGEX, LineContext } from './regex';
+import { detectUnmappedInlineEnglish } from './inlineEnglishFixer';
 
 export const countForeignChars = (text: string): number => {
     if (!text) return 0;
-    const matches = text.match(/[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af\u0400-\u04ff\u0e00-\u0e7f]/g);
+    const matches = text.match(new RegExp(FOREIGN_CHARS_REGEX.source, 'g'));
     return matches ? matches.length : 0;
 };
 
@@ -17,8 +18,12 @@ export const findLinesWithForeignChars = (text: string): LineContext[] => {
             result.push({ index, originalLine: line });
         }
     });
+    const existing = new Set(result.map(item => item.index));
+    detectUnmappedInlineEnglish(text).forEach(item => {
+        if (!existing.has(item.lineIndex)) result.push({ index: item.lineIndex, originalLine: item.line });
+    });
     
-    return result;
+    return result.sort((a, b) => a.index - b.index);
 };
 
 export const safeJsonParse = (text: string): any => {
