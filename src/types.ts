@@ -31,6 +31,8 @@ export interface FileItem {
   retryCount: number;
   originalCharCount: number;
   remainingRawCharCount: number;
+  spellingCorrectionCount?: number;
+  spellingSuspicionCount?: number;
   usedModel?: string; // Track which model translated this file
   processingDuration?: number; // Time taken to process in milliseconds
   integrityRatio?: number;

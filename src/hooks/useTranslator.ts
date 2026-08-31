@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import { FileItem, FileStatus, TranslationTier } from '../types';
 import { translateBatchStream, getEffectiveModelsForTier } from '../geminiService';
-import { BATCH_MISSING_TAG_WARNING, countForeignChars, formatBookStyle, validateTranslationIntegrity, fixMergedTitle, applyInlineEnglishFix } from '../utils/text';
+import { BATCH_MISSING_TAG_WARNING, countForeignChars, formatBookStyle, validateTranslationIntegrity, fixMergedTitle, applyInlineEnglishFix, proofreadVietnamese } from '../utils/text';
 import { quotaManager } from '../utils/quotaManager';
 import { getRescueTarget, getRescueBudget, getRescueLabel } from '../services/workflows/translate/rescueTarget';
 import { stripTitleAnchor } from '../utils/fileHelpers';
@@ -191,6 +191,14 @@ export const useTranslator = (
                 }
             }
 
+            // Hậu kiểm chính tả chạy offline cho mọi model trước khi lưu kết quả.
+            // Chỉ tải từ điển ở batch đầu tiên; trình duyệt sẽ cache cho các batch sau.
+            const proofreadResults = new Map<string, Awaited<ReturnType<typeof proofreadVietnamese>>>();
+            const protectedSources = [core.additionalDictionary || '', core.storyInfo?.contextNotes || ''];
+            await Promise.all(Array.from(resultsMap.results.entries()).map(async ([id, content]) => {
+                if (content) proofreadResults.set(id, await proofreadVietnamese(content, protectedSources));
+            }));
+
             core.setFiles((prev: FileItem[]) => {
                 const newFiles = [...prev];
                 let hasChanges = false;
@@ -238,7 +246,8 @@ export const useTranslator = (
                         if (resultsMap.results.has(id)) {
                             const resultText = resultsMap.results.get(id);
                             if (resultText) {
-                                const finalContent = resultText;
+                                const proofread = proofreadResults.get(id);
+                                const finalContent = proofread?.text || resultText;
                                 const fixedContent = fixMergedTitle(finalContent);
                                 const cleanContent = applyInlineEnglishFix(formatBookStyle(fixedContent, f.content, core.storyInfo?.enableTitleFormatting !== false, core.storyInfo?.titleFormat, core.storyInfo?.enableAutoFormat !== false));
                                 const remainingRaw = countForeignChars(cleanContent);
@@ -277,6 +286,8 @@ export const useTranslator = (
                                     // nên bản dịch nghi vấn cũ (nếu có) coi như đã bị thay thế - reset cờ.
                                     hasStaleTranslation: false,
                                     remainingRawCharCount: remainingRaw,
+                                    spellingCorrectionCount: proofread?.correctedCount || 0,
+                                    spellingSuspicionCount: proofread?.suspiciousCount || 0,
                                     usedModel: resultsMap.model,
                                     errorMessage: errorMessage,
                                     processingDuration: processingDuration,

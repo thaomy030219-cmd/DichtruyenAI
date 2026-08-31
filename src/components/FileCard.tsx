@@ -131,6 +131,17 @@ const FileCard: React.FC<FileCardProps> = ({
                         </span>
                     )}
 
+                    {(file.spellingCorrectionCount || 0) > 0 && (
+                        <span className="text-[9px] font-bold px-1 py-0.5 rounded border bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 border-sky-100 dark:border-sky-900/50" title="Số lỗi chính tả chắc chắn đã được hậu kiểm offline tự động sửa">
+                            Chính tả ✓ {file.spellingCorrectionCount}
+                        </span>
+                    )}
+                    {(file.spellingSuspicionCount || 0) > 0 && (
+                        <span className="text-[9px] font-bold px-1 py-0.5 rounded border bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/50" title="Từ lạ được giữ nguyên vì không đủ chắc chắn để tự sửa">
+                            Nghi vấn {file.spellingSuspicionCount}
+                        </span>
+                    )}
+
                     {file.usedModel && (
                         <span className="text-[9px] font-mono text-slate-500 dark:text-slate-400 px-1 py-0.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded truncate max-w-[120px]" title={file.usedModel}>
                             {file.usedModel.startsWith('openrouter:') ? file.usedModel.replace('openrouter:', 'OR: ').replace('google/', '').replace('-a4b-it', '').replace('-it', '').replace(':free', '').toUpperCase() :

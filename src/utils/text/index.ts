@@ -8,3 +8,4 @@ export * from './batchValidator';
 export * from './inlineEnglishFixer';
 export * from './similarity';
 export * from './deepAnalysisSampling';
+export * from './vietnameseProofreader';
