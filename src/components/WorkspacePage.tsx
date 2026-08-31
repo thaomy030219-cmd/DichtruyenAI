@@ -1,7 +1,8 @@
 
 import React, { useMemo, useEffect, useRef, useState, useCallback } from 'react';
 import { 
-    FileArchive, FileUp, Copy, AlertTriangle, Layers
+    FileArchive, FileUp, Copy, AlertTriangle, Layers, ListFilter, RefreshCw,
+    CheckSquare, ArrowRight, Check, Play, Loader2
 } from 'lucide-react';
 import { FileItem, FileStatus, StoryInfo, RatioLimits } from '../types';
 import { validateTranslationIntegrity, BATCH_MISSING_TAG_WARNING } from '../utils/text';
@@ -61,6 +62,9 @@ interface WorkspacePageProps {
     handleDownloadEpub: () => void;
     stopProcessing: () => void;
     handleStartButton: () => void;
+    onStartAutomation: () => void;
+    isCustomFixing?: boolean;
+    addToast: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
     
     // Story Info & Ratio Limits
     storyInfo: StoryInfo;
@@ -258,7 +262,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
     return (
         <div className="flex flex-col h-full relative animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-hidden">
             {/* 1. Toolbar & Pagination - Flex Item */}
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 shadow-elevation-1 flex-wrap gap-2 shrink-0 z-20">
+            <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 shadow-elevation-1 flex-wrap gap-2 shrink-0 z-20">
                 <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full">
                      <button 
                         onClick={() => props.setCurrentPage(0)}
@@ -275,6 +279,27 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
                             Trang {idx + 1}
                         </button>
                     ))}
+                </div>
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar max-w-full rounded-xl bg-slate-50 dark:bg-slate-800/60 p-1">
+                    <button onClick={props.selectAll} className="flex h-10 min-w-[44px] flex-col items-center justify-center rounded-lg px-1 text-slate-500 transition-colors hover:bg-white hover:text-primary-600 dark:text-slate-400 dark:hover:bg-slate-700" title="Chọn tất cả chương">
+                        <CheckSquare className="h-3.5 w-3.5" /><span className="text-[8px] font-bold uppercase">All</span>
+                    </button>
+                    <div className="flex h-10 items-center rounded-lg border border-slate-200 bg-white px-1 dark:border-slate-700 dark:bg-slate-900">
+                        <label className="flex flex-col items-center px-1"><span className="text-[7px] font-bold uppercase text-slate-400">Start</span><input type="number" placeholder="1" value={props.rangeStart} onChange={e => props.setRangeStart(e.target.value)} className="w-10 rounded border border-slate-200 bg-slate-50 py-0.5 text-center text-[10px] font-bold outline-none focus:border-primary-400 dark:border-slate-700 dark:bg-slate-800" /></label>
+                        <ArrowRight className="h-3 w-3 text-slate-300" />
+                        <label className="flex flex-col items-center px-1"><span className="text-[7px] font-bold uppercase text-slate-400">End</span><input type="number" placeholder="50" value={props.rangeEnd} onChange={e => props.setRangeEnd(e.target.value)} className="w-10 rounded border border-slate-200 bg-slate-50 py-0.5 text-center text-[10px] font-bold outline-none focus:border-primary-400 dark:border-slate-700 dark:bg-slate-800" /></label>
+                        <button onClick={props.handleRangeSelect} className="ml-1 flex h-6 w-6 items-center justify-center rounded bg-primary-50 text-primary-600 hover:bg-primary-100 dark:bg-primary-900/30" title="Chọn theo dải"><Check className="h-3 w-3" /></button>
+                    </div>
+                    <button onClick={() => props.setShowFilterPanel(!props.showFilterPanel)} className={'flex h-10 items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors ' + (props.showFilterPanel || props.filterModels.size > 0 || props.filterStatuses.size > 0 ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300' : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700')}>
+                        <ListFilter className="h-4 w-4" /> Lọc
+                    </button>
+                    <button onClick={() => props.selectedFiles.size > 0 ? props.setShowRetranslateModal(true) : props.addToast("Chọn chương để dịch lại", "error")} className="flex h-10 items-center gap-1.5 rounded-lg px-3 text-xs font-bold text-slate-600 transition-colors hover:bg-white hover:text-primary-600 dark:text-slate-300 dark:hover:bg-slate-700">
+                        <RefreshCw className="h-4 w-4" /> Dịch lại
+                    </button>
+                    <button onClick={(props.isProcessing || props.isCustomFixing) ? props.stopProcessing : props.onStartAutomation} className={'flex h-10 items-center gap-1.5 rounded-lg px-4 text-xs font-bold text-white shadow-sm transition-all active:scale-95 ' + ((props.isProcessing || props.isCustomFixing) ? 'bg-rose-500 hover:bg-rose-600' : 'bg-primary-600 hover:bg-primary-500')}>
+                        {(props.isProcessing || props.isCustomFixing) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 fill-current" />}
+                        {(props.isProcessing || props.isCustomFixing) ? 'Dừng lại' : 'Bắt đầu'}
+                    </button>
                 </div>
             </div>
 

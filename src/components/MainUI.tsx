@@ -1,9 +1,9 @@
 import React from 'react';
 import { 
     LayoutDashboard, BookOpen, PenTool,
-    Plus, Clipboard, CheckSquare, ArrowRight, Check, Search, Sparkles, Loader2, 
-    Hammer, ListFilter, Eraser, RefreshCw, Trash2, FileDown, FileArchive, 
-    FileText, Play, Book, Zap, Wand2, Layers, Split, X,
+    Plus, Clipboard, Search, Sparkles,
+    Hammer, Eraser, Trash2, FileDown, FileArchive,
+    FileText, Book, Wand2, Layers, Split, X,
     ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Upload,
     ShieldCheck, AlertTriangle, ExternalLink, ScanSearch, Coffee
 } from 'lucide-react';
@@ -168,7 +168,7 @@ export const MainUI: React.FC<MainUIProps> = (props) => {
                 <main className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-950 relative overflow-hidden flex flex-col min-w-0">
                     {activeTab === 'dashboard' && <div className="flex-1 overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-bottom-2 duration-300"><DashboardPage {...props} handleRestore={async (e) => { const success = await props.handleRestore(e); if (success) { setActiveTab('workspace'); props.setCurrentPage(1); } return success || false; }} handleResetQuota={props.handleManualResetQuota} /></div>}
                     {activeTab === 'knowledge' && <div className="flex-1 overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-bottom-2 duration-300"><KnowledgePage {...props} handleDictionaryEnforce={props.handleDictionaryEnforce} /></div>}
-                    {activeTab === 'workspace' && <WorkspacePage {...props} />}
+                    {activeTab === 'workspace' && <WorkspacePage {...props} onStartAutomation={handleSmartAutomationClick} />}
                     {activeTab === 'titles' && <PromptFixPage files={props.files} setFilesSafe={props.setFilesSafe} handleTranslatedFileUpload={props.handleTranslatedFileUpload} addToast={props.addToast} state={props.fixErrorState} setState={props.setFixErrorState} storyInfo={props.storyInfo} addLog={props.addLog} promptTemplate={props.promptTemplate} dictionary={props.additionalDictionary} />}
                     {activeTab === 'creative' && <CreativePage addToast={props.addToast} state={props.creativeState} setState={props.setCreativeState} setStoryInfoSafe={props.setStoryInfoSafe} storyInfo={props.storyInfo} files={props.files} setFilesSafe={props.setFilesSafe} setCoverImage={props.setCoverImage} setStartTime={props.setStartTime} setEndTime={props.setEndTime} addLog={props.addLog} />}
                     {activeTab === 'hanviet' && <SinoVietnameseFixerPage {...props} setAdditionalDictionary={props.setAdditionalDictionary} state={props.sinoVietnameseState} setState={props.setSinoVietnameseState} storyInfo={props.storyInfo} promptTemplate={props.promptTemplate} dictionary={props.additionalDictionary} setStartTime={props.setStartTime} setEndTime={props.setEndTime} addLog={props.addLog} />}
@@ -233,42 +233,16 @@ export const MainUI: React.FC<MainUIProps> = (props) => {
                             
                             <div className="w-2 shrink-0"></div>
                     
-                    {/* Selection Tools */}
-                    <div className="flex items-center gap-1 shrink-0 bg-slate-50 dark:bg-slate-800/40 rounded-xl p-1">
-                         <button onClick={props.selectAll} className="flex flex-col items-center justify-center min-w-[40px] h-[40px] px-1 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-200 ease-smooth cursor-pointer group active:scale-95 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400" title="Chọn tất cả"> <CheckSquare className="w-3.5 h-3.5 mb-0.5 group-hover:scale-110 transition-transform" /> <span className="text-[9px] font-bold uppercase tracking-tight">All</span> </button>
-                         <div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-1 h-[40px]">
-                              <div className="flex flex-col items-center justify-center px-1"> <span className="text-[7px] font-bold text-slate-400 uppercase mb-0.5">Start</span> <input type="number" placeholder="1" className="w-10 text-center text-[10px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded py-0.5 outline-none font-bold focus:border-primary-400 focus:ring-1 focus:ring-primary-200 dark:focus:ring-primary-800 text-slate-800 dark:text-slate-200 transition-all duration-200 ease-smooth" value={props.rangeStart} onChange={(e) => props.setRangeStart(e.target.value)} /> </div>
-                              <div className="px-0.5 text-slate-300 dark:text-slate-600"> <ArrowRight className="w-3 h-3" /> </div>
-                              <div className="flex flex-col items-center justify-center px-1"> <span className="text-[7px] font-bold text-slate-400 uppercase mb-0.5">End</span> <input type="number" placeholder="50" className="w-10 text-center text-[10px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded py-0.5 outline-none font-bold focus:border-primary-400 focus:ring-1 focus:ring-primary-200 dark:focus:ring-primary-800 text-slate-800 dark:text-slate-200 transition-all duration-200 ease-smooth" value={props.rangeEnd} onChange={(e) => props.setRangeEnd(e.target.value)} /> </div>
-                              <button onClick={props.handleRangeSelect} className="ml-1 w-6 h-6 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900/50 rounded flex items-center justify-center transition-colors duration-200 ease-smooth shadow-elevation-1 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400" title="Chọn theo dải"> <Check className="w-3 h-3" /> </button>
-                         </div>
-                    </div>
-
-                    <div className="w-2 shrink-0"></div>
-
                     {/* Processing Tools */}
                     <div className="flex items-center gap-1 shrink-0 bg-slate-50 dark:bg-slate-800/40 rounded-xl p-1">
-                         {/* --- UPDATED AUTO BUTTON --- */}
-                         <button 
-                            onClick={handleSmartAutomationClick} 
-                            disabled={(props.isProcessing || props.isCustomFixing) && !props.automationState.isRunning} 
-                            className={`action-btn relative text-white ${props.automationState.isRunning ? 'bg-gradient-to-br from-amber-400 to-orange-500 animate-pulse ring-2 ring-orange-400' : 'bg-gradient-to-br from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400'}`}
-                         >
-                            {props.automationState.isRunning ? <Loader2 className="w-3.5 h-3.5 animate-spin mb-0.5" /> : <Zap className="w-3.5 h-3.5 mb-0.5 fill-current" />}
-                            <span className="text-[9px] font-black uppercase tracking-tight">AUTO</span>
-                         </button>
-                         {/* ----------------------- */}
-
                          <button onClick={() => props.setShowFindReplace(true)} className="action-btn text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400"><Search className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Tìm/Thay</span></button>
                          <button onClick={() => props.handleManualCleanup(props.selectedFiles.size > 0 ? 'selected' : 'all')} className="action-btn text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400"><Wand2 className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Định Dạng</span></button>
                          <button onClick={() => props.handleTitleNormalization(props.selectedFiles.size > 0 ? 'selected' : 'all')} disabled={props.isProcessing || props.isCustomFixing} className="action-btn text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400"><Sparkles className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Tiêu Đề</span></button>
                          <button onClick={props.handleSmartFix} disabled={props.isProcessing || props.isCustomFixing} className={`action-btn transition-colors relative ${fixableCount > 0 ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 hover:scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400'}`}> <Hammer className="w-3.5 h-3.5 mb-0.5" /> <span className="text-[9px] font-bold uppercase tracking-tight">Smart Fix</span> {fixableCount > 0 && ( <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[9px] flex items-center justify-center rounded-full font-bold shadow-sm animate-bounce"> {fixableCount} </span> )} </button>
-                         <button onClick={() => props.setShowFilterPanel(!props.showFilterPanel)} className={`action-btn ${props.showFilterPanel || props.filterModels.size > 0 || props.filterStatuses.size > 0 ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400'}`}> <ListFilter className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Filter</span> </button>
                     <button onClick={props.handleScanJunk} className="action-btn text-slate-500 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400"><FileArchive className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Lọc Rác</span></button>
                     <button onClick={() => props.handleRemoveDuplicates(props.selectedFiles.size > 0 ? 'selected' : 'all')} className="action-btn text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"><Eraser className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Xóa Trùng</span></button>
                     <button onClick={props.handleScanFuzzyDuplicates} title="Quét các chương giống nội dung chương liền trước (≥30%) dù không trùng khớp tuyệt đối — VD raw bị crawl lặp 2 lần, mỗi lần đổi vài từ. Chỉ CHỌN để bạn tự kiểm tra, không tự xoá." className="action-btn text-slate-500 dark:text-slate-400 hover:text-orange-600 dark:hover:text-orange-400"><ScanSearch className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Trùng ~</span></button>
                     <button onClick={() => setShowSplitConfig(true)} className={`action-btn ${showSplitConfig ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600' : 'text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400'}`}><Split className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Tách Chương</span></button>
-                    <button onClick={() => props.selectedFiles.size > 0 ? props.setShowRetranslateModal(true) : props.addToast("Chọn file để dịch lại", "error")} className="action-btn text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400"><RefreshCw className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Dịch Lại</span></button>
                          <button onClick={() => props.selectedFiles.size > 0 ? props.handleSmartDelete() : props.requestDeleteAll()} className="action-btn text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"><Trash2 className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">Xóa</span></button>
                     </div>
 
@@ -283,13 +257,6 @@ export const MainUI: React.FC<MainUIProps> = (props) => {
                         <button onClick={props.handleExportDocx} className="action-btn text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"><FileText className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">DOCX</span></button>
                         <button onClick={props.handleDownloadEpub} className="action-btn text-rose-500 dark:text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/40"><Book className="w-3.5 h-3.5 mb-0.5" /><span className="text-[9px] font-bold uppercase tracking-tight">EPUB</span></button>
                         
-                        <button 
-                          onClick={(props.isProcessing || props.isCustomFixing) ? props.stopProcessing : handleSmartAutomationClick} 
-                          className={`flex items-center gap-1.5 px-3 h-10 ml-1 rounded-lg shadow-elevation-2 transition-all duration-200 ease-smooth active:scale-95 font-bold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 ${(props.isProcessing || props.isCustomFixing) ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-200/50' : 'bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 shadow-glow-primary'}`}
-                      >
-                          {(props.isProcessing || props.isCustomFixing) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-                          <span className="text-[10px] sm:text-xs">{(props.isProcessing || props.isCustomFixing) ? "DỪNG LẠI" : "BẮT ĐẦU"}</span>
-                      </button>
                     </div>
                     </div>
                     </div>

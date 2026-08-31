@@ -54,7 +54,7 @@ const preserveCase = (source: string, replacement: string): string => {
 const collectProtectedWords = (sources: string[]): Set<string> => {
     const result = new Set<string>();
     sources.forEach(source => (source.match(/\p{L}+/gu) || []).forEach(word => {
-        if (/^\p{Lu}/u.test(word) || /^[A-Z]{2,}$/.test(word)) result.add(word.toLocaleLowerCase('vi'));
+        if (/^\p{Lu}/u.test(word) || /^[A-Z]{2,}$/.test(word)) result.add(String(word).toLocaleLowerCase('vi'));
     }));
     return result;
 };
