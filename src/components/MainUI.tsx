@@ -5,7 +5,7 @@ import {
     Hammer, ListFilter, Eraser, RefreshCw, Trash2, FileDown, FileArchive, 
     FileText, Play, Book, Zap, Wand2, Layers, Split, X,
     ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Upload,
-    ShieldCheck, AlertTriangle, ExternalLink, ScanSearch
+    ShieldCheck, AlertTriangle, ExternalLink, ScanSearch, Coffee
 } from 'lucide-react';
 import { Header } from './Header';
 import { DashboardPage } from './DashboardPage';
@@ -145,6 +145,22 @@ export const MainUI: React.FC<MainUIProps> = (props) => {
                                 );
                             })}
                         </div>
+                    </div>
+                    {/* Donate đặt cố định ở đáy sidebar, không chiếm vùng menu chức năng. */}
+                    <div className="shrink-0 border-t border-slate-100 dark:border-slate-800 p-3">
+                        {isSidebarOpen ? (
+                            <div className="rounded-xl border border-amber-200/70 dark:border-amber-900/50 bg-amber-50/70 dark:bg-amber-950/20 p-3 text-center">
+                                <div className="mb-2 flex items-center justify-center gap-1.5 text-[11px] font-bold text-amber-700 dark:text-amber-400">
+                                    <Coffee className="h-3.5 w-3.5" /> Mời tác giả cà phê
+                                </div>
+                                <img src="/donate-qr.jpg" alt="Mã QR donate MB Bank" className="mx-auto h-28 w-28 rounded-lg border border-white bg-white object-contain p-1 shadow-sm" loading="lazy" />
+                                <p className="mt-2 text-[9px] leading-tight text-slate-500 dark:text-slate-400">MB Bank · DO XUAN QUYET</p>
+                            </div>
+                        ) : (
+                            <button onClick={props.onShowIntro} className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-400" title="Về tác giả / Donate">
+                                <Coffee className="h-5 w-5" />
+                            </button>
+                        )}
                     </div>
                 </aside>
 

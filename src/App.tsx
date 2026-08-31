@@ -22,7 +22,9 @@ import { quotaManager } from './utils/quotaManager';
 import { countForeignChars, validateTranslationIntegrity } from './utils/text';
 
 const App: React.FC = () => {
-  const [hasSeenIntro, setHasSeenIntro] = useState<boolean>(false);
+  // Vào thẳng ứng dụng. Trang tác giả chỉ mở khi người dùng chủ động bấm
+  // "Về tác giả"; forceShowIntro vẫn có quyền chặn app khi phiên bản hết hạn.
+  const [hasSeenIntro, setHasSeenIntro] = useState<boolean>(true);
   const [forceShowIntro, setForceShowIntro] = useState<boolean>(false);
 
   // 1. Initialize State Hooks

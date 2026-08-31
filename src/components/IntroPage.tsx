@@ -68,7 +68,7 @@ export const IntroPage: React.FC<{ onEnter: () => void }> = ({ onEnter }) => {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-[0.72fr_1.28fr] gap-4 items-stretch">
+        <div className="grid lg:grid-cols-2 gap-4 items-stretch">
         {/* Enter Card */}
         <div className="bg-white border border-teal-100 rounded-2xl p-5 shadow-[0_8px_30px_-12px_rgba(13,148,136,0.25)] flex items-center">
           <div className="w-full flex flex-col items-center justify-center gap-3">
@@ -99,34 +99,26 @@ export const IntroPage: React.FC<{ onEnter: () => void }> = ({ onEnter }) => {
           </div>
         </div>
 
-        {/* Donate Card — giọng văn gần gũi kiểu "lời cảm ơn" thay vì tiêu đề "Donate" khô khan */}
+        {/* Thông tin tác giả. QR donate đã được chuyển vào sidebar của ứng dụng. */}
         <div className="bg-white border border-teal-100 rounded-2xl p-4 space-y-3 shadow-[0_8px_30px_-12px_rgba(13,148,136,0.15)]">
           <div className="flex items-center gap-3 text-left">
             <div className="w-10 h-10 shrink-0 bg-amber-50 rounded-xl flex items-center justify-center border border-amber-200">
               <Coffee className="w-5 h-5 text-amber-500" />
             </div>
             <div>
-              <h3 className="font-heading text-lg font-bold text-teal-950">Mời tác giả một cốc cà phê</h3>
-              <p className="text-xs text-teal-900/60 leading-relaxed">Một tách cà phê nhỏ sẽ giúp mình có thêm động lực duy trì và phát triển công cụ.</p>
+              <h3 className="font-heading text-lg font-bold text-teal-950">Về tác giả</h3>
+              <p className="text-xs text-teal-900/60 leading-relaxed">Cảm ơn bạn đã sử dụng và đồng hành cùng công cụ dịch truyện.</p>
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-[auto_1fr] items-center gap-4 p-3 bg-teal-50/60 rounded-xl border border-teal-100">
-            <div className="bg-white p-2 rounded-xl shadow-md shadow-teal-900/10 transform transition hover:scale-[1.02] duration-300 border border-teal-100 mx-auto">
-              <img
-                src="/donate-qr.jpg"
-                alt="MB Bank QR Donate"
-                className="w-36 h-36 object-contain rounded-lg"
-              />
-            </div>
+          <div className="p-4 bg-teal-50/60 rounded-xl border border-teal-100">
             <div className="min-w-0 space-y-2 text-center sm:text-left">
               <div>
-                <p className="text-[10px] font-semibold text-teal-600 uppercase tracking-widest">Ngân Hàng Quân Đội (MB Bank)</p>
-                <p className="text-base font-bold text-teal-950 uppercase tracking-tight">DO XUAN QUYET</p>
-                <p className="text-[10px] text-teal-700/50 font-medium tracking-widest">QUÉT MÃ ĐỂ CHUYỂN KHOẢN</p>
+                <p className="text-[10px] font-semibold text-teal-600 uppercase tracking-widest">Dịch truyện AI</p>
+                <p className="text-base font-bold text-teal-950 uppercase tracking-tight">ĐỖ XUÂN QUYẾT</p>
               </div>
               <div className="space-y-1 pt-2 border-t border-teal-100">
-                <p className="text-xs text-teal-900/65">Donate để nhận link cập nhật và tham gia góp ý tính năng.</p>
+                <p className="text-xs text-teal-900/65">Liên hệ để nhận link cập nhật và tham gia góp ý tính năng.</p>
                 <p className="text-xs text-teal-900/70">Telegram: <a href="https://t.me/truyendichlinhdi" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:text-teal-700 hover:underline font-semibold">t.me/truyendichlinhdi</a></p>
                 <p className="text-xs text-teal-900/70">Nhóm trao đổi: <span className="text-teal-700/40">đang cập nhật</span></p>
               </div>
