@@ -286,7 +286,7 @@ export const Header: React.FC<HeaderProps> = (props) => {
                         với huy hiệu ở IntroPage, không còn icon Cpu (chip máy tính) chung chung. */}
                     <div className="w-6 h-6 rounded-full bg-primary-600 flex items-center justify-center text-white shrink-0"><Languages className="w-3.5 h-3.5" /></div>
                     <div>
-                        <h1 className="text-sm font-display font-extrabold text-slate-800 dark:text-slate-100 leading-none tracking-tight">Dịch truyện AI <span className="text-primary-500 font-semibold">· v1.0.4</span></h1>
+                        <h1 className="text-sm font-display font-extrabold text-slate-800 dark:text-slate-100 leading-none tracking-tight">Dịch truyện AI <span className="text-primary-500 font-semibold">· v1.0.5</span></h1>
                     </div>
                     <button onClick={props.onShowIntro} className="px-2 py-0.5 ml-2 text-[10px] font-bold bg-amber-100/50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-500 rounded-full border border-amber-200/50 dark:border-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1">Về tác giả</button>
                     <button aria-label="Hướng dẫn sử dụng" onClick={props.onShowChangelog} className="text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1"><HelpCircle className="w-3.5 h-3.5" /></button>
