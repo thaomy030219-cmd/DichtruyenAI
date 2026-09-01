@@ -2,7 +2,7 @@
 import React, { useMemo, useEffect, useRef, useState, useCallback } from 'react';
 import { 
     FileArchive, FileUp, Copy, AlertTriangle, Layers, ListFilter, RefreshCw,
-    CheckSquare, ArrowRight, Check, Play, Loader2, ShieldCheck
+    CheckSquare, ArrowRight, Check, Play, Loader2, ShieldCheck, Moon, Sun
 } from 'lucide-react';
 import { FileItem, FileStatus, StoryInfo, RatioLimits } from '../types';
 import { validateTranslationIntegrity, BATCH_MISSING_TAG_WARNING } from '../utils/text';
@@ -63,6 +63,8 @@ interface WorkspacePageProps {
     stopProcessing: () => void;
     handleStartButton: () => void;
     onStartAutomation: () => void;
+    isDarkMode: boolean;
+    toggleDarkMode: () => void;
     isCustomFixing?: boolean;
     addToast: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
     
@@ -299,7 +301,8 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
                     <button onClick={() => props.selectedFiles.size > 0 ? props.setShowRetranslateModal(true) : props.addToast("Chọn chương để dịch lại", "error")} className="flex h-10 items-center gap-1.5 rounded-lg px-3 text-xs font-bold text-slate-600 transition-colors hover:bg-white hover:text-primary-600 dark:text-slate-300 dark:hover:bg-slate-700">
                         <RefreshCw className="h-4 w-4" /> Dịch lại
                     </button>
-                    <button onClick={props.handleSmartFix} disabled={props.isProcessing || props.isCustomFixing} className="flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-emerald-200 px-3 bg-emerald-50 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/40" title="Quét lại và sửa các lỗi còn sót"><ShieldCheck className="h-4 w-4" /> Hậu kiểm</button>
+                    <button onClick={props.toggleDarkMode} className="flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition-colors hover:border-amber-300 hover:bg-amber-50 hover:text-amber-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-sky-700 dark:hover:bg-sky-900/20 dark:hover:text-sky-300" title={props.isDarkMode ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}>{props.isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />} {props.isDarkMode ? "Chế độ sáng" : "Chế độ tối"}</button>
+                  <button onClick={props.handleSmartFix} disabled={props.isProcessing || props.isCustomFixing} className="flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-emerald-200 px-3 bg-emerald-50 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/40" title="Quét lại và sửa các lỗi còn sót"><ShieldCheck className="h-4 w-4" /> Hậu kiểm</button>
                   <button onClick={(props.isProcessing || props.isCustomFixing) ? props.stopProcessing : props.onStartAutomation} className={'flex h-10 items-center gap-1.5 rounded-lg px-4 text-xs font-bold text-white shadow-sm transition-all active:scale-95 ' + ((props.isProcessing || props.isCustomFixing) ? 'bg-rose-500 hover:bg-rose-600' : 'bg-primary-600 hover:bg-primary-500')}>
                         {(props.isProcessing || props.isCustomFixing) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 fill-current" />}
                         {(props.isProcessing || props.isCustomFixing) ? 'Dừng lại' : 'Bắt đầu'}
@@ -441,6 +444,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
                     <button onClick={() => props.setShowFilterPanel(!props.showFilterPanel)} className={'flex h-10 items-center justify-center gap-1 rounded-lg border text-xs font-bold ' + (props.showFilterPanel || props.filterModels.size || props.filterStatuses.size ? 'border-primary-300 bg-primary-50 text-primary-700' : 'border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300')}><ListFilter className="h-4 w-4" /> Lọc</button>
                     <button onClick={() => props.selectedFiles.size ? props.setShowRetranslateModal(true) : props.addToast("Chọn chương để dịch lại", "error")} className="flex h-10 items-center justify-center gap-1 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:text-primary-600 dark:border-slate-700 dark:text-slate-300"><RefreshCw className="h-4 w-4" /> Dịch lại</button>
                   </div>
+                  <button onClick={props.toggleDarkMode} className="flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition-colors hover:border-amber-300 hover:bg-amber-50 hover:text-amber-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-sky-700 dark:hover:bg-sky-900/20 dark:hover:text-sky-300" title={props.isDarkMode ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}>{props.isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />} {props.isDarkMode ? "Chế độ sáng" : "Chế độ tối"}</button>
                   <button onClick={props.handleSmartFix} disabled={props.isProcessing || props.isCustomFixing} className="flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-emerald-200 px-3 bg-emerald-50 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/40" title="Quét lại và sửa các lỗi còn sót"><ShieldCheck className="h-4 w-4" /> Hậu kiểm</button>
                   <button onClick={(props.isProcessing || props.isCustomFixing) ? props.stopProcessing : props.onStartAutomation} className={'flex h-11 items-center justify-center gap-2 rounded-lg text-xs font-bold text-white shadow-sm ' + ((props.isProcessing || props.isCustomFixing) ? 'bg-rose-500' : 'bg-primary-600 hover:bg-primary-500')}>{(props.isProcessing || props.isCustomFixing) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 fill-current" />}{(props.isProcessing || props.isCustomFixing) ? 'Dừng lại' : 'Bắt đầu'}</button>
                 </div>
