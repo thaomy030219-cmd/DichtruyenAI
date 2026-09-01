@@ -262,7 +262,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
     return (
         <div className="flex flex-col h-full relative animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-hidden">
             {/* 1. Toolbar & Pagination - Flex Item */}
-            <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 shadow-elevation-1 flex-wrap gap-2 shrink-0 z-20">
+            <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center bg-white dark:bg-slate-900 shadow-elevation-1 shrink-0 z-20">
                 <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full">
                      <button 
                         onClick={() => props.setCurrentPage(0)}
@@ -280,7 +280,10 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
                         </button>
                     ))}
                 </div>
-                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar max-w-full rounded-xl bg-slate-50 dark:bg-slate-800/60 p-1">
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar border-b border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900 xl:hidden">
                     <button onClick={props.selectAll} className="flex h-10 min-w-[44px] flex-col items-center justify-center rounded-lg px-1 text-slate-500 transition-colors hover:bg-white hover:text-primary-600 dark:text-slate-400 dark:hover:bg-slate-700" title="Chọn tất cả chương">
                         <CheckSquare className="h-3.5 w-3.5" /><span className="text-[8px] font-bold uppercase">All</span>
                     </button>
@@ -301,7 +304,6 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
                         {(props.isProcessing || props.isCustomFixing) ? 'Dừng lại' : 'Bắt đầu'}
                     </button>
                 </div>
-            </div>
 
             {/* 1.5 Filter Panel (Collapsible) - Flex Item */}
             {props.showFilterPanel && (
@@ -415,6 +417,32 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
                         ))}
                     </div>
                 )}
+            </div>
+              </div>
+              <aside aria-label="Tác vụ biên tập" className="hidden w-64 shrink-0 flex-col border-l border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 xl:flex">
+                <header className="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary-500">Điều khiển</p>
+                  <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">Tác vụ biên tập</h2>
+                  <p className="mt-1 text-[11px] text-slate-400">Đã chọn {props.selectedFiles.size}/{props.files.length} chương</p>
+                </header>
+                <div className="flex flex-col gap-3 p-4">
+                  <button onClick={props.selectAll} className="flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-primary-50 hover:text-primary-600 dark:border-slate-700 dark:text-slate-300"><CheckSquare className="h-4 w-4" /> Chọn tất cả</button>
+                  <section className="rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800/60">
+                    <p className="mb-2 text-[9px] font-bold uppercase text-slate-400">Chọn khoảng chương</p>
+                    <div className="flex items-end gap-1.5">
+                      <label className="min-w-0 flex-1"><span className="mb-1 block text-[8px] font-bold uppercase text-slate-400">Start</span><input type="number" placeholder="1" value={props.rangeStart} onChange={e => props.setRangeStart(e.target.value)} className="h-8 w-full rounded-lg border border-slate-200 bg-white text-center text-xs font-bold outline-none focus:border-primary-400 dark:border-slate-700 dark:bg-slate-900" /></label>
+                      <ArrowRight className="mb-2 h-3.5 w-3.5 text-slate-300" />
+                      <label className="min-w-0 flex-1"><span className="mb-1 block text-[8px] font-bold uppercase text-slate-400">End</span><input type="number" placeholder="50" value={props.rangeEnd} onChange={e => props.setRangeEnd(e.target.value)} className="h-8 w-full rounded-lg border border-slate-200 bg-white text-center text-xs font-bold outline-none focus:border-primary-400 dark:border-slate-700 dark:bg-slate-900" /></label>
+                      <button onClick={props.handleRangeSelect} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600" title="Chọn theo dải"><Check className="h-4 w-4" /></button>
+                    </div>
+                  </section>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => props.setShowFilterPanel(!props.showFilterPanel)} className={'flex h-10 items-center justify-center gap-1 rounded-lg border text-xs font-bold ' + (props.showFilterPanel || props.filterModels.size || props.filterStatuses.size ? 'border-primary-300 bg-primary-50 text-primary-700' : 'border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300')}><ListFilter className="h-4 w-4" /> Lọc</button>
+                    <button onClick={() => props.selectedFiles.size ? props.setShowRetranslateModal(true) : props.addToast("Chọn chương để dịch lại", "error")} className="flex h-10 items-center justify-center gap-1 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:text-primary-600 dark:border-slate-700 dark:text-slate-300"><RefreshCw className="h-4 w-4" /> Dịch lại</button>
+                  </div>
+                  <button onClick={(props.isProcessing || props.isCustomFixing) ? props.stopProcessing : props.onStartAutomation} className={'flex h-11 items-center justify-center gap-2 rounded-lg text-xs font-bold text-white shadow-sm ' + ((props.isProcessing || props.isCustomFixing) ? 'bg-rose-500' : 'bg-primary-600 hover:bg-primary-500')}>{(props.isProcessing || props.isCustomFixing) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 fill-current" />}{(props.isProcessing || props.isCustomFixing) ? 'Dừng lại' : 'Bắt đầu'}</button>
+                </div>
+              </aside>
             </div>
         </div>
     );
