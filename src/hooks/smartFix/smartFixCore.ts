@@ -213,7 +213,7 @@ export const useSmartFixCore = (core: any, ui: any, sharedState: any) => {
         );
 
         if (heavyRawFiles.length === 0 && suspiciousFiles.length === 0 && stuckFiles.length === 0 && errorFiles.length === 0 && lightRawFiles.length === 0 && mergedWarningFiles.length === 0) {
-            ui.addToast("Không tìm thấy file lỗi cần sửa/File lỗi đã quá số lần thử lại.", "info");
+            ui.addToast("Không còn gì để hậu kiểm — bản dịch hiện không phát hiện lỗi cần xử lý.", "success");
             return false;
         }
 
