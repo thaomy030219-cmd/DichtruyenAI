@@ -29,7 +29,6 @@ export const MainUI: React.FC<MainUIProps> = (props) => {
         const words = text.trim() ? text.trim().split(/\s+/u).length : 0;
         return total + words;
     }, 0), [props.files]);
-    const characterCount = props.creativeState?.characters?.length || 0;
     const {
         isSidebarOpen, setIsSidebarOpen,
         isBottomBarOpen, setIsBottomBarOpen,
@@ -189,7 +188,7 @@ export const MainUI: React.FC<MainUIProps> = (props) => {
                                 <section aria-label="Thống kê biên tập" className="flex h-12 shrink-0 items-stretch gap-1.5">
                                     {[
                                         { label: 'Tổng chương', value: props.stats.total },
-                                        { label: 'Nhân vật', value: characterCount },
+                                        { label: 'Đang xử lý', value: props.stats.processing },
                                         { label: 'Từ ước tính', value: compactNumberFormatter.format(estimatedWords) },
                                     ].map(item => (
                                         <div key={item.label} className="flex min-w-[92px] flex-col justify-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 dark:border-slate-700 dark:bg-slate-800/70">
@@ -197,10 +196,11 @@ export const MainUI: React.FC<MainUIProps> = (props) => {
                                             <strong className="mt-0.5 text-sm leading-none text-slate-800 dark:text-slate-100">{item.value}</strong>
                                         </div>
                                     ))}
-                                    <div className="flex min-w-[132px] items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 dark:border-slate-700 dark:bg-slate-800/70">
+                                    <div className="flex min-w-[176px] items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 dark:border-slate-700 dark:bg-slate-800/70">
                                         <div className="flex min-w-0 flex-col justify-center">
                                             <span className="whitespace-nowrap text-[8px] font-bold uppercase tracking-wide text-slate-400">Điểm hoàn thiện</span>
                                             <strong className="mt-0.5 text-sm leading-none text-primary-600 dark:text-primary-400">{props.progressPercentage}%</strong>
+                                            <span className="mt-0.5 whitespace-nowrap text-[9px] font-semibold leading-none text-slate-500 dark:text-slate-400" title="Đã dịch / Còn lại / Tổng">{props.stats.completed} / {Math.max(0, props.stats.total - props.stats.completed)} / {props.stats.total}</span>
                                         </div>
                                         <div className="relative h-9 w-9 shrink-0" role="img" aria-label={`Hoàn thiện ${props.progressPercentage}%`}>
                                             <svg className="h-9 w-9 -rotate-90" viewBox="0 0 36 36" aria-hidden="true">
