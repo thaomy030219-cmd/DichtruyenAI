@@ -10,6 +10,7 @@ import { getPronounModeOverride } from '../../prompts';
 import { analyzeStoryContext, analyzeNameBatch, analyzeContextBatch, mergeContexts, optimizePrompt, refineRawContext, refineAdditionalRules, refineSummary } from '../../geminiService';
 import { buildDeepAnalysisChunks, deduplicateDictionary, extractGlossaryBlocks, selectDeepAnalysisFiles } from '../../utils/text';
 import { downloadTextFile, sortFiles, getSmartSampledFiles } from '../../utils/fileHelpers';
+import { DEEP_ANALYSIS_CHUNK_MODELS, DEEP_ANALYSIS_SYNTHESIS_MODELS } from '../../services/workflows/analyze/modelRouting';
 
 export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) => {
     const createStorySignature = (files: Array<{ id?: string; name?: string; content?: string }>) => {
@@ -142,8 +143,10 @@ export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) 
 
             // Chế độ Nhanh: ưu tiên hết quota 3.7 Flash > 3.5 Flash > 3.0 Flash preview
             const QUICK_CHAIN = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'];
-            // Chế độ Sâu, từ batch 4 trở đi: 3.7 Flash > 3.5 Flash > 3.0 Flash preview
-            const DEEP_LATE_CHAIN = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'];
+            // Phân tích sâu: 3.7 đọc từng cụm; 3.8 dự phòng. Các model phụ chỉ cứu hộ trích xuất.
+            const DEEP_CHUNK_CHAIN = [...DEEP_ANALYSIS_CHUNK_MODELS];
+            // Tổng hợp/kiểm định: 3.8 trước, 3.7 sau; 3.1 Pro là dự phòng khó cuối cùng.
+            const DEEP_SYNTHESIS_CHAIN = filterEnabled([...DEEP_ANALYSIS_SYNTHESIS_MODELS]);
 
             const totalBatches = Math.ceil(chunks.length / CONCURRENCY);
             for (let i = 0; i < chunks.length; i += CONCURRENCY) {
@@ -160,15 +163,7 @@ export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) 
                 const batchPromises = batch.map(async (chunk, idx) => {
                     let models: string[];
                     if (isDeep) {
-                        if (batchNum <= 3) {
-                            // 3 batch đầu: chạy cặp 3.1 Pro + 3.7 Flash song song (mỗi phần trong batch một model chính, model kia làm dự phòng)
-                            models = idx % 2 === 0
-                                ? filterEnabled(['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'])
-                                : filterEnabled(['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-3.1-pro-preview']);
-                        } else {
-                            // Batch 4 trở đi: toàn bộ 3.7 Flash, hết quota mới rớt xuống 3.6, 3.5 rồi 3.0 preview
-                            models = filterEnabled(DEEP_LATE_CHAIN);
-                        }
+                        models = filterEnabled(DEEP_CHUNK_CHAIN);
                     } else {
                         // Chế độ Nhanh: 3.7 Flash > 3.5 Flash > 3.0 Flash preview
                         models = filterEnabled(QUICK_CHAIN);
@@ -206,14 +201,14 @@ export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) 
                 }
                 
                 ui.setNameAnalysisProgress({ current: chunks.length, total: chunks.length, stage: "Đang hợp nhất ngữ cảnh (Merging)..." });
-                const mergedContext = await mergeContexts(results, config.updatedStoryInfo, core.enabledModels, undefined, pronounOverride);
+                const mergedContext = await mergeContexts(results, config.updatedStoryInfo, core.enabledModels, DEEP_SYNTHESIS_CHAIN, pronounOverride);
                 
                 let finalAdditionalRules = effectiveAdditionalRules;
                 ui.setNameAnalysisProgress({ current: chunks.length, total: chunks.length, stage: "Đang tinh chỉnh quy tắc bổ sung..." });
-                finalAdditionalRules = await refineAdditionalRules(finalAdditionalRules, mergedContext, config.updatedStoryInfo, core.enabledModels, undefined, pronounOverride);
+                finalAdditionalRules = await refineAdditionalRules(finalAdditionalRules, mergedContext, config.updatedStoryInfo, core.enabledModels, DEEP_SYNTHESIS_CHAIN, pronounOverride);
 
                 ui.setNameAnalysisProgress({ current: chunks.length, total: chunks.length, stage: "Đang tổng hợp cốt truyện..." });
-                const refinedSummary = await refineSummary(mergedContext, config.updatedStoryInfo, core.enabledModels);
+                const refinedSummary = await refineSummary(mergedContext, config.updatedStoryInfo, core.enabledModels, DEEP_SYNTHESIS_CHAIN);
 
                 ui.setNameAnalysisProgress({ current: chunks.length, total: chunks.length, stage: "Đang trích xuất từ điển từ ngữ cảnh..." });
                 const extractedGlossary = extractGlossaryBlocks(mergedContext);
@@ -236,7 +231,7 @@ export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) 
                     additionalRules: finalAdditionalRules
                 };
                 const specializedBasePrompt = generateBasePrompt(analysisStoryInfo.genres, analysisStoryInfo.worldSetting || [], analysisStoryInfo.enableTitleFormatting !== false);
-                const specializedPrompt = await optimizePrompt(specializedBasePrompt, analysisStoryInfo, mergedContext, updatedDictionary, finalAdditionalRules, core.enabledModels);
+                const specializedPrompt = await optimizePrompt(specializedBasePrompt, analysisStoryInfo, mergedContext, updatedDictionary, finalAdditionalRules, core.enabledModels, DEEP_SYNTHESIS_CHAIN);
                 core.setPromptTemplate(specializedPrompt);
                 
                 core.setStoryInfo((prev: StoryInfo) => ({ 

@@ -6,6 +6,7 @@ import { StoryInfo, FileItem } from '../../../types';
 import { cleanRepetitiveContent, extractPotentialEntities } from '../../../utils/text';
 import { getSmartSampledFiles } from '../../../utils/fileHelpers';
 import { GLOSSARY_ANALYSIS_PROMPT, MERGE_CONTEXT_PROMPT } from '../../../constants';
+import { DEEP_ANALYSIS_SYNTHESIS_MODELS, selectAnalysisModels } from './modelRouting';
 
 export const analyzeContextBatch = async (
     contentChunk: string, storyInfo: StoryInfo, existingDictionary: string, useSearch: boolean = false,
@@ -62,13 +63,11 @@ export const mergeContexts = async (
         return mergeContexts([left, right], storyInfo, enabledModels, forcedCandidates, pronounOverride);
     }
 
-    // Try 3.0 Pro first, then 2.5 Pro as backup
-    // Try 3.1 Pro first
-    const proModels = (forcedCandidates || ['gemini-3.1-pro-preview']).filter(id => id.includes('pro') && (enabledModels?.includes(id) ?? true));
-    if (proModels.length === 0) proModels.push('gemini-3.1-pro-preview');
+    // 3.8 tổng hợp/kiểm định; 3.7 dự phòng nhanh; 3.1 Pro chỉ dùng khi hai model chính thất bại.
+    const synthesisModels = selectAnalysisModels(forcedCandidates || DEEP_ANALYSIS_SYNTHESIS_MODELS, enabledModels);
     
     try {
-        return await smartExecution(proModels, async (modelId) => {
+        return await smartExecution(synthesisModels, async (modelId) => {
                 const response = await getAiClient().models.generateContent({
                     model: modelId,
                     contents: `[DỮ LIỆU ĐẦU VÀO - GỒM ${contexts.length} PHẦN]\n${contexts.join("\n\n=== HẾT PHẦN ===\n\n")}${pronounOverride ? `\n\n${pronounOverride}` : ''}`,
@@ -80,12 +79,12 @@ export const mergeContexts = async (
                 }
                    
                 return cleanRepetitiveContent(response.text || contexts[0]);
-            }, "Hợp Nhất Ngữ Cảnh (Tích Lũy)", undefined, proModels[0]
+            }, "Hợp Nhất Ngữ Cảnh (3.8 tổng hợp)", undefined, synthesisModels[0]
         );
     } catch (e: any) {
         // FALLBACK: Try Flash models for a "Rough Merge" before giving up
         try {
-            console.warn("Merge API (Pro) failed. Trying Flash for Rough Merge.", e);
+            console.warn("Primary synthesis chain failed. Trying support models for rough merge.", e);
             const fallbackModels = ['gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
             if (fallbackModels.length === 0) fallbackModels.push('gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
             

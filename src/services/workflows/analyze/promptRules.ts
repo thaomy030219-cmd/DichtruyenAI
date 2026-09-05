@@ -2,6 +2,7 @@
 import { getAiClient, smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
 import { StoryInfo } from '../../../types';
 import { replacePromptVariables } from '../../../prompts';
+import { DEEP_ANALYSIS_SYNTHESIS_MODELS, selectAnalysisModels } from './modelRouting';
 
 export const optimizePrompt = async (
   promptTemplate: string,
@@ -9,12 +10,11 @@ export const optimizePrompt = async (
   context: string = "",
   dictionary: string = "",
   additionalRules: string = "",
-  enabledModels?: string[]
+  enabledModels?: string[],
+  forcedCandidates?: string[]
 ): Promise<string> => {
   const ai = getAiClient();
-  // User requested 3.1 Pro. We keep 3.0 Pro as a high-quality backup, but remove 2.5 to ensure quality.
-  const candidates = ['gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
-  if (candidates.length === 0) candidates.push('gemini-3.1-pro-preview', 'gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
+  const candidates = selectAnalysisModels(forcedCandidates || DEEP_ANALYSIS_SYNTHESIS_MODELS, enabledModels);
   const filledTemplate = replacePromptVariables(promptTemplate, storyInfo);
   const pronounMarker = '# === [7. XƯNG HÔ & QUAN HỆ / PRONOUNS] ===';
   const pronounStart = context.indexOf(pronounMarker);
@@ -87,9 +87,6 @@ ${context.substring(0, 50000)}
 ${filledTemplate}`;
 
   try {
-      const proModels = ['gemini-3.1-pro-preview'].filter(id => enabledModels?.includes(id) ?? true);
-      if (proModels.length === 0) proModels.push('gemini-3.1-pro-preview');
-
       const performTask = async (modelId: string) => {
         const response = await ai.models.generateContent({
           model: modelId,
@@ -100,7 +97,7 @@ ${filledTemplate}`;
       };
 
       try {
-          return await smartExecution(proModels, performTask, "Optimize Prompt (Pro)", undefined, proModels[0]);
+          return await smartExecution(candidates, performTask, "Optimize Prompt (3.8 kiểm định)", undefined, candidates[0]);
       } catch (e) {
           console.warn("Pro model failed for optimizePrompt, falling back to Flash.", e);
           const fallbackModels = ['gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
@@ -116,8 +113,7 @@ export const refineAdditionalRules = async (
     additionalRules: string, mergedContext: string, storyInfo: StoryInfo, enabledModels?: string[],
     forcedCandidates?: string[], pronounOverride?: string
 ): Promise<string> => {
-    const proModels = (forcedCandidates || ['gemini-3.1-pro-preview']).filter(id => id.includes('pro') && (enabledModels?.includes(id) ?? true));
-    if (proModels.length === 0) proModels.push('gemini-3.1-pro-preview');
+    const proModels = selectAnalysisModels(forcedCandidates || DEEP_ANALYSIS_SYNTHESIS_MODELS, enabledModels);
 
     const hasExistingRules = additionalRules && additionalRules.trim().length > 0;
 
@@ -189,8 +185,7 @@ CHỈ TRẢ VỀ NỘI DUNG QUY TẮC BỔ SUNG theo đúng format trên, không
 export const refineSummary = async (
     mergedContext: string, storyInfo: StoryInfo, enabledModels?: string[], forcedCandidates?: string[]
 ): Promise<string> => {
-    const proModels = (forcedCandidates || ['gemini-3.1-pro-preview']).filter(id => id.includes('pro') && (enabledModels?.includes(id) ?? true));
-    if (proModels.length === 0) proModels.push('gemini-3.1-pro-preview');
+    const proModels = selectAnalysisModels(forcedCandidates || DEEP_ANALYSIS_SYNTHESIS_MODELS, enabledModels);
 
     const prompt = `Dựa trên toàn bộ [Ngữ cảnh chi tiết] sau đây, hãy viết một bản tóm tắt truyện thật chi tiết và đầy đủ. Vì đây là ngữ cảnh từ toàn bộ câu chuyện (đầu-giữa-cuối), bạn KHÔNG ĐƯỢC rút gọn. Hãy trình bày theo cấu trúc các mục sau, mỗi mục có thể viết nhiều đoạn nếu ngữ cảnh cho phép:
 
