@@ -113,6 +113,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
             suspicious: props.files.filter(f => f.errorMessage && (f.errorMessage.includes('phân loại riêng') || f.errorMessage.toLowerCase().includes('an toàn') || f.errorMessage.includes('Nghi vấn lỗi nội dung') || f.errorMessage.includes('BLOCKLIST') || f.errorMessage.includes('PROHIBITED_CONTENT'))).length,
             
             m31pro: props.files.filter(f => f.usedModel?.includes('gemini-3.1-pro')).length,
+            m38flash: props.files.filter(f => f.usedModel?.includes('gemini-3.8-flash')).length,
             m37flash: props.files.filter(f => f.usedModel?.includes('gemini-3.7-flash')).length,
             m35flash: props.files.filter(f => f.usedModel?.includes('gemini-3.5-flash') && !f.usedModel?.includes('lite')).length,
             m3flash: props.files.filter(f => f.usedModel?.includes('gemini-3-flash')).length,
@@ -205,6 +206,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
                     const m = f.usedModel || ""; 
                     modelMatch = ( 
                         (props.filterModels.has('31pro') && m.includes('gemini-3.1-pro')) || 
+                        (props.filterModels.has('38flash') && m.includes('gemini-3.8-flash')) ||
                         (props.filterModels.has('37flash') && m.includes('gemini-3.7-flash')) || 
                         (props.filterModels.has('35flash') && m.includes('gemini-3.5-flash') && !m.includes('lite')) || 
                         (props.filterModels.has('3flash') && m.includes('gemini-3-flash')) || 
@@ -213,7 +215,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
                         (props.filterModels.has('openrouter') && m.includes('openrouter:')) ||
                         (props.filterModels.has('manual') && m.includes('Thủ công')) ||
 
-                        (props.filterModels.has('other') && f.status === FileStatus.COMPLETED && (!m || (!m.includes('gemini-3.1-pro') && !m.includes('gemini-3.7-flash') && !m.includes('gemini-3.5-flash') && !m.includes('gemini-3.1-flash') && !m.includes('gemini-3-flash') && !m.includes('openrouter:') && !m.includes('Thủ công'))))
+                        (props.filterModels.has('other') && f.status === FileStatus.COMPLETED && (!m || (!m.includes('gemini-3.1-pro') && !m.includes('gemini-3.8-flash') && !m.includes('gemini-3.7-flash') && !m.includes('gemini-3.5-flash') && !m.includes('gemini-3.1-flash') && !m.includes('gemini-3-flash') && !m.includes('openrouter:') && !m.includes('Thủ công'))))
                     ); 
                 }
                 return statusMatch && modelMatch;
@@ -363,6 +365,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
                             <div className="w-24 text-xs font-bold text-slate-400 uppercase mt-2">Model:</div>
                             <div className="flex flex-wrap gap-2 flex-1">
                                 {renderFilterBadge("3.1 Pro", counts.m31pro, props.filterModels.has('31pro'), () => props.toggleFilterModel('31pro'), 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-800')}
+                                {renderFilterBadge("3.8 Flash", counts.m38flash, props.filterModels.has('38flash'), () => props.toggleFilterModel('38flash'), 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-800')}
                                 {renderFilterBadge("3.7 Flash", counts.m37flash, props.filterModels.has('37flash'), () => props.toggleFilterModel('37flash'), 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-800')}
                                 {renderFilterBadge("3.5 Flash", counts.m35flash, props.filterModels.has('35flash'), () => props.toggleFilterModel('35flash'), 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800')}
                                 {renderFilterBadge("3.0 Flash", counts.m3flash, props.filterModels.has('3flash'), () => props.toggleFilterModel('3flash'), 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800')}

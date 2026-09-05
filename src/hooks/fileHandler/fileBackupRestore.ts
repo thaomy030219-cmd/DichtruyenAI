@@ -72,6 +72,9 @@ export const useFileBackupRestore = (core: any, ui: any) => {
                 if (data.enabledModels) {
                     // Filter valid models and explicitly ensure 3.1 flash lite is enabled
                     const validModels = data.enabledModels.filter((id: string) => core.modelConfigs?.some((m: any) => m.id === id));
+                    if (!validModels.includes('gemini-3.8-flash')) {
+                        validModels.push('gemini-3.8-flash');
+                    }
                     if (!validModels.includes('gemini-3.7-flash')) {
                         validModels.push('gemini-3.7-flash');
                     }

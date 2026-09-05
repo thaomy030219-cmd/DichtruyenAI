@@ -416,7 +416,7 @@ CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startT
                     contents: fullPrompt, 
                     config: { 
                         systemInstruction: finalPrompt, 
-                        temperature: 0.2, 
+                        ...(mid === 'gemini-3.8-flash' ? {} : { temperature: 0.2 }),
                         safetySettings: SAFETY_SETTINGS,
                         maxOutputTokens: 65536
                     } 
