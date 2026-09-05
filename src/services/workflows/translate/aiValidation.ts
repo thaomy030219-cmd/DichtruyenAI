@@ -19,7 +19,8 @@ export const validateBatchWithAI = async (
     enabledModels: string[],
     onLog?: (msg: string) => void,
     openRouterKey?: string,
-    translationModel?: string // model (mid) đã dùng để dịch batch này, vd "openrouter:xxx" hoặc "gemini-3.5-flash"
+    translationModel?: string, // model đã dùng để dịch batch này
+    consistencyContext: string = ""
 ): Promise<Map<string, { isValid: boolean, reason?: string }>> => {
     const aiReport = new Map<string, { isValid: boolean, reason?: string }>();
     if (files.length === 0 || results.size === 0) return aiReport;
@@ -103,6 +104,22 @@ TUYỆT ĐỐI KHÔNG đánh giá tính logic hay sự liền mạch của cốt
 9. VĂN PHONG THOÁT Ý/MƯỢT MÀ KHÔNG PHẢI LỖI: Bản dịch được yêu cầu dịch THOÁT Ý, viết lại câu cho mượt mà tự nhiên theo văn phong Việt (không dịch word-by-word bám sát trật tự câu gốc), và có thể chêm nhẹ teencode/tiếng lóng thông dụng khi hợp bối cảnh. Vì vậy bản dịch có thể: đảo trật tự câu/đoạn trong CÙNG một cảnh, gộp hoặc tách câu, đổi cách diễn đạt/thành ngữ, thêm/bớt từ đệm — miễn Ý, NHÂN VẬT, HÀNH ĐỘNG và BỐI CẢNH của đoạn đó vẫn đúng với bản gốc. Đây KHÔNG phải dấu hiệu ghép nhầm chương hay lệch nội dung. CHỈ báo isValid=false khi nội dung nói về tình huống/nhân vật/sự kiện HOÀN TOÀN KHÁC, không phải khi chỉ khác cách diễn đạt.
 
 `;
+        const newline = String.fromCharCode(10);
+        if (consistencyContext.trim()) {
+            prompt += [
+                '[QUY TẮC NHẤT QUÁN LIÊN QUAN]',
+                consistencyContext.substring(0, 14000),
+                '[HẾT QUY TẮC NHẤT QUÁN]',
+                '',
+            ].join(newline);
+        }
+        prompt += [
+            '10. NHẤT QUÁN DÀI HẠN: Nếu bản dịch dùng sai rõ ràng tên riêng, thuật ngữ khóa hoặc cách xưng hô A→B/B→A so với khối quy tắc liên quan, trả isValid=false. Không bắt lỗi khi quy tắc không nêu rõ cặp nhân vật/giai đoạn.',
+            '11. SÓT NGÔN NGỮ: Nếu bản dịch còn nguyên câu/đoạn Convert, Trung, Nhật, Hàn, Thái, Cyrillic hoặc tiếng Anh không phải tên riêng/thuật ngữ được phép, trả isValid=false. Một từ vay mượn thông dụng đơn lẻ không phải lỗi.',
+            '12. Khi lỗi chỉ nằm ở xưng hô/thuật ngữ/ngôn ngữ sót, reason phải nêu đúng loại lỗi và cụm vi phạm để hệ thống sửa lại có mục tiêu.',
+            '',
+            '',
+        ].join(newline);
         let countToValidate = 0;
         chunkFiles.forEach(f => {
             const targetContent = results.get(f.id);

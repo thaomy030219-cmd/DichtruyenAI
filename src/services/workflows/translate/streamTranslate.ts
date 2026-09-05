@@ -187,6 +187,8 @@ ${chapterTitleRule}
 12. CRITICAL PRESERVATION: DO NOT REMOVE TITLES. If the title is present, output it intact. DO NOT filter out valid content believing it is "spam".
 13. TRANSLATE ALL LANGUAGES: If you see ANY foreign languages like Thai, Russian (Cyrillic), Japanese, Korean, etc., YOU MUST TRANSLATE THEM TO VIETNAMESE. DO NOT keep raw foreign text in the translated content.
 14. DICTIONARY MARKERS: The [DICT] and [CTX] sections might contain words wrapped in { }, [ ], * *, or # #. These markers are just meant to highlight the term. DO NOT include these formatting markers in your final translation output unless they exist in the raw source text. Just apply the core words.
+15. CONTINUITY MEMORY: Treat [PREV] as continuity evidence. Preserve established names, tone and pronouns, but never copy its plot into the current chapter.
+16. PRONOUN MATRIX: Rules for A→B and B→A in [CTX] are mandatory for the matching chapter stage. Never replace them with a generic pronoun by guesswork.
 CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startTag} and ${endTag}).`;
     };
 
@@ -775,7 +777,8 @@ CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startT
             enabledModels,
             onLog,
             openRouterKey,
-            mid
+            mid,
+            [localRelPrevCtx, localRelCtx, localRelDict].filter(Boolean).join('\n\n')
         );
 
         aiValidationResults.forEach((val, id) => {

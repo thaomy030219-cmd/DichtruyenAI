@@ -9,3 +9,4 @@ export * from './inlineEnglishFixer';
 export * from './similarity';
 export * from './deepAnalysisSampling';
 export * from './vietnameseProofreader';
+export * from './rollingContext';

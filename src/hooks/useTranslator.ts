@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import { FileItem, FileStatus, TranslationTier } from '../types';
 import { translateBatchStream, getEffectiveModelsForTier } from '../geminiService';
-import { BATCH_MISSING_TAG_WARNING, countForeignChars, formatBookStyle, validateTranslationIntegrity, fixMergedTitle, applyInlineEnglishFix, proofreadVietnamese } from '../utils/text';
+import { BATCH_MISSING_TAG_WARNING, countForeignChars, formatBookStyle, validateTranslationIntegrity, fixMergedTitle, applyInlineEnglishFix, proofreadVietnamese, buildRollingChapterContext } from '../utils/text';
 import { quotaManager } from '../utils/quotaManager';
 import { getRescueTarget, getRescueBudget, getRescueLabel } from '../services/workflows/translate/rescueTarget';
 import { stripTitleAnchor } from '../utils/fileHelpers';
@@ -92,13 +92,15 @@ export const useTranslator = (
                 updateTimeout = null;
             };
 
+            const rollingChapterContext = buildRollingChapterContext(core.files, batchIds);
+
             const resultsMap = await translateBatchStream(
                 inputs,
                 core.promptTemplate,
                 effectiveDictionary,
                 core.storyInfo.contextNotes,
                 core.enabledModels,
-                "", // previousBatchContext
+                rollingChapterContext, // previousBatchContext
                 (fileId, partialContent) => {
                     if (myRunId === runIdRef?.current) {
                         // Không để lộ marker nội bộ "__TITLE_ANCHOR__:" ra bản xem trước lúc đang
