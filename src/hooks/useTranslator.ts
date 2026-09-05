@@ -122,7 +122,8 @@ export const useTranslator = (
                 () => myRunId !== runIdRef?.current, // shouldAbort
                 core.stateRef.current.ratioLimits,
                 core.openRouterKey,
-                core.openRouterModel
+                core.openRouterModel,
+                core.stateRef.current.batchLimits
             );
             
             // Flush any remaining updates

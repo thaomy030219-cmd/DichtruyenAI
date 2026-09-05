@@ -226,63 +226,81 @@ export const optimizeDictionary = (dictText: string, content: string): string =>
     return result.join('\n');
 };
 
-export const optimizeContext = (contextText: string, content: string): string => {
+export const optimizeContext = (contextText: string, content: string, relevantDictionary: string = ''): string => {
     if (!contextText || !content) return contextText;
-    
+
     const blocks = contextText.split(/\n\s*\n/);
-    const result = [];
-    const contentLower = content.toLowerCase();
-    
+    // Batch raw thường chứa key gốc (vd 林墨), còn Ma trận xưng hô trong Series Bible lại dùng
+    // tên Việt đã chốt (Lâm Mặc). Bổ sung các VALUE tương ứng của những mục [DICT] đã lọc theo
+    // batch vào corpus so khớp để khối xưng hô/quan hệ không bị loại oan.
+    const dictionaryAliases = relevantDictionary.split('\n').flatMap(line => {
+        const eqIdx = line.indexOf('=');
+        if (eqIdx <= 0) return [];
+        const value = line.slice(eqIdx + 1).replace(/\*\*/g, '').split('||')[0].trim();
+        if (!value) return [];
+        const withoutRole = value.replace(/\s*\([^)]*\)\s*$/, '').trim();
+        return withoutRole && withoutRole !== value ? [value, withoutRole] : [value];
+    });
+    const relevanceCorpus = [content, ...dictionaryAliases].join('\n');
+    const contentLower = relevanceCorpus.toLowerCase();
+
+    // Dòng mục-từ-điển trong ngữ cảnh phải bắt đầu bằng '[' (cho phép markdown bold '**'
+    // phía trước). Dòng prose/thông thường (bắt đầu bằng số, '-', '*', '#', '>'...) không
+    // bao giờ khớp nên không bị lọc nhầm.
+    const glossaryLineRegex = /^\s*(?:\*\*)?\[/;
+
+    interface ScoredBlock { text: string; score: number; index: number }
+    const scoredBlocks: ScoredBlock[] = [];
+
     for (let i = 0; i < blocks.length; i++) {
         const block = blocks[i];
         const trimmed = block.trim();
         if (!trimmed) continue;
-        
+
         // Always keep the first block as it often contains general instructions
         if (i === 0) {
-            result.push(block);
+            scoredBlocks.push({ text: block, score: Number.MAX_SAFE_INTEGER, index: i });
             continue;
         }
-        
+
         let keywords: string[] = [];
-        
+
         // 1. Try to find Chinese keywords (2 or more characters)
         const zhMatch = trimmed.match(/[\u4e00-\u9fa5]{2,}/g);
         if (zhMatch) {
             keywords.push(...zhMatch);
         }
-        
+
         // 2. Try to find words before a colon, dash, or equals sign
         const prefixMatch = trimmed.match(/^([^:\-=]+)[:\-=]/m);
         if (prefixMatch && prefixMatch[1].trim().length > 1 && prefixMatch[1].trim().length < 40) {
             keywords.push(prefixMatch[1].trim());
         }
-        
+
         // 3. Try to find capitalized words (names/terms)
         const capWords = trimmed.match(/([A-ZĐ][a-zàáãạảăắằẳẵặâấầẩẫậèéẹẻẽêềếểễệđìíĩỉịòóõọỏôốồổỗộơớờởỡợùúũụủưứừửữựỳỵỷỹý]+(?:\s+[A-ZĐ][a-zàáãạảăắằẳẵặâấầẩẫậèéẹẻẽêềếểễệđìíĩỉịòóõọỏôốồổỗộơớờởỡợùúũụủưứừửữựỳỵỷỹý]+)*)/g);
         if (capWords) {
             keywords.push(...capWords.filter(w => w.length > 2));
         }
-        
+
         // Remove duplicates
         keywords = [...new Set(keywords)];
-        
-        let isRelevant = false;
-        
-        if (keywords.length > 0) {
-            for (const keyword of keywords) {
-                if (/[\u4e00-\u9fa5]/.test(keyword)) {
-                    if (content.includes(keyword)) {
-                        isRelevant = true;
-                        break;
-                    }
-                } else {
-                    if (contentLower.includes(keyword.toLowerCase())) {
-                        isRelevant = true;
-                        break;
-                    }
-                }
+
+        // Đếm SỐ keyword khớp (trước đây chỉ cần 1 khớp là giữ toàn khối) — dùng làm điểm
+        // liên quan khi cần cắt theo ngân sách ở dưới.
+        let matchCount = 0;
+        for (const keyword of keywords) {
+            if (/[\u4e00-\u9fa5]/.test(keyword)) {
+                if (relevanceCorpus.includes(keyword)) matchCount++;
+            } else if (contentLower.includes(keyword.toLowerCase())) {
+                matchCount++;
             }
+        }
+
+        let isRelevant = false;
+
+        if (keywords.length > 0) {
+            isRelevant = matchCount > 0;
         } else {
             // If no keywords found at all, it might be a general instruction.
             // Keep it if it's relatively short to prevent huge context leaks.
@@ -290,13 +308,61 @@ export const optimizeContext = (contextText: string, content: string): string =>
                 isRelevant = true;
             }
         }
-        
-        if (isRelevant) {
-            result.push(block);
+
+        if (!isRelevant) continue;
+
+        // (2) Lọc từng dòng kiểu từ điển: chỉ giữ mục có Key xuất hiện trong batch.
+        let finalBlock = block;
+        {
+            const lines = block.split('\n');
+            let changed = false;
+            const keptLines = lines.filter(line => {
+                const lineTrimmed = line.trim();
+                if (!lineTrimmed || !glossaryLineRegex.test(line)) return true;
+                const eqIdx = lineTrimmed.indexOf('=');
+                if (eqIdx <= 0) return true;
+                const head = lineTrimmed.slice(0, eqIdx);
+                // Hỗ trợ dòng đa khóa: "[A] = V", "[A]/[B] = V", "[A] / [B] = V"
+                const keys = [...head.matchAll(/\[([^\]]+)\]/g)].map(m => m[1].trim()).filter(Boolean);
+                if (keys.length === 0) return true;
+                const anyHit = keys.some(k =>
+                    /[\u4e00-\u9fa5]/.test(k)
+                        ? relevanceCorpus.includes(k)
+                        : contentLower.includes(k.toLowerCase())
+                );
+                if (anyHit) return true;
+                changed = true;
+                return false;
+            });
+            if (changed) finalBlock = keptLines.join('\n');
+        }
+
+        const finalTrimmed = finalBlock.trim();
+        if (!finalTrimmed) continue;
+        scoredBlocks.push({ text: finalBlock, score: matchCount, index: i });
+    }
+
+    // (3) Trần ngân sách ký tự theo độ dài batch.
+    const charBudget = Math.max(16000, Math.min(32000, Math.ceil(content.length * 1.5)));
+    const totalChars = scoredBlocks.reduce((acc, s) => acc + s.text.length, 0);
+    if (totalChars <= charBudget) {
+        return scoredBlocks.map(s => s.text).join('\n\n');
+    }
+
+    // Vượt ngân sách: chọn khối theo điểm liên quan giảm dần (khối đầu tiên được duyệt trước
+    // vì score = MAX), bỏ qua khối nào không vừa rồi thử khối kế tiếp nhỏ hơn.
+    const keepSet = new Set<number>();
+    let usedChars = 0;
+    for (const s of [...scoredBlocks].sort((a, b) => b.score - a.score)) {
+        if (keepSet.size === 0 || usedChars + s.text.length <= charBudget) {
+            keepSet.add(s.index);
+            usedChars += s.text.length;
         }
     }
-    
-    return result.join('\n\n');
+    return scoredBlocks
+        .filter(s => keepSet.has(s.index))
+        .map(s => s.text)
+        .join('\n\n');
 };
 
 export const dedupeContextAgainstDictionary = (contextText: string, dictText: string): string => {

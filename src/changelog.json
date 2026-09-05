@@ -1,8 +1,30 @@
 [
     {
+        "version": "1.0.9",
+        "title": "Tăng Cường Chất Lượng Dịch Truyện Dài",
+        "isLatest": true,
+        "changes": [
+            {
+                "icon": "Database",
+                "bold": "Lọc ngữ cảnh ba lớp theo từng batch:",
+                "text": "Chỉ giữ nhân vật, thuật ngữ và quan hệ liên quan đến chương đang dịch; dùng từ điển để nối tên gốc với tên Việt và giới hạn ngân sách ngữ cảnh nhằm giảm nhiễu ở truyện dài."
+            },
+            {
+                "icon": "ShieldCheck",
+                "bold": "Chặn batch vượt khả năng model dự phòng:",
+                "text": "Kiểm tra lại số tệp ngay trước request thật, tránh trường hợp batch dành cho Pro rơi sang Flash rồi bị mất đuôi hoặc lẫn chương."
+            },
+            {
+                "icon": "Activity",
+                "bold": "Hậu kiểm ổn định hơn:",
+                "text": "Các lượt hậu kiểm con được giãn nhịp để giảm rate-limit và tránh đánh dấu nghi vấn hàng loạt khi API tạm nghẽn."
+            }
+        ]
+    },
+    {
         "version": "1.0.8",
         "title": "Thiết kế lại không gian dự án và bỏ tạo bìa AI",
-        "isLatest": true,
+        "isLatest": false,
         "changes": [
             {
                 "icon": "LayoutDashboard",

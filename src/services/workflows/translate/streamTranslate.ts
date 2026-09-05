@@ -6,13 +6,14 @@
 // tìm trong 1 file 1500 dòng gộp chung 8 hàm khác nhau.
 import { getAiClient, smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
 import { fetchOpenRouterStream, getOpenRouterModelInfo } from '../../api/openrouter';
-import { StoryInfo, TranslationTier, RatioLimits, FileItem } from '../../../types';
+import { StoryInfo, TranslationTier, RatioLimits, FileItem, BatchLimits } from '../../../types';
 import { optimizeDictionary, optimizeContext, dedupeContextAgainstDictionary, findLinesWithForeignChars, mergeFixedLines, formatBookStyle, fixMergedTitle, createBatchFingerprints, validateBatch, registerCompletedChapterFingerprint } from '../../../utils/text';
 import { getEffectiveModelsForTier } from './modelSelection';
 import { validateBatchWithAI } from './aiValidation';
 import { performAggregatedRepair, GlobalRepairEntry } from './repair';
 import { getRescueTarget } from './rescueTarget';
 import { DEFAULT_OPENROUTER_MODEL, sanitizeOpenRouterModels } from '../../../constants/openrouterModels';
+import { assertModelBatchCapacity } from '../../../utils/modelBatchLimits';
 
 export const translateBatchStream = async (
     files: { id: string, content: string, name?: string, fileRetryCount?: number, errorMessage?: string }[],
@@ -30,7 +31,8 @@ export const translateBatchStream = async (
     shouldAbort?: () => boolean,
     ratioLimits?: RatioLimits,
     openRouterKey?: string,
-    openRouterModel?: string
+    openRouterModel?: string,
+    batchLimits?: BatchLimits
 ): Promise<{ results: Map<string, string>, model: string, stats?: { dictLines: number, contextLines: number }, streamError?: Error }> => {
     // Bước 2: Tạo fingerprints TRƯỚC khi gửi AI
     const batchFingerprints = createBatchFingerprints(files);
@@ -40,7 +42,7 @@ export const translateBatchStream = async (
     let relCtx = "";
     try {
         relDict = (typeof optimizeDictionary === 'function' ? optimizeDictionary(dictionary || "", combined) : dictionary) || "";
-        relCtx = (typeof optimizeContext === 'function' ? optimizeContext(globalContext || "", combined) : globalContext) || "";
+        relCtx = (typeof optimizeContext === 'function' ? optimizeContext(globalContext || "", combined, relDict) : globalContext) || "";
         
         // --- ADDED: Deduplicate context against dictionary ---
         if (typeof dedupeContextAgainstDictionary === 'function') {
@@ -193,6 +195,9 @@ CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startT
     };
 
     return await smartExecution(effectiveModels, async mid => {
+        // Batch có thể được xếp cho Pro rồi rơi sang Flash khi hết quota. Kiểm tra lại
+        // ngay trước request để model dự phòng không nhận một lô vượt khả năng và cắt đuôi.
+        assertModelBatchCapacity(mid, files.length, batchLimits, storyInfo?.languages || []);
         const ai = getAiClient();
         
         // Dynamic input and instruction based on model ID

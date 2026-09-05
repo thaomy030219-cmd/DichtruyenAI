@@ -2,6 +2,13 @@
 import { getAiClient, smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
 import { fetchOpenRouter } from '../../api/openrouter';
 import { removeJunkForValidation } from '../../../utils/text';
+// Giãn các lượt hậu kiểm con để tránh dồn request và báo nghi vấn hàng loạt khi API nghẽn.
+const runStaggered = <T,>(items: T[], task: (item: T) => Promise<void>, delayMs: number = 1500): Promise<void[]> =>
+    Promise.all(items.map((item, index) => index === 0
+        ? task(item)
+        : new Promise<void>((resolve, reject) => {
+            setTimeout(() => task(item).then(resolve, reject), index * delayMs);
+        })));
 
 // Thứ tự ưu tiên RIÊNG cho hậu kiểm Tier 2 (không ảnh hưởng thứ tự dịch/Auto-Fix ở FLASH_POOL,
 // vốn dùng chung trường `priority` trong MODEL_CONFIGS). Số càng thấp càng được ưu tiên chọn
@@ -229,7 +236,7 @@ TUYỆT ĐỐI KHÔNG đánh giá tính logic hay sự liền mạch của cốt
 
     // Lượt 1: hậu kiểm như bình thường (dùng candidates đã xác định ở trên - OpenRouter nếu batch
     // vừa dịch bằng OpenRouter, ngược lại Gemini Flash-Lite/Gemma).
-    await Promise.all(chunks.map(chunk => runValidationPass(chunk, candidates, aiReport)));
+    await runStaggered(chunks, chunk => runValidationPass(chunk, candidates, aiReport));
 
     // FIX (fail-closed thay vì fail-open): nếu 1 chunk hậu kiểm gặp trục trặc — JSON không parse
     // được (dòng "catch" ở runValidationPass), gọi API lỗi hết toàn bộ candidate model, hoặc AI
@@ -269,7 +276,7 @@ TUYỆT ĐỐI KHÔNG đánh giá tính logic hay sự liền mạch của cốt
                 const filesToRecheck = files.filter(f => failedIds.includes(f.id));
                 const confirmReport = new Map<string, { isValid: boolean, reason?: string }>();
                 const confirmChunks = splitForValidation(filesToRecheck);
-                await Promise.all(confirmChunks.map(chunk => runValidationPass(chunk, geminiCandidates, confirmReport)));
+                await runStaggered(confirmChunks, chunk => runValidationPass(chunk, geminiCandidates, confirmReport));
 
                 failedIds.forEach(id => {
                     const confirmed = confirmReport.get(id);
