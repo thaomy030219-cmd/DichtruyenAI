@@ -19,11 +19,11 @@ export const getEffectiveModelsForTier = (
 
     if (taskType === 'translate') {
         const preferred = tier === 'pro'
-            ? ['gemini-3.1-pro-preview', 'gemini-3.8-flash', 'gemini-3.7-flash']
+            ? ['gemini-3.1-pro-preview', 'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3-flash-preview']
             : [...TRANSLATION_MODEL_IDS];
         const enabled = filterEnabled(preferred);
 
-        // Không hạ cấp sang model hỗ trợ khi người dùng tắt cả ba model dịch.
+        // Không hạ cấp sang model hỗ trợ khi người dùng tắt toàn bộ model dịch.
         // Trả về pool chuẩn để smartExecution báo rõ model đang bị tắt/hết quota.
         return enabled.length > 0 ? enabled : preferred;
     }

@@ -1,8 +1,25 @@
 [
     {
+        "version": "1.0.10",
+        "title": "Bổ Sung Gemini 3.0 Turbo Cho Dịch Trực Tiếp",
+        "isLatest": true,
+        "changes": [
+            {
+                "icon": "Zap",
+                "bold": "Thêm nguồn request cho dịch hàng loạt:",
+                "text": "Gemini 3.0 Flash Turbo được chuyển từ nhóm hỗ trợ sang pool dịch chính, đứng sau 3.8 và 3.7 nhưng trước 3.1 Pro ở các chế độ dịch thông thường."
+            },
+            {
+                "icon": "ShieldCheck",
+                "bold": "Giữ nguyên phân vai hậu kiểm:",
+                "text": "3.0 Turbo chỉ tham gia dịch trực tiếp; các model phụ còn lại tiếp tục đảm nhiệm hậu kiểm, sửa lỗi và dò raw."
+            }
+        ]
+    },
+    {
         "version": "1.0.9",
         "title": "Tăng Cường Chất Lượng Dịch Truyện Dài",
-        "isLatest": true,
+        "isLatest": false,
         "changes": [
             {
                 "icon": "Database",

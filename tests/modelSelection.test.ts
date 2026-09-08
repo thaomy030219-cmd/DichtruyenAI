@@ -6,7 +6,7 @@ const enabled = [...TRANSLATION_MODEL_IDS, ...SUPPORT_MODEL_IDS];
 
 describe('model role routing', () => {
     it.each(['normal', 'full', 'flash', 'lite'] as const)(
-        'keeps %s translation inside the three-model translation pool',
+        'keeps %s translation inside the dedicated translation pool',
         tier => {
             const models = getEffectiveModelsForTier(tier, 'translate', enabled);
             expect(models).toEqual([...TRANSLATION_MODEL_IDS]);
@@ -19,6 +19,7 @@ describe('model role routing', () => {
             'gemini-3.1-pro-preview',
             'gemini-3.8-flash',
             'gemini-3.7-flash',
+            'gemini-3-flash-preview',
         ]);
     });
 

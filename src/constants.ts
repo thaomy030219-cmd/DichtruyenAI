@@ -57,10 +57,10 @@ export const TIER_MODELS = {
 };
 
 // Chỉ ba model này được phép tham gia luồng dịch Gemini trực tiếp.
-export const TRANSLATION_MODEL_IDS = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.1-pro-preview'] as const;
+export const TRANSLATION_MODEL_IDS = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.1-pro-preview'] as const;
 
 // Các model còn lại dành cho phân tích, hậu kiểm, sửa lỗi và dò raw.
-export const SUPPORT_MODEL_IDS = ['gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemma-4-31b-it', 'gemma-4-26b-a4b-it'] as const;
+export const SUPPORT_MODEL_IDS = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemma-4-31b-it', 'gemma-4-26b-a4b-it'] as const;
 
 export const CONCURRENCY_CONFIG = { 
     FLASH: 3, // Reduced to 3 per user request
