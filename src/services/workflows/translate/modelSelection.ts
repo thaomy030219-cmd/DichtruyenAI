@@ -19,7 +19,7 @@ export const getEffectiveModelsForTier = (
 
     if (taskType === 'translate') {
         const preferred = tier === 'pro'
-            ? ['gemini-3.1-pro-preview', 'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3-flash-preview']
+            ? ['gemini-3.1-pro-preview', 'gemini-3.8-flash', 'gemini-3-flash-preview']
             : [...TRANSLATION_MODEL_IDS];
         const enabled = filterEnabled(preferred);
 

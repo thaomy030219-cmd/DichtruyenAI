@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { StoryInfo, FileItem, ModelQuota, BatchLimits, RatioLimits, CreativeState, SinoVietnameseState, FixErrorState } from '../types';
 import { DEFAULT_PROMPT, MODEL_CONFIGS } from '../constants';
 import { DEFAULT_RATIO_LIMITS } from '../constants/ratioLimits';
-import { loadFromStorage, saveToStorage, clearDatabase } from '../utils/storage';
+import { loadFromStorage, saveToStorage, clearDatabase, getStoredLastSaved } from '../utils/storage';
 import { quotaManager } from '../utils/quotaManager';
 import { base64ToFile, fileToBase64 } from '../utils/fileHelpers';
 import { createSafeSetter } from './coreState/createSafeSetter';
@@ -204,7 +204,6 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
                 if (data.enabledModels) {
                     const validModels = data.enabledModels.filter((id: string) => MODEL_CONFIGS.some(m => m.id === id));
                     if (!validModels.includes('gemini-3.8-flash')) validModels.push('gemini-3.8-flash');
-                    if (!validModels.includes('gemini-3.7-flash')) validModels.push('gemini-3.7-flash');
                     if (!validModels.includes('gemini-3.5-flash-lite')) validModels.push('gemini-3.5-flash-lite');
                     if (!validModels.includes('gemini-3.1-flash-lite')) validModels.push('gemini-3.1-flash-lite');
                     if (!validModels.includes('gemini-3.5-flash')) validModels.push('gemini-3.5-flash');
@@ -345,14 +344,11 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
             
             if (!isForced && !overrideStale) {
                 // Safe Save: Double check with DB just in case localStorage was cleared
-                const currentDbData = await loadFromStorage(STORAGE_KEY);
-                if (currentDbData && currentDbData.lastSaved) {
-                    const dbLastSaved = new Date(currentDbData.lastSaved).getTime();
-                    if (dbLastSaved > localLastSaved) {
-                        console.warn("Found newer data in DB. Aborting save and reloading...");
-                        await loadData();
-                        return false;
-                    }
+                const dbLastSaved = await getStoredLastSaved(STORAGE_KEY);
+                if (dbLastSaved > localLastSaved) {
+                    console.warn("Found newer data in DB. Aborting save and reloading...");
+                    await loadData();
+                    return false;
                 }
 
             }

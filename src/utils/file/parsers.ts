@@ -1,15 +1,11 @@
 // Đọc/parse các định dạng file đầu vào: zip (giải nén), docx, pdf, epub.
 import JSZip from 'jszip';
 import { FileItem, FileStatus, StoryInfo } from '../../types';
-import * as pdfjsLib from 'pdfjs-dist';
 import { padNumber, sanitizeFilename, resolvePath } from './shared';
 import { readFileAsText, parseFilenameMetadata } from './core';
 import { splitJapaneseVerticalPdfByMarkers } from './pdfVerticalChapterSplitter';
 import { detectChapterFormat } from './splitters';
 import { cleanGarbageText } from '../text/garbageCleaner';
-
-// Configure PDF Worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs';
 
 export const unzipFiles = async (file: File, onProgress?: (current: number, total: number, percent: number) => void): Promise<FileItem[]> => {
   const zip = new JSZip();
@@ -104,6 +100,8 @@ export const parseDocx = async (file: File): Promise<{ content: string, title?: 
 
 export const parsePdf = async (file: File, onProgress?: (percent: number, msg: string) => void): Promise<{ content: string, files: FileItem[], title?: string, author?: string }> => {
     try {
+        const pdfjsLib = await import('pdfjs-dist');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs';
         const arrayBuffer = await file.arrayBuffer();
         // Một số PDF (đặc biệt PDF tiếng Nhật/Trung dùng font CID nhúng, ví dụ các bản convert
         // từ Syosetu) cần dữ liệu CMap + font chuẩn để pdfjs giải mã đúng ký tự. Thiếu 2 tham số

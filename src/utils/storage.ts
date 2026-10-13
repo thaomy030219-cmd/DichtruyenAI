@@ -8,15 +8,42 @@ let dbInstance: IDBDatabase | null = null;
 // Helper to check if CompressionStream is supported
 const isCompressionSupported = typeof CompressionStream !== 'undefined' && typeof DecompressionStream !== 'undefined';
 
+// Serialize large sessions one chapter at a time. The stored payload stays ordinary
+// gzip-compressed JSON, so backups made by older versions remain readable.
+export const LARGE_SESSION_STREAM_THRESHOLD = 256;
+export const createSessionJsonStream = (data: Record<string, unknown>): ReadableStream<Uint8Array> => {
+    if (!Array.isArray(data.files)) throw new Error('Expected chapter array');
+    const files = data.files;
+    const metadata = { ...data };
+    delete metadata.files;
+    const base = JSON.stringify(metadata);
+    const prefix = base === '{}' ? '{"files":[' : `${base.slice(0, -1)},"files":[`;
+    const encoder = new TextEncoder();
+    let index = -1;
+    return new ReadableStream<Uint8Array>({
+        pull(controller) {
+            if (index === -1) controller.enqueue(encoder.encode(prefix));
+            else if (index < files.length) controller.enqueue(encoder.encode(`${index ? ',' : ''}${JSON.stringify(files[index]) ?? 'null'}`));
+            else {
+                controller.enqueue(encoder.encode(']}'));
+                controller.close();
+                return;
+            }
+            index++;
+        },
+    });
+};
+
 const compressData = async (data: any): Promise<any> => {
     if (!isCompressionSupported) return data;
     try {
-        const jsonString = JSON.stringify(data);
-        const stream = new Blob([jsonString]).stream();
+        const stream = data && Array.isArray(data.files) && data.files.length >= LARGE_SESSION_STREAM_THRESHOLD
+            ? createSessionJsonStream(data)
+            : new Blob([JSON.stringify(data)]).stream();
         const compressedStream = stream.pipeThrough(new CompressionStream('gzip'));
         const response = new Response(compressedStream);
         const buffer = await response.arrayBuffer();
-        return { __compressed: true, data: new Uint8Array(buffer) };
+        return { __compressed: true, data: new Uint8Array(buffer), lastSaved: data?.lastSaved || null };
     } catch (e) {
         console.warn("Compression failed, falling back to uncompressed data", e);
         return data;
@@ -173,6 +200,26 @@ export const loadFromStorage = async (key: string): Promise<any> => {
     console.error('Lỗi đọc lưu trữ (Load Error):', error);
     throw error; // Throw instead of returning null to distinguish from "not found"
   }
+};
+
+// Check the timestamp without inflating every chapter on each autosave. Older
+// records have no outer timestamp and still use the original full-read path.
+export const getStoredLastSaved = async (key: string): Promise<number> => {
+  const db = await initDB();
+  const stored = await new Promise<any>((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readonly');
+    const request = transaction.objectStore(STORE_NAME).get(key);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  if (!stored) return 0;
+  const timestamp = stored.lastSaved;
+  if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+    const parsed = typeof timestamp === 'number' ? timestamp : Date.parse(timestamp);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  const legacy = await decompressData(stored);
+  return legacy?.lastSaved ? new Date(legacy.lastSaved).getTime() || 0 : 0;
 };
 
 /**

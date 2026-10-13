@@ -6,8 +6,8 @@ import {
 } from '../src/services/workflows/analyze/modelRouting';
 
 describe('deep analysis model routing', () => {
-    it('uses 3.7 for chunk analysis and 3.8 for synthesis', () => {
-        expect(DEEP_ANALYSIS_CHUNK_MODELS[0]).toBe('gemini-3.7-flash');
+    it('uses 3.8 for chunk analysis and synthesis', () => {
+        expect(DEEP_ANALYSIS_CHUNK_MODELS[0]).toBe('gemini-3.8-flash');
         expect(DEEP_ANALYSIS_SYNTHESIS_MODELS[0]).toBe('gemini-3.8-flash');
     });
 
@@ -17,8 +17,8 @@ describe('deep analysis model routing', () => {
 
     it('preserves priority while respecting enabled models', () => {
         expect(selectAnalysisModels(DEEP_ANALYSIS_SYNTHESIS_MODELS, [
-            'gemini-3.7-flash',
+            'gemini-3.8-flash',
             'gemini-3.1-pro-preview',
-        ])).toEqual(['gemini-3.7-flash', 'gemini-3.1-pro-preview']);
+        ])).toEqual(['gemini-3.8-flash', 'gemini-3.1-pro-preview']);
     });
 });

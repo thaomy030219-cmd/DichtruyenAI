@@ -2,7 +2,6 @@
 import JSZip from 'jszip';
 import { FileItem, StoryInfo } from '../../types';
 import { cleanContentArtifacts, sanitizeFilename } from './shared';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 
 export const createMergedFile = (files: FileItem[], enableTitleFormatting: boolean = true, enableAutoFormat: boolean = true, enableParagraphSpacing: boolean = true): string => {
   const sortedFiles = [...files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
@@ -142,10 +141,11 @@ export const downloadJsonFile = (filename: string, data: any) => {
   URL.revokeObjectURL(url);
 };
 
-export const downloadDocxFile = async (filename: string, files: FileItem[], storyInfo: StoryInfo, onProgress?: (percent: number) => void) => {
-  const sortedFiles = [...files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
-  if (sortedFiles.length === 0) throw new Error("Không có chương nào để xuất DOCX");
+export const DOCX_SPLIT_THRESHOLD_CHAPTERS = 400;
+export const DOCX_TARGET_CHAPTERS_PER_VOLUME = 250;
 
+const createDocxVolume = async (files: FileItem[], storyInfo: StoryInfo, onProgress?: (percent: number) => void): Promise<Blob> => {
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = await import('docx');
   const children = [
     new Paragraph({
       text: storyInfo.title || "Unknown Title",
@@ -160,10 +160,10 @@ export const downloadDocxFile = async (filename: string, files: FileItem[], stor
   ];
 
   const CHUNK_SIZE = 100;
-  for (let i = 0; i < sortedFiles.length; i++) {
-    const file = sortedFiles[i];
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
     if (onProgress && i % CHUNK_SIZE === 0) {
-      onProgress(Math.round((i / sortedFiles.length) * 100));
+      onProgress(Math.round((i / files.length) * 100));
       await new Promise(r => setTimeout(r, 0));
     }
     const content = cleanContentArtifacts(file.translatedContent || file.content, storyInfo.enableTitleFormatting !== false, storyInfo.enableAutoFormat !== false, storyInfo.enableParagraphSpacing !== false);
@@ -191,13 +191,39 @@ export const downloadDocxFile = async (filename: string, files: FileItem[], stor
     }],
   });
 
-  const blob = await Packer.toBlob(doc);
+  return Packer.toBlob(doc);
+};
+
+export const downloadDocxFile = async (filename: string, files: FileItem[], storyInfo: StoryInfo, onProgress?: (percent: number) => void) => {
+  const sortedFiles = [...files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+  if (sortedFiles.length === 0) throw new Error("Không có chương nào để xuất DOCX");
+
+  let blob: Blob;
+  let outputName = filename;
+  if (sortedFiles.length > DOCX_SPLIT_THRESHOLD_CHAPTERS) {
+    const zip = new JSZip();
+    const volumeCount = Math.ceil(sortedFiles.length / DOCX_TARGET_CHAPTERS_PER_VOLUME);
+    const stem = filename.replace(/\.docx$/i, '');
+    for (let volume = 0; volume < volumeCount; volume++) {
+      const start = volume * DOCX_TARGET_CHAPTERS_PER_VOLUME;
+      const part = sortedFiles.slice(start, start + DOCX_TARGET_CHAPTERS_PER_VOLUME);
+      const partBlob = await createDocxVolume(part, storyInfo, percent =>
+        onProgress?.(Math.round(((volume + percent / 100) / volumeCount) * 90)));
+      zip.file(`${stem}_Tap_${String(volume + 1).padStart(2, '0')}.docx`, partBlob);
+      onProgress?.(Math.round(((volume + 1) / volumeCount) * 90));
+    }
+    blob = await zip.generateAsync({ type: 'blob' }, metadata => onProgress?.(90 + Math.round(metadata.percent / 10)));
+    outputName = `${stem}_DOCX.zip`;
+  } else {
+    blob = await createDocxVolume(sortedFiles, storyInfo, onProgress);
+  }
+
   const element = document.createElement('a');
   const url = URL.createObjectURL(blob);
   element.href = url;
   element.target = '_blank';
   element.rel = 'noopener';
-  element.download = filename;
+  element.download = outputName;
   document.body.appendChild(element);
   element.click();
   document.body.removeChild(element);

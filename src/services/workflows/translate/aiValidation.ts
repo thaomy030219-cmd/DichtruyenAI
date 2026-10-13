@@ -2,6 +2,7 @@
 import { getAiClient, smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
 import { fetchOpenRouter } from '../../api/openrouter';
 import { removeJunkForValidation } from '../../../utils/text';
+import { buildRelevantTermChecklist } from './reviewContext';
 // Giãn các lượt hậu kiểm con để tránh dồn request và báo nghi vấn hàng loạt khi API nghẽn.
 const runStaggered = <T,>(items: T[], task: (item: T) => Promise<void>, delayMs: number = 1500): Promise<void[]> =>
     Promise.all(items.map((item, index) => index === 0
@@ -56,8 +57,16 @@ export const validateBatchWithAI = async (
     }
 
     if (candidates.length === 0) {
-        if (onLog) onLog(`ℹ️ Bỏ qua kiểm tra AI (Tier 2) do không có model phù hợp (Gemma 4/Flash Lite) được bật.`);
-        return aiReport;
+        // Khi người dùng chỉ bật model dịch chính, dùng chính model đã dịch để hậu kiểm
+        // thay vì âm thầm coi mọi chương là sạch. Nhánh này chỉ chạy khi thiếu toàn bộ
+        // model phụ nên không thay đổi định tuyến/quota của trường hợp thông thường.
+        if (translationModel && !translationModel.startsWith('openrouter:') && enabledModels.includes(translationModel)) {
+            candidates = [translationModel];
+            onLog?.(`ℹ️ Không có model hậu kiểm phụ; dùng ${translationModel} để kiểm tra nội dung.`);
+        } else {
+            onLog?.('⚠️ Không có model khả dụng cho hậu kiểm AI (Tier 2); chỉ còn các bước kiểm tra tại máy.');
+            return aiReport;
+        }
     }
 
     // QUY TẮC CHIA HẬU KIỂM (Tier 2 AI) — tránh phí request:
@@ -104,11 +113,11 @@ Cụ thể, bạn cần đảm bảo:
 3. CHÚ Ý TIÊU ĐỀ: Nhiều tác giả/trang web đánh số post tự động chèn trước tên chương (vd: "1149.第1147章..." trong khi tên đúng là 1147). Bản dịch lược bỏ số tiền tố này (thành "Chương 1147:...") là chính xác. KHÔNG báo lỗi ảo giác sai chương.
 4. QUẢNG CÁO/TÂM SỰ/CHÚ THÍCH: Đầu hoặc cuối bản GỐC có thể chứa quảng cáo web, lời tâm sự của tác giả, tên converter/dịch giả, chú thích ngoài lề. Việc bản DỊCH đã lược bỏ các phần này (hợp lý cho một bản dịch truyện sạch), hoặc ngược lại bản DỊCH có thêm ghi chú của người dịch mà bản GỐC không có — ĐỀU KHÔNG PHẢI LỖI. Chỉ so sánh phần NỘI DUNG TRUYỆN THỰC SỰ giữa gốc và dịch, bỏ qua các phần phụ trợ này.
 5. ĐỊNH DẠNG TIÊU ĐỀ: Truyện gốc có thể thuộc 1 trong 3 dạng chương: (a) có số thứ tự + tên chương, (b) chỉ có số thứ tự không có tên, (c) không có tiêu đề gì cả (thuần văn bản). Ứng dụng dịch được PHÉP tự chuẩn hoá/format lại tiêu đề (thêm "Chương X:" hoặc đặt tên chương phù hợp) cho dạng (b) và (c). Việc bản dịch xuất hiện tiêu đề/số chương mà bản gốc không ghi rõ theo cách đó KHÔNG phải là dấu hiệu lệch nội dung, miễn là phần NỘI DUNG sau tiêu đề vẫn khớp với bản gốc.
-6. THIÊN VỊ VỀ PHÍA "HỢP LỆ": Đây là bước kiểm tra CHỐNG GHÉP NHẦM CHƯƠNG, KHÔNG PHẢI chấm điểm chất lượng dịch thuật. Bạn KHÔNG cần bản dịch phải khớp từng chữ, chỉ cần khớp Ý và NHÂN VẬT/BỐI CẢNH chính giữa gốc và dịch. Nếu bạn CHỈ nghi ngờ mơ hồ, không chắc chắn tuyệt đối, hoặc bản dịch trông có vẻ ổn nhưng bạn không đối chiếu được hết do khác ngôn ngữ — PHẢI trả về isValid=true. CHỈ trả về isValid=false khi có bằng chứng RÕ RÀNG, CHẮC CHẮN rằng nội dung dịch nói về một tình huống/nhân vật HOÀN TOÀN KHÁC với bản gốc (dấu hiệu ghép nhầm chương thật sự). Báo sai một bản dịch ĐÚNG gây thiệt hại lớn hơn nhiều so với bỏ sót một bản dịch sai, vì nó làm mất một bản dịch tốt và tốn công dịch lại vô ích.
+6. THIÊN VỊ VỀ PHÍA "HỢP LỆ" KHI SO KHỚP CHƯƠNG: Bạn KHÔNG cần bản dịch phải khớp từng chữ, chỉ cần khớp Ý và NHÂN VẬT/BỐI CẢNH chính giữa gốc và dịch. Nếu bạn CHỈ nghi ngờ mơ hồ, không chắc chắn tuyệt đối, hoặc bản dịch trông có vẻ ổn nhưng bạn không đối chiếu được hết do khác ngôn ngữ — PHẢI trả về isValid=true. Chỉ báo sai chương khi có bằng chứng RÕ RÀNG rằng nội dung dịch nói về tình huống/nhân vật HOÀN TOÀN KHÁC. Quy tắc này không miễn trừ lỗi tên, xưng hô hoặc ngoại ngữ sót được nêu ở mục 10–12.
 7. BÌNH LUẬN KHÁN GIẢ/NGƯỜI CHƠI (弹幕/观众们) LÀ CỐT TRUYỆN, KHÔNG PHẢI LỖI: Nhiều truyện thuộc dạng "nhân vật chính phát trực tiếp trong game" (game/livestream/hệ thống) có xen kẽ NGUYÊN VĂN trong bản GỐC các đoạn bình luận/tên hô của khán giả, người xem, người chơi khác (vd 弹幕, 观众们说, biệt danh do khán giả đặt cho nhân vật chính...). Đây LÀ nội dung truyện thật, KHÔNG phải rác quảng cáo, và KHÔNG phải dấu hiệu bản dịch bịa thêm/lệch chương.
 8. CHƯƠNG CÓ NHIỀU CẢNH/CHUYỂN POV: Một chương gốc hoàn toàn có thể chứa nhiều cảnh khác nhau, chuyển góc nhìn giữa các nhóm nhân vật (vd đoạn giữa chương nhảy sang cảnh phe phái khác đang họp bàn, rồi quay lại nhân vật chính). Đây là cấu trúc truyện BÌNH THƯỜNG, KHÔNG phải dấu hiệu ghép nhầm chương. Vì bạn được xem TOÀN BỘ nội dung (không phải trích đoạn), hãy tìm ĐOẠN KẾT THỰC SỰ (đoạn văn cuối cùng, ngay trước khi hết bản gốc) và đối chiếu đúng đoạn đó — không nhầm với một cảnh ở giữa chương.
 TUYỆT ĐỐI KHÔNG đánh giá tính logic hay sự liền mạch của cốt truyện giữa đoạn đầu và đoạn cuối. Kể cả cốt truyện chuyển cảnh đột ngột ở bản gốc, chỉ cần bản dịch khớp với bản gốc thì vẫn là ĐÚNG.
-9. VĂN PHONG THOÁT Ý/MƯỢT MÀ KHÔNG PHẢI LỖI: Bản dịch được yêu cầu dịch THOÁT Ý, viết lại câu cho mượt mà tự nhiên theo văn phong Việt (không dịch word-by-word bám sát trật tự câu gốc), và có thể chêm nhẹ teencode/tiếng lóng thông dụng khi hợp bối cảnh. Vì vậy bản dịch có thể: đảo trật tự câu/đoạn trong CÙNG một cảnh, gộp hoặc tách câu, đổi cách diễn đạt/thành ngữ, thêm/bớt từ đệm — miễn Ý, NHÂN VẬT, HÀNH ĐỘNG và BỐI CẢNH của đoạn đó vẫn đúng với bản gốc. Đây KHÔNG phải dấu hiệu ghép nhầm chương hay lệch nội dung. CHỈ báo isValid=false khi nội dung nói về tình huống/nhân vật/sự kiện HOÀN TOÀN KHÁC, không phải khi chỉ khác cách diễn đạt.
+9. VĂN PHONG THOÁT Ý/MƯỢT MÀ KHÔNG PHẢI LỖI: Bản dịch có thể đảo trật tự câu trong CÙNG một cảnh, gộp/tách câu, đổi thành ngữ hoặc từ đệm nếu Ý, NHÂN VẬT, HÀNH ĐỘNG và BỐI CẢNH vẫn đúng. Chỉ vì khác cách diễn đạt thì KHÔNG báo sai chương; vẫn phải phát hiện nội dung bị thiếu nhiều, nhầm sang chương khác hoặc các lỗi cụ thể ở mục 10–12.
 
 `;
         const newline = String.fromCharCode(10);
@@ -121,9 +130,10 @@ TUYỆT ĐỐI KHÔNG đánh giá tính logic hay sự liền mạch của cốt
             ].join(newline);
         }
         prompt += [
-            '10. NHẤT QUÁN DÀI HẠN: Nếu bản dịch dùng sai rõ ràng tên riêng, thuật ngữ khóa hoặc cách xưng hô A→B/B→A so với khối quy tắc liên quan, trả isValid=false. Không bắt lỗi khi quy tắc không nêu rõ cặp nhân vật/giai đoạn.',
+            '10. NHẤT QUÁN DÀI HẠN: Đối chiếu tên riêng, thuật ngữ và cách xưng hô A→B/B→A với quy tắc theo đúng giai đoạn truyện. Chỉ trả isValid=false khi bản dịch thực sự dùng sai một dạng khác; thiếu tên chuẩn do dùng đại từ hợp lý KHÔNG phải lỗi. Nếu quy tắc mâu thuẫn/không rõ, không tự đoán.',
             '11. SÓT NGÔN NGỮ: Nếu bản dịch còn nguyên câu/đoạn Convert, Trung, Nhật, Hàn, Thái, Cyrillic hoặc tiếng Anh không phải tên riêng/thuật ngữ được phép, trả isValid=false. Một từ vay mượn thông dụng đơn lẻ không phải lỗi.',
             '12. Khi lỗi chỉ nằm ở xưng hô/thuật ngữ/ngôn ngữ sót, reason phải nêu đúng loại lỗi và cụm vi phạm để hệ thống sửa lại có mục tiêu.',
+            '13. THIẾU/SAI NỘI DUNG: Nếu một cảnh, hành động quan trọng hoặc phần cuối chương biến mất hay bị thay bằng sự kiện khác, trả isValid=false và nêu bằng chứng cụ thể. Không đánh trượt chỉ vì bản dịch đã bỏ quảng cáo và lời tác giả ngoài truyện.',
             '',
             '',
         ].join(newline);
@@ -137,10 +147,13 @@ TUYỆT ĐỐI KHÔNG đánh giá tính logic hay sự liền mạch của cốt
             safeContent = safeContent.replace(/([1-9]\d*)0000(?!\d)/g, '$1万');
             safeContent = removeJunkForValidation(safeContent);
             const safeTarget = removeJunkForValidation(targetContent);
+            const dictionarySection = consistencyContext.match(/\[TỪ ĐIỂN TÊN VÀ THUẬT NGỮ\]\n([\s\S]*?)(?=\n\n\[BỐI CẢNH|$)/)?.[1] || '';
+            const termChecklist = buildRelevantTermChecklist(dictionarySection, safeContent, safeTarget);
 
             const fitsFullSend = safeContent.length <= FULL_SEND_SRC_CAP && safeTarget.length <= FULL_SEND_TGT_CAP;
 
             prompt += `--- FILE ID: ${f.id} ---\n`;
+            if (termChecklist) prompt += `[TÊN/THUẬT NGỮ CẦN ĐỐI CHIẾU — KHÔNG TỰ ĐỘNG COI THIẾU LÀ LỖI]:\n${termChecklist}\n\n`;
             if (fitsFullSend) {
                 // Trường hợp bình thường (đại đa số): gửi NGUYÊN VĂN, không đoán cửa sổ.
                 prompt += `[GỐC - TOÀN BỘ]:\n${safeContent.trim()}\n\n`;
@@ -224,9 +237,15 @@ TUYỆT ĐỐI KHÔNG đánh giá tính logic hay sự liền mạch của cốt
                 return;
             }
 
-            if (parsed && parsed.validations) {
-                Object.keys(parsed.validations).forEach(key => {
-                    targetMap.set(key, parsed.validations[key]);
+            if (parsed && parsed.validations && typeof parsed.validations === 'object') {
+                chunkFiles.forEach(file => {
+                    const verdict = parsed.validations[file.id];
+                    if (verdict && typeof verdict.isValid === 'boolean') {
+                        targetMap.set(file.id, {
+                            isValid: verdict.isValid,
+                            reason: typeof verdict.reason === 'string' ? verdict.reason : undefined,
+                        });
+                    }
                 });
             }
         } catch(e: any) {

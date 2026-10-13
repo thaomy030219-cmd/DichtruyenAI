@@ -14,6 +14,7 @@ import { performAggregatedRepair, GlobalRepairEntry } from './repair';
 import { getRescueTarget } from './rescueTarget';
 import { DEFAULT_OPENROUTER_MODEL, sanitizeOpenRouterModels } from '../../../constants/openrouterModels';
 import { assertModelBatchCapacity } from '../../../utils/modelBatchLimits';
+import { buildReviewConsistencyContext } from './reviewContext';
 
 export const translateBatchStream = async (
     files: { id: string, content: string, name?: string, fileRetryCount?: number, errorMessage?: string }[],
@@ -293,7 +294,7 @@ CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startT
             }
         }
 
-        const fullPrompt = `[DICT]\n${localRelDict}\n[CTX]\n${localRelCtx}\n[PREV]\n${localRelPrevCtx}\n[INSTRUCT]\n${instruction}\n[DATA]\n${currentInput}\n\n=========================================\n[FINAL REMINDER / LỜI NHẮC CUỐI]:\n1. You MUST output exactly ${files.length} parts.\n2. Each part MUST start with ${startTagMock} and end with ${endTagMock}.\n3. DO NOT FORGET OR TRANSLATE THE TAGS.\n4. CRITICAL: NO CROSS-CONTAMINATION. Make sure the translated content strictly matches its original source tag. Do not mix chapters together.`;
+        const fullPrompt = `[DICT]\n${localRelDict}\n[CTX]\n${localRelCtx}\n[PREV]\n${localRelPrevCtx}\n[INSTRUCT]\n${instruction}\n[DATA]\n${currentInput}\n\n=========================================\n[FINAL REMINDER / LỜI NHẮC CUỐI]:\n1. You MUST output exactly ${files.length} parts.\n2. Each part MUST start with ${startTagMock} and end with ${endTagMock}.\n3. DO NOT FORGET OR TRANSLATE THE TAGS.\n4. CRITICAL: NO CROSS-CONTAMINATION. Make sure the translated content strictly matches its original source tag. Do not mix chapters together.\n5. Giữ đúng tên và thuật ngữ trong [DICT], xưng hô và giai đoạn quan hệ trong [CTX]; [PREV] chỉ giúp nối mạch, không ghi đè quy tắc đã chốt.\n6. Không để sót câu raw hoặc tự chuyển sang tiếng Anh/ngôn ngữ khác trong bản dịch tiếng Việt (trừ tên riêng và thuật ngữ được giữ nguyên).`;
         
         // Add timeout for the initial connection
         let connectionTimeoutId: NodeJS.Timeout | undefined;
@@ -775,6 +776,34 @@ CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startT
             }
         });
 
+        // Repair foreign-language residue before AI review. Otherwise the reviewer
+        // rejects a whole chapter for a line the targeted repair can fix cheaply.
+        const preReviewBad: GlobalRepairEntry[] = [];
+        results.forEach((content, id) => {
+            if (!flaggedStaleIds.has(id)) {
+                findLinesWithForeignChars(content).forEach(line => preReviewBad.push({
+                    fileId: id, lineIndex: line.index, originalLine: line.originalLine,
+                }));
+            }
+        });
+        if (preReviewBad.length > 0) {
+            try {
+                onLog?.(`🛠️ Sửa ${preReviewBad.length} dòng raw/ngoại ngữ trước hậu kiểm AI...`);
+                const repairModels = mid.startsWith('openrouter:') ? [mid] : enabledModels;
+                const repaired = await performAggregatedRepair(preReviewBad, localRelDict, tier, localRelCtx, storyInfo, userPrompt, onLog, repairModels, undefined, shouldAbort, 'auto_fix', openRouterKey);
+                repaired.forEach((lines, id) => {
+                    const current = results.get(id);
+                    if (!current) return;
+                    const source = files.find(file => file.id === id);
+                    const updated = formatBookStyle(mergeFixedLines(current, Array.from(lines.entries()).map(([index, text]) => ({ index, text }))), source?.content, storyInfo?.enableTitleFormatting !== false);
+                    results.set(id, updated);
+                    onUpdate(id, updated);
+                });
+            } catch (error) {
+                onLog?.(`⚠️ Sửa raw trước hậu kiểm chưa thành công: ${error instanceof Error ? error.message : String(error)}`);
+            }
+        }
+
         // Tích hợp kiểm tra AI (Tier 2) - Chỉ áp dụng cho các file đã qua được vòng 1
         const aiValidationResults = await validateBatchWithAI(
             files.filter(f => results.has(f.id) && !flaggedStaleIds.has(f.id)),
@@ -783,7 +812,7 @@ CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startT
             onLog,
             openRouterKey,
             mid,
-            [localRelPrevCtx, localRelCtx, localRelDict].filter(Boolean).join('\n\n')
+            buildReviewConsistencyContext(localRelDict, localRelCtx, localRelPrevCtx, combined)
         );
 
         aiValidationResults.forEach((val, id) => {

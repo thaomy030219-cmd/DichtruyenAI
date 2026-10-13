@@ -1,5 +1,4 @@
 export const DEEP_ANALYSIS_CHUNK_MODELS = [
-    'gemini-3.7-flash',
     'gemini-3.8-flash',
     'gemini-3.5-flash',
     'gemini-3-flash-preview',
@@ -7,7 +6,6 @@ export const DEEP_ANALYSIS_CHUNK_MODELS = [
 
 export const DEEP_ANALYSIS_SYNTHESIS_MODELS = [
     'gemini-3.8-flash',
-    'gemini-3.7-flash',
     'gemini-3.1-pro-preview',
 ] as const;
 

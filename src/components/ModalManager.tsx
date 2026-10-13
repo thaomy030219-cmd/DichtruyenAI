@@ -6,13 +6,14 @@ import {
     ChangelogModal, LogModal
 } from '../components/modals';
 import { SplitterModal } from './SplitterModal';
-import { EditorModal } from './EditorModal';
-import { PromptDesignerModal } from './PromptDesignerModal';
 import { ZipActionModal } from './ZipActionModal';
-import { EpubPreviewModal } from './EpubPreviewModal';
 import { AutomationModal } from './AutomationModal'; // Imported
 import { StoryInfo, FileItem, TranslationTier, LogEntry, AutomationConfig } from '../types';
 import { Zap, Activity, Sparkles, RefreshCw } from 'lucide-react';
+
+const EditorModal = React.lazy(() => import('./EditorModal').then(module => ({ default: module.EditorModal })));
+const PromptDesignerModal = React.lazy(() => import('./PromptDesignerModal').then(module => ({ default: module.PromptDesignerModal })));
+const EpubPreviewModal = React.lazy(() => import('./EpubPreviewModal').then(module => ({ default: module.EpubPreviewModal })));
 
 interface ModalManagerProps {
     // ... (Existing props)
@@ -199,8 +200,8 @@ export const ModalManager: React.FC<ModalManagerProps> = (props) => {
             <SmartStartModal key={props.showSmartStartModal ? 'smart-start-open' : 'smart-start-closed'} isOpen={props.showSmartStartModal} onClose={() => props.setShowSmartStartModal(false)} onConfirm={props.handleSmartStartRun} onSkip={props.handleSkipSmartStart} storyInfo={props.storyInfo} setStoryInfo={props.setStoryInfo} autoOptimize={props.autoOptimizePrompt} setAutoOptimize={props.setAutoOptimizePrompt} step={props.smartStartStep} />
             <ChangelogModal isOpen={props.showChangelog} onClose={() => props.setShowChangelog(false)} />
             <LogModal isOpen={props.showLogs} onClose={() => props.setShowLogs(false)} logs={props.systemLogs} clearLogs={props.clearLogs} />
-            <EpubPreviewModal key={props.showEpubModal ? 'epub-preview-open' : 'epub-preview-closed'} isOpen={props.showEpubModal} onClose={() => props.setShowEpubModal(false)} onConfirm={props.handleEpubConfirm} storyInfo={props.storyInfo} coverImage={props.coverImage} totalFiles={props.files.length} />
-            <PromptDesignerModal 
+            {props.showEpubModal && <React.Suspense fallback={null}><EpubPreviewModal key="epub-preview-open" isOpen={props.showEpubModal} onClose={() => props.setShowEpubModal(false)} onConfirm={props.handleEpubConfirm} storyInfo={props.storyInfo} coverImage={props.coverImage} totalFiles={props.files.length} /></React.Suspense>}
+            {props.showPromptDesigner && <React.Suspense fallback={null}><PromptDesignerModal
                 key={props.showPromptDesigner ? 'prompt-designer-open' : 'prompt-designer-closed'} 
                 isOpen={props.showPromptDesigner} 
                 onClose={() => {
@@ -214,7 +215,7 @@ export const ModalManager: React.FC<ModalManagerProps> = (props) => {
                 setStoryInfo={props.setStoryInfo} 
                 isOptimizing={props.isOptimizingPrompt} 
                 handleRefineAdditionalRules={props.handleRefineAdditionalRules}
-            />
+            /></React.Suspense>}
             
             {/* NEW AUTOMATION MODAL */}
             <AutomationModal 
@@ -271,7 +272,7 @@ export const ModalManager: React.FC<ModalManagerProps> = (props) => {
             )}
 
             {props.editingFileId && editingFile && (
-                <EditorModal file={editingFile} onClose={() => props.setEditingFileId(null)} onSave={props.saveEditor} onSaveAndNext={handleSaveAndNext} onSaveAndPrev={handleSaveAndPrev} onNext={handleNext} onPrev={handlePrev} hasNext={hasNext} hasPrev={hasPrev} onAutoSave={props.autoSaveEditor} storyInfoContext={props.storyInfo.contextNotes || ""} dictionary={props.dictionary} promptTemplate={props.promptTemplate} onAddToGlossary={onAddToGlossary} onReplaceAll={handleReplaceAllInEditor} addToast={props.addToast} />
+                <React.Suspense fallback={null}><EditorModal file={editingFile} onClose={() => props.setEditingFileId(null)} onSave={props.saveEditor} onSaveAndNext={handleSaveAndNext} onSaveAndPrev={handleSaveAndPrev} hasNext={hasNext} hasPrev={hasPrev} onNext={handleNext} onPrev={handlePrev} onAutoSave={props.autoSaveEditor} storyInfoContext={props.storyInfo.contextNotes || ""} dictionary={props.dictionary} promptTemplate={props.promptTemplate} onAddToGlossary={onAddToGlossary} onReplaceAll={handleReplaceAllInEditor} addToast={props.addToast} /></React.Suspense>
             )}
         </>
     );

@@ -18,7 +18,6 @@ describe('model role routing', () => {
         expect(getEffectiveModelsForTier('pro', 'translate', enabled)).toEqual([
             'gemini-3.1-pro-preview',
             'gemini-3.8-flash',
-            'gemini-3.7-flash',
             'gemini-3-flash-preview',
         ]);
     });
