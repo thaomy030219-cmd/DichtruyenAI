@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FileText, X } from 'lucide-react';
 
 export interface LoadingModalProps {
@@ -13,31 +13,19 @@ export interface LoadingModalProps {
 }
 
 export const LoadingModal: React.FC<LoadingModalProps> = ({ isOpen, progress, onCancel, onMinimize, stallWarningMs = 20000 }) => {
-    const [isStalled, setIsStalled] = useState(false);
-    const lastSignatureRef = useRef<string>('');
-    const stallTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    const [stalledSignature, setStalledSignature] = useState<string | null>(null);
+    const signature = `${progress.current}/${progress.total}/${progress.message}`;
 
     // Phát hiện tình trạng "treo": nếu current/message không thay đổi trong stallWarningMs,
     // hiển thị gợi ý cho người dùng biết có thể hủy thay vì chỉ chờ vô thời hạn.
     useEffect(() => {
-        if (!isOpen) {
-            setIsStalled(false);
-            if (stallTimerRef.current) clearTimeout(stallTimerRef.current);
-            return;
-        }
-        const signature = `${progress.current}/${progress.total}/${progress.message}`;
-        if (signature !== lastSignatureRef.current) {
-            lastSignatureRef.current = signature;
-            setIsStalled(false);
-            if (stallTimerRef.current) clearTimeout(stallTimerRef.current);
-            stallTimerRef.current = setTimeout(() => setIsStalled(true), stallWarningMs);
-        }
-        return () => {
-            if (stallTimerRef.current) clearTimeout(stallTimerRef.current);
-        };
-    }, [isOpen, progress.current, progress.total, progress.message, stallWarningMs]);
+        if (!isOpen) return;
+        const timer = setTimeout(() => setStalledSignature(signature), stallWarningMs);
+        return () => clearTimeout(timer);
+    }, [isOpen, signature, stallWarningMs]);
 
     if (!isOpen) return null;
+    const isStalled = stalledSignature === signature;
     const percent = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 animate-in fade-in duration-200">

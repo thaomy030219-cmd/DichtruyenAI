@@ -1,10 +1,14 @@
-/* eslint-disable react-hooks/set-state-in-effect */
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Columns, Link2, Replace, Bug, LifeBuoy, Save, X, FileText, Copy, Edit3, Maximize2, Minimize2, Lock, Unlock, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
 import { FileItem } from '../types';
 import { FOREIGN_CHARS_REGEX, optimizeContext, optimizeDictionary, dedupeContextAgainstDictionary } from '../utils/text';
 import { stripTitleAnchor } from '../utils/fileHelpers';
+
+// Scrolling is an imperative DOM operation from user event handlers. Keep it
+// separate from React's render/effect data flow.
+const scrollPanelTo = (element: HTMLElement | null, top: number) => {
+    if (element) element.scrollTop = top;
+};
 
 interface EditorModalProps {
     file: FileItem;
@@ -166,8 +170,8 @@ export const EditorModal: React.FC<EditorModalProps> = ({
             const targetSpan = spans[charIndex] as HTMLElement;
             if (targetSpan) {
                 const top = targetSpan.offsetTop;
-                editPanelRef.current.scrollTop = top - 100;
-                highlightOverlayRef.current.scrollTop = top - 100;
+                scrollPanelTo(editPanelRef.current, top - 100);
+                scrollPanelTo(highlightOverlayRef.current, top - 100);
                 
                 editPanelRef.current.focus();
                 editPanelRef.current.setSelectionRange(charIndex, charIndex + 1);
@@ -199,11 +203,11 @@ export const EditorModal: React.FC<EditorModalProps> = ({
         if (isLeft) {
             if (isSyncingLeft.current) { isSyncingLeft.current = false; return; }
             isSyncingRight.current = true;
-            target.scrollTop = percentage * (target.scrollHeight - target.clientHeight);
+            scrollPanelTo(target, percentage * (target.scrollHeight - target.clientHeight));
         } else {
             if (isSyncingRight.current) { isSyncingRight.current = false; return; }
             isSyncingLeft.current = true;
-            target.scrollTop = percentage * (target.scrollHeight - target.clientHeight);
+            scrollPanelTo(target, percentage * (target.scrollHeight - target.clientHeight));
             if (overlay) { overlay.scrollTop = source.scrollTop; }
         }
     };

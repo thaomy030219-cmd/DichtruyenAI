@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-    Cpu, RefreshCw, Zap, Clock, Timer, CheckCircle, HelpCircle, 
+    RefreshCw, Zap, Clock, Timer, CheckCircle, HelpCircle,
     Terminal, FileText, Loader2, AlertCircle, Settings,
     Activity, Moon, Sun, ChevronUp, ChevronDown, 
     Scale, HardDrive, Maximize, Minimize,
@@ -51,18 +51,19 @@ const CustomNumberInput = ({ value, onChange, className = "", step = 1, min, max
     // âm thầm biến nó thành rỗng.
     const toDisplayStr = (v: any) => (v === '' || v === undefined || v === null || Number.isNaN(v)) ? '' : String(v);
     const [localValue, setLocalValue] = React.useState<string>(toDisplayStr(value));
+    const [previousValue, setPreviousValue] = React.useState(value);
 
-    // Đồng bộ lại từ prop khi giá trị thay đổi từ bên ngoài (vd bấm nút tăng/giảm,
-    // load lại cấu hình...), nhưng không ghi đè khi người dùng đang gõ dở một chuỗi
-    // mà về mặt số học là tương đương (vd đang gõ "6." trong khi prop value = 6).
-    React.useEffect(() => {
+    // Adjust the draft only when the external value really changes. React
+    // re-renders this component immediately; no effect-driven extra render is
+    // needed, and an in-progress value such as "6." remains intact.
+    if (!Object.is(value, previousValue)) {
+        setPreviousValue(value);
         setLocalValue(prev => {
             const prevNum = parseFloat(prev);
             if (prev !== '' && !Number.isNaN(prevNum) && prevNum === value) return prev;
             return toDisplayStr(value);
         });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [value]);
+    }
 
     const commit = (raw: string) => {
         if (raw === '' || raw === '-' || raw === '.') {

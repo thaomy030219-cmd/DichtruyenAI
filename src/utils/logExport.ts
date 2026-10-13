@@ -58,7 +58,7 @@ export function downloadTextFile(content: string, filenamePrefix: string): void 
         a.click();
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (e) {
+    } catch {
         // Nếu Blob/download bị chặn (hiếm gặp) - fallback mở tab mới hiển thị nội dung thô để
         // người dùng tự copy, còn hơn là im lặng thất bại không xuất được gì.
         try {

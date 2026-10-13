@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { Play, CheckSquare, Square, X, Settings, Zap, ShieldAlert, PauseCircle, Minimize2, StopCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState } from 'react';
+import { Play, CheckSquare, Square, X, Settings, Zap, ShieldAlert, PauseCircle, Minimize2, StopCircle } from 'lucide-react';
 import { TranslationTier, AutomationConfig } from '../types';
 
 interface AutomationModalProps {
@@ -28,15 +28,8 @@ export const AutomationModal: React.FC<AutomationModalProps> = ({
     const [isMinimized, setIsMinimized]     = useState(false);
     const [prevIsRunning, setPrevIsRunning] = useState(isRunning);
 
-    // Sync from shared state when modal opens
-    useEffect(() => {
-        if (isOpen && !isRunning) {
-            setSelectedSteps(prev => JSON.stringify(prev) !== JSON.stringify(initialConfig.steps) ? initialConfig.steps : prev);
-            setRules(prev => prev !== (initialConfig.rules || "") ? (initialConfig.rules || "") : prev);
-            setTier(prev => prev !== initialConfig.tier ? initialConfig.tier : prev);
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOpen, initialConfig, isRunning]);
+    // ModalManager remounts this component when the modal opens, so the local
+    // draft starts from initialConfig without overwriting edits during a render.
 
     if (isRunning !== prevIsRunning) {
         setPrevIsRunning(isRunning);
