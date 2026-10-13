@@ -7,6 +7,8 @@ import {
 import { FileItem, FileStatus, StoryInfo, RatioLimits } from '../types';
 import { validateTranslationIntegrity, BATCH_MISSING_TAG_WARNING } from '../utils/text';
 import FileCard from './FileCard';
+import { DEFAULT_DICTIONARY } from '../constants';
+import { currentQaStatus } from '../services/workflows/translate/qaState';
 
 interface WorkspacePageProps {
     files: FileItem[];
@@ -70,18 +72,23 @@ interface WorkspacePageProps {
     
     // Story Info & Ratio Limits
     storyInfo: StoryInfo;
+    additionalDictionary: string;
     ratioLimits: RatioLimits; // Injected
 }
 
 export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
     const [displayLimit, setDisplayLimit] = useState(300);
+    const qaStatuses = useMemo(() => new Map(props.files.map((file, index) => [file.id,
+        currentQaStatus(file, `${DEFAULT_DICTIONARY}\n${props.additionalDictionary || ''}`, props.storyInfo, index + 1)])),
+        [props.files, props.additionalDictionary, props.storyInfo]);
     
     // --- REAL-TIME STATS CALCULATION (ENHANCED) ---
     const counts = useMemo(() => {
         return {
             selected: props.selectedFiles.size,
             pending: props.files.filter(f => f.status === FileStatus.IDLE).length,
-            completed: props.files.filter(f => f.status === FileStatus.COMPLETED && f.remainingRawCharCount === 0).length,
+            completed: props.files.filter(f => f.status === FileStatus.COMPLETED && f.remainingRawCharCount === 0 && (!qaStatuses.get(f.id) || qaStatuses.get(f.id) === 'PASS')).length,
+            qaPending: props.files.filter(f => f.translatedContent && qaStatuses.get(f.id) && qaStatuses.get(f.id) !== 'PASS').length,
             raw: props.files.filter(f => f.status === FileStatus.COMPLETED && f.remainingRawCharCount > 0).length,
             error: props.files.filter(f => f.status === FileStatus.ERROR && !f.errorMessage?.includes("English")).length,
             english: props.files.filter(f => f.status === FileStatus.ERROR && f.errorMessage?.includes("English")).length,
@@ -123,7 +130,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
             mManual: props.files.filter(f => f.usedModel?.includes('Thủ công')).length,
             mOther: props.files.filter(f => f.status === FileStatus.COMPLETED && (!f.usedModel || (!f.usedModel.includes('gemini-3.1-pro') && !f.usedModel.includes('gemini-3.7-flash') && !f.usedModel.includes('gemini-3.5-flash') && !f.usedModel.includes('gemini-3.1-flash') && !f.usedModel.includes('gemini-3-flash') && !f.usedModel.includes('openrouter:') && !f.usedModel.includes('Thủ công')))).length,
         };
-    }, [props.files, props.selectedFiles, props.ratioLimits, props.storyInfo.languages]);
+    }, [props.files, props.selectedFiles, props.ratioLimits, props.storyInfo.languages, qaStatuses]);
 
     const renderFilterBadge = (label: string, count: number, active: boolean, onClick: () => void, colorClass: string, icon?: React.ReactNode) => (
         <button 
@@ -154,7 +161,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
                     const isError = f.status === FileStatus.ERROR;
                     const isEnglishError = isError && f.errorMessage?.includes("English");
                     const isRaw = isCompleted && f.remainingRawCharCount > 0;
-                    const isClean = isCompleted && f.remainingRawCharCount === 0;
+                    const isClean = isCompleted && f.remainingRawCharCount === 0 && (!qaStatuses.get(f.id) || qaStatuses.get(f.id) === 'PASS');
                     const isProcessing = f.status === FileStatus.PROCESSING || f.status === FileStatus.REPAIRING;
                     const isPending = f.status === FileStatus.IDLE;
                     const isShort = f.content.length < 1200;
@@ -186,6 +193,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
 
                     const matchesStandardStatus = ( 
                         (props.filterStatuses.has('completed') && isClean) || 
+                        (props.filterStatuses.has('qa_pending') && !!qaStatuses.get(f.id) && qaStatuses.get(f.id) !== 'PASS') ||
                         (props.filterStatuses.has('raw') && isRaw) || 
                         isErrorFilterMatch || 
                         (props.filterStatuses.has('english') && isEnglishError) || 
@@ -222,7 +230,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
             });
         }
         return filtered;
-    }, [props.files, props.filterStatuses, props.filterModels, props.selectedFiles, props.ratioLimits, props.storyInfo.languages]);
+    }, [props.files, props.filterStatuses, props.filterModels, props.selectedFiles, props.ratioLimits, props.storyInfo.languages, qaStatuses]);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -321,6 +329,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
                                 {renderFilterBadge("Đã chọn", counts.selected, props.filterStatuses.has('selected'), () => props.toggleFilterStatus('selected'), 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-800')}
                                 {renderFilterBadge("Chưa dịch", counts.pending, props.filterStatuses.has('pending'), () => props.toggleFilterStatus('pending'), 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600')}
                                 {renderFilterBadge("Hoàn thành", counts.completed, props.filterStatuses.has('completed'), () => props.toggleFilterStatus('completed'), 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800')}
+                                {renderFilterBadge("Chờ hậu kiểm", counts.qaPending, props.filterStatuses.has('qa_pending'), () => props.toggleFilterStatus('qa_pending'), 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800', <ShieldCheck className="w-3.5 h-3.5" />)}
                                 {renderFilterBadge("Còn Raw", counts.raw, props.filterStatuses.has('raw'), () => props.toggleFilterStatus('raw'), 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800')}
                                 {renderFilterBadge("Lỗi Gộp Chương", counts.merged, props.filterStatuses.has('merged'), () => props.toggleFilterStatus('merged'), 'bg-fuchsia-200 dark:bg-fuchsia-900 text-fuchsia-800 dark:text-fuchsia-200 border-fuchsia-300 dark:border-fuchsia-800', <Layers className="w-3.5 h-3.5" />)}
                                 {renderFilterBadge("Tỉ lệ Ảo/Lệch", counts.lowRatio, props.filterStatuses.has('low_ratio'), () => {
@@ -410,6 +419,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
                             <FileCard 
                                 key={file.id}
                                 file={file}
+                                qaStatus={qaStatuses.get(file.id)}
                                 isSelected={props.selectedFiles.has(file.id)}
                                 storyInfo={props.storyInfo}
                                 ratioLimits={props.ratioLimits}

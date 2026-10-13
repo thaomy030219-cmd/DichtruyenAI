@@ -11,6 +11,7 @@
 import { useCustomErrorFix } from './smartFix/customErrorFix';
 import { useSmartFixCore } from './smartFix/smartFixCore';
 import { useManualFix } from './smartFix/manualFix';
+import { createQualityReviewHandlers } from './smartFix/qualityReview';
 
 export const useSmartFix = (
     core: any,
@@ -20,10 +21,12 @@ export const useSmartFix = (
     const customErrorFix = useCustomErrorFix(core, ui, sharedState);
     const smartFixCore = useSmartFixCore(core, ui, sharedState);
     const manualFix = useManualFix(core, ui, sharedState);
+    const qualityReview = createQualityReviewHandlers(core, ui, sharedState);
 
     return {
         ...customErrorFix,
         ...smartFixCore,
         ...manualFix,
+        ...qualityReview,
     };
 };

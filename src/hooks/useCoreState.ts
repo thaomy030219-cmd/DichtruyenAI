@@ -9,6 +9,8 @@ import { quotaManager } from '../utils/quotaManager';
 import { base64ToFile, fileToBase64 } from '../utils/fileHelpers';
 import { createSafeSetter } from './coreState/createSafeSetter';
 import { DEFAULT_OPENROUTER_MODEL, sanitizeOpenRouterModels } from '../constants/openrouterModels';
+import { clearTranslationMemory } from '../utils/text/translationMemory';
+import { recoverInterruptedQaFiles } from '../services/workflows/translate/deferredQaScheduler';
 
 const STORAGE_KEY = 'current_session_v1';
 
@@ -165,7 +167,7 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
         try {
             const data = await loadFromStorage(STORAGE_KEY);
             if (data) {
-                if (data.files) setFilesSafe(data.files);
+                if (data.files) setFilesSafe(recoverInterruptedQaFiles(data.files));
                 if (data.promptTemplate) setPromptTemplateSafe(data.promptTemplate);
                 if (data.storyInfo) {
                     const mergeArrays = (arr: any, fallback: any[]) => Array.isArray(arr) ? arr : fallback;
@@ -456,6 +458,7 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
         await new Promise(r => setTimeout(r, 50));
         try {
             await clearDatabase();
+            await clearTranslationMemory().catch(error => console.warn('Không xóa được bộ nhớ bản dịch:', error));
             try { localStorage.clear(); } catch {}
             quotaManager.reset();
             setFilesSafe([]);

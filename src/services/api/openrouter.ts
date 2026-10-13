@@ -249,7 +249,8 @@ export const fetchOpenRouter = async (
     systemInstruction: string,
     prompt: string,
     jsonMode = false,
-    onModelInfo?: (model: string) => void
+    onModelInfo?: (model: string) => void,
+    signal?: AbortSignal
 ): Promise<string> => {
     openRouterKeyManager.syncKeys(apiKeyStr);
     
@@ -293,7 +294,7 @@ export const fetchOpenRouter = async (
     }
 
     let lastError: Error | null = null;
-    const maxRetries = 7;
+    const maxRetries = signal ? 1 : 7;
     let attempt = 0;
 
     while (attempt < maxRetries) {
@@ -305,7 +306,8 @@ export const fetchOpenRouter = async (
                     "Authorization": `Bearer ${currentKey}`,
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
+                signal
             });
 
             if (!response.ok) {
@@ -321,6 +323,7 @@ export const fetchOpenRouter = async (
             openRouterKeyManager.reportSuccess();
             return data.choices?.[0]?.message?.content || "";
         } catch (error: any) {
+            if (signal?.aborted) throw error;
             lastError = error;
             openRouterKeyManager.reportError(error.message);
             attempt++;

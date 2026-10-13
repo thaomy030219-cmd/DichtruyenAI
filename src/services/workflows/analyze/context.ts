@@ -7,6 +7,7 @@ import { cleanRepetitiveContent, extractPotentialEntities } from '../../../utils
 import { getSmartSampledFiles } from '../../../utils/fileHelpers';
 import { GLOSSARY_ANALYSIS_PROMPT, MERGE_CONTEXT_PROMPT } from '../../../constants';
 import { DEEP_ANALYSIS_SYNTHESIS_MODELS, selectAnalysisModels } from './modelRouting';
+import { CONSISTENCY_EXTRACTION_INSTRUCTION } from '../translate/consistencyRules';
 
 export const analyzeContextBatch = async (
     contentChunk: string, storyInfo: StoryInfo, existingDictionary: string, useSearch: boolean = false,
@@ -36,7 +37,7 @@ export const analyzeContextBatch = async (
     const metaHeader = `[METADATA]\n- Tên: ${storyInfo.title}\n- Thể loại: ${storyInfo.genres.join(', ')}\n- Ngôn ngữ truyện: ${storyInfo.languages.join(', ')}\n- CHẾ ĐỘ: ${sourceInstruction}${additionalRules ? `\n- QUY TẮC BỔ SUNG: ${additionalRules}` : ''}${hintSection}`;
 
     return await smartExecution(candidates, async (modelId) => {
-            const config: any = { systemInstruction: GLOSSARY_ANALYSIS_PROMPT, temperature: 0.2, safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 };
+            const config: any = { systemInstruction: GLOSSARY_ANALYSIS_PROMPT + CONSISTENCY_EXTRACTION_INSTRUCTION, temperature: 0.2, safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 };
             if (useSearch && (modelId.includes('gemini-3.1-pro') || modelId.includes('gemini-3-pro'))) config.tools = [{googleSearch: {}}];
             const response = await ai.models.generateContent({ model: modelId, contents: `${metaHeader}\n${contentChunk}`, config });
             
@@ -71,7 +72,7 @@ export const mergeContexts = async (
                 const response = await getAiClient().models.generateContent({
                     model: modelId,
                     contents: `[DỮ LIỆU ĐẦU VÀO - GỒM ${contexts.length} PHẦN]\n${contexts.join("\n\n=== HẾT PHẦN ===\n\n")}${pronounOverride ? `\n\n${pronounOverride}` : ''}`,
-                    config: { systemInstruction: MERGE_CONTEXT_PROMPT, temperature: 0.2, safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }
+                    config: { systemInstruction: MERGE_CONTEXT_PROMPT + CONSISTENCY_EXTRACTION_INSTRUCTION, temperature: 0.2, safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }
                 });
                    
                 if (response.candidates?.[0]?.finishReason === 'SAFETY' || response.candidates?.[0]?.finishReason === 'BLOCKLIST' || response.candidates?.[0]?.finishReason === 'PROHIBITED_CONTENT' || response.candidates?.[0]?.finishReason === 'OTHER' || response.candidates?.[0]?.finishReason === 'RECITATION' || response.candidates?.[0]?.finishReason === 'SPII') {
@@ -92,7 +93,7 @@ export const mergeContexts = async (
                 const response = await getAiClient().models.generateContent({
                     model: modelId,
                     contents: `[DỮ LIỆU ĐẦU VÀO - GỒM ${contexts.length} PHẦN]\n${contexts.join("\n\n=== HẾT PHẦN ===\n\n")}\n\nNHIỆM VỤ: TỔNG HỢP THÔ DỮ LIỆU TRÊN. GIỮ NGUYÊN CÁC MỤC QUAN TRỌNG.${pronounOverride ? `\n\n${pronounOverride}` : ''}`,
-                    config: { systemInstruction: MERGE_CONTEXT_PROMPT, temperature: 0.2, safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }
+                    config: { systemInstruction: MERGE_CONTEXT_PROMPT + CONSISTENCY_EXTRACTION_INSTRUCTION, temperature: 0.2, safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }
                 });
                    
                 if (response.candidates?.[0]?.finishReason === 'SAFETY' || response.candidates?.[0]?.finishReason === 'BLOCKLIST' || response.candidates?.[0]?.finishReason === 'PROHIBITED_CONTENT' || response.candidates?.[0]?.finishReason === 'OTHER' || response.candidates?.[0]?.finishReason === 'RECITATION' || response.candidates?.[0]?.finishReason === 'SPII') {

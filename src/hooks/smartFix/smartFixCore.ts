@@ -155,6 +155,7 @@ export const useSmartFixCore = (core: any, ui: any, sharedState: any) => {
         
         const targetFiles = core.files.filter((f: FileItem) => {
             if (hasSelection && !ui.selectedFiles.has(f.id)) return false;
+            if (f.qaStatus && f.qaStatus !== 'CONFIRMED_FAILURE') return false;
             
             const isSuspiciousContentError = f.errorMessage && f.errorMessage.includes('Nghi vấn lỗi nội dung');
             const isSafetyError = f.errorMessage && (f.errorMessage.includes('phân loại riêng') || f.errorMessage.toLowerCase().includes('an toàn') || f.errorMessage.includes('BLOCKLIST') || f.errorMessage.includes('PROHIBITED_CONTENT'));

@@ -19,7 +19,8 @@ export const buildRollingChapterContext = (
     files: FileItem[],
     batchIds: string[],
     chapterLimit = 3,
-    charsPerChapter = 1800
+    charsPerChapter = 1800,
+    isVerified?: (file: FileItem) => boolean,
 ): string => {
     if (files.length === 0 || batchIds.length === 0) return '';
 
@@ -31,7 +32,8 @@ export const buildRollingChapterContext = (
     const firstIndex = Math.min(...batchIndexes);
     const previous = files
         .slice(0, firstIndex)
-        .filter(file => file.status === FileStatus.COMPLETED && !!file.translatedContent)
+        .filter(file => file.status === FileStatus.COMPLETED && !!file.translatedContent && !file.hasStaleTranslation
+            && (!file.qaStatus || file.qaStatus === 'PASS') && (!isVerified || isVerified(file)))
         .slice(-Math.max(1, chapterLimit));
 
     if (previous.length === 0) return '';

@@ -1,10 +1,14 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { FileItem, FileStatus, TranslationTier } from '../types';
 import { translateBatchStream, getEffectiveModelsForTier } from '../geminiService';
 import { BATCH_MISSING_TAG_WARNING, countForeignChars, formatBookStyle, validateTranslationIntegrity, fixMergedTitle, applyInlineEnglishFix, proofreadVietnamese, buildRollingChapterContext } from '../utils/text';
 import { quotaManager } from '../utils/quotaManager';
 import { getRescueTarget, getRescueBudget, getRescueLabel } from '../services/workflows/translate/rescueTarget';
 import { stripTitleAnchor } from '../utils/fileHelpers';
+import { qualityFingerprint, mergeConsistencyRules } from '../services/workflows/translate/consistencyRules';
+import { currentQaStatus } from '../services/workflows/translate/qaState';
+import { scheduleQaOutcome } from '../services/workflows/translate/deferredQaScheduler';
+import { invalidateTranslationMemory } from '../utils/text/translationMemory';
 
 // FIX (starvation hàng chờ): trước đây MỌI tệp lỗi (kể cả tệp vừa bị "cách ly để kiểm tra
 // riêng" hoặc đã xác nhận cần "Bàn giao OpenRouter") đều bị xếp chung xuống TẬN CUỐI
@@ -43,10 +47,11 @@ export const useTranslator = (
         autoFixEnabled, setAutoFixEnabled,
         retryTrigger, setRetryTrigger,
         isFixPhaseRef, scheduledBatchesRef, runIdRef, isProcessingRef,
-        effectiveDictionary, filesRef, isRepairRunningRef
+        effectiveDictionary, filesRef, isRepairRunningRef, qaPausedRef
     } = sharedState;
 
-    const { handleSmartFix, handleFixRemainingRaw } = smartFixFns;
+    const { handleSmartFix, handleFixRemainingRaw, handleQualityReview } = smartFixFns;
+    const finalReviewRunRef = useRef<number | undefined>(undefined);
 
     const processBatch = useCallback(async (batchIds: string[], tier: TranslationTier, myRunId: number) => {
         if (!isProcessing || myRunId !== runIdRef?.current) return;
@@ -69,7 +74,7 @@ export const useTranslator = (
              ui.addLog(`🚀 Bắt đầu dịch Batch gồm ${batchFiles.length} tệp (từ ${firstFileName} đến ${lastFileName})`, 'info');
         }
 
-        const inputs = batchFiles.map(f => ({ id: f.id, content: f.content, name: f.name, fileRetryCount: f.retryCount || 0, errorMessage: f.errorMessage }));
+        const inputs = batchFiles.map(f => ({ id: f.id, content: f.content, name: f.name, chapterIndex: filesRef.current.findIndex((file: FileItem) => file.id === f.id) + 1, fileRetryCount: f.retryCount || 0, errorMessage: f.errorMessage, forceRetranslate: f.forceRetranslate }));
         
         core.setFiles((prev: FileItem[]) => prev.map((f: FileItem) => 
             batchIds.includes(f.id) ? { ...f, status: FileStatus.PROCESSING, usedModel: undefined } : f
@@ -92,7 +97,9 @@ export const useTranslator = (
                 updateTimeout = null;
             };
 
-            const rollingChapterContext = buildRollingChapterContext(core.files, batchIds);
+            const chapterPositions = new Map(core.files.map((file: FileItem, index: number) => [file.id, index + 1]));
+            const rollingChapterContext = buildRollingChapterContext(core.files, batchIds, 3, 1800,
+                file => !file.qaStatus || currentQaStatus(file, effectiveDictionary, core.storyInfo, Number(chapterPositions.get(file.id))) === 'PASS');
 
             const resultsMap = await translateBatchStream(
                 inputs,
@@ -123,7 +130,8 @@ export const useTranslator = (
                 core.stateRef.current.ratioLimits,
                 core.openRouterKey,
                 core.openRouterModel,
-                core.stateRef.current.batchLimits
+                core.stateRef.current.batchLimits,
+                { customDictionary: core.stateRef.current.additionalDictionary || '' }
             );
             
             // Flush any remaining updates
@@ -199,9 +207,14 @@ export const useTranslator = (
             const proofreadResults = new Map<string, Awaited<ReturnType<typeof proofreadVietnamese>>>();
             const protectedSources = [core.additionalDictionary || '', core.storyInfo?.contextNotes || ''];
             await Promise.all(Array.from(resultsMap.results.entries()).map(async ([id, content]) => {
-                if (content) proofreadResults.set(id, await proofreadVietnamese(content, protectedSources));
+                if (content) proofreadResults.set(id, resultsMap.spelling?.get(id) || await proofreadVietnamese(content, protectedSources));
             }));
+            if (myRunId !== runIdRef?.current) return;
+            const newRules = Array.from(resultsMap.reviews?.values() || []).flatMap(review => review.ruleProposals || []);
+            if (newRules.length) core.setStoryInfo((prev: import('../types').StoryInfo) => ({ ...prev,
+                consistencyRules: mergeConsistencyRules(prev.consistencyRules || [], newRules) }));
 
+            const obsoleteMemoryKeys: string[] = [];
             core.setFiles((prev: FileItem[]) => {
                 const newFiles = [...prev];
                 let hasChanges = false;
@@ -212,19 +225,37 @@ export const useTranslator = (
                     const fIndex = newFiles.findIndex(f => f.id === id);
                     if (fIndex !== -1) {
                         const f = newFiles[fIndex];
+                        if (f.content !== inputs.find(input => input.id === id)?.content) {
+                            newFiles[fIndex] = { ...f, status: FileStatus.IDLE, qaStatus: undefined, qaFingerprint: undefined,
+                                errorMessage: 'Nguyên văn đã thay đổi trong lúc dịch; cần xử lý bản mới.' };
+                            hasChanges = true;
+                            return;
+                        }
+                        if (resultsMap.blockedConsistencyIds?.has(id)) {
+                            newFiles[fIndex] = { ...f, status: FileStatus.ERROR, errorMessage: resultsMap.errors?.get(id),
+                                qaStatus: 'SUSPECT', qaReason: resultsMap.errors?.get(id), qaAutoBlocked: true };
+                            hasChanges = true;
+                            return;
+                        }
 
                         // Hậu kiểm (Tier 1/2 - validateBatch/validateBatchWithAI) đã nghi vấn bản dịch
                         // này, nhưng KHÔNG xoá nội dung dịch được nữa - giữ lại để xem xét, gắn cờ lỗi,
                         // và đẩy xuống cuối hàng chờ (qua ratioErrorFiles bên dưới). Bản dịch nghi vấn
                         // này sẽ tự động bị ghi đè khi lần dịch lại kế tiếp thành công.
                         if (flaggedStaleIds.has(id) && resultsMap.results.has(id)) {
+                            if (f.translationMemoryKey) obsoleteMemoryKeys.push(f.translationMemoryKey);
                             const staleContent = resultsMap.results.get(id) || f.translatedContent;
                             const specificErr = (resultsMap as any).errors?.get(id) || "Nghi vấn lỗi nội dung (hậu kiểm)";
+                            const review = resultsMap.reviews?.get(id);
+                            const qaMetadata = { qaStatus: review?.status, qaReason: review?.reason, qaFindings: review?.findings,
+                                qaFingerprint: review ? qualityFingerprint(f.content, staleContent || '', resultsMap.reviewContexts?.get(id) || '') : undefined,
+                                usedModel: resultsMap.model, translationMemoryKey: undefined, translationMemoryHit: false };
                             ratioErrorFiles.push(f.name);
                             const maxRetries = isFixPhaseRef?.current ? 1 : 2;
                             if ((f.retryCount || 0) < maxRetries) {
                                 newFiles[fIndex] = {
                                     ...f,
+                                    ...qaMetadata,
                                     status: FileStatus.IDLE,
                                     translatedContent: staleContent,
                                     hasStaleTranslation: true,
@@ -235,6 +266,7 @@ export const useTranslator = (
                             } else {
                                 newFiles[fIndex] = {
                                     ...f,
+                                    ...qaMetadata,
                                     status: FileStatus.ERROR,
                                     translatedContent: staleContent,
                                     hasStaleTranslation: true,
@@ -250,7 +282,9 @@ export const useTranslator = (
                             const resultText = resultsMap.results.get(id);
                             if (resultText) {
                                 const proofread = proofreadResults.get(id);
-                                const finalContent = proofread?.text || resultText;
+                                // The stream's spelling pass ran before QA. Preserve any
+                                // subsequent verified targeted repair instead of its old text.
+                                const finalContent = resultsMap.spelling?.has(id) ? resultText : (proofread?.text || resultText);
                                 const fixedContent = fixMergedTitle(finalContent);
                                 const cleanContent = applyInlineEnglishFix(formatBookStyle(fixedContent, f.content, core.storyInfo?.enableTitleFormatting !== false, core.storyInfo?.titleFormat, core.storyInfo?.enableAutoFormat !== false));
                                 const remainingRaw = countForeignChars(cleanContent);
@@ -261,7 +295,17 @@ export const useTranslator = (
                                 let errorMessage: string | undefined = undefined;
                                 let ratioWarning: string | undefined = undefined;
                                 
-                                if (!integrity.isValid) {
+                                const review = resultsMap.reviews?.get(id);
+                                const reviewRules = resultsMap.reviewContexts?.get(id) || '';
+                                const reviewedTarget = resultsMap.results.get(id);
+                                const memoryVerified = review?.status === 'PASS' && reviewedTarget === cleanContent;
+                                if (!memoryVerified) {
+                                    const oldKey = resultsMap.memoryKeys?.get(id) || f.translationMemoryKey;
+                                    if (oldKey) obsoleteMemoryKeys.push(oldKey);
+                                }
+                                // A ratio heuristic cannot override a full AI PASS or
+                                // turn an unavailable reviewer into a translation retry.
+                                if (!integrity.isValid && !review) {
                                     ratioErrorFiles.push(f.name);
                                     const maxRetries = isFixPhaseRef?.current ? 1 : 2;
                                     if ((f.retryCount || 0) < maxRetries) {
@@ -291,14 +335,22 @@ export const useTranslator = (
                                     remainingRawCharCount: remainingRaw,
                                     spellingCorrectionCount: proofread?.correctedCount || 0,
                                     spellingSuspicionCount: proofread?.suspiciousCount || 0,
-                                    usedModel: resultsMap.model,
+                                    usedModel: resultsMap.models?.get(id) || resultsMap.model,
                                     errorMessage: errorMessage,
                                     processingDuration: processingDuration,
                                     retryCount: status === FileStatus.IDLE ? (f.retryCount || 0) + 1 : f.retryCount,
                                     integrityRatio: integrity.ratio,
                                     isFragmentedSource: integrity.isFragmentedSource || f.isFragmentedSource,
-                                    ratioWarning: ratioWarning || undefined
+                                    ratioWarning: ratioWarning || undefined,
+                                    qaStatus: review ? (reviewedTarget === cleanContent ? review.status : 'QA_DEFERRED') : undefined,
+                                    qaReason: reviewedTarget === cleanContent ? review?.reason : 'Nội dung đã được hậu xử lý tại máy; cần hậu kiểm lại.',
+                                    qaFindings: review?.findings,
+                                    qaFingerprint: review ? qualityFingerprint(f.content, reviewedTarget || '', reviewRules) : undefined,
+                                    translationMemoryKey: memoryVerified ? resultsMap.memoryKeys?.get(id) : undefined,
+                                    translationMemoryHit: memoryVerified && resultsMap.memoryHitIds?.has(id), forceRetranslate: false
                                 };
+                                if (review) newFiles[fIndex] = scheduleQaOutcome(newFiles[fIndex],
+                                    { ...review, status: newFiles[fIndex].qaStatus || review.status }, qualityFingerprint(f.content, cleanContent, reviewRules));
                                 hasChanges = true;
                             } else {
                                 missingResultFiles.push(f.name);
@@ -369,6 +421,7 @@ export const useTranslator = (
                 });
                 return hasChanges ? newFiles : prev;
             });
+            await invalidateTranslationMemory(obsoleteMemoryKeys);
 
             if (myRunId === runIdRef?.current) {
                 setProcessingQueue(prev => {
@@ -689,6 +742,7 @@ export const useTranslator = (
 
     useEffect(() => {
         if (!isProcessing) return;
+        if (isRepairRunningRef?.current) return;
 
         const myRunId = runIdRef?.current;
         const currentFiles = filesRef?.current;
@@ -705,6 +759,10 @@ export const useTranslator = (
             .filter((f: FileItem | undefined): f is FileItem => !!f && f.status === FileStatus.IDLE && !scheduledBatchesRef?.current.has(f.id));
 
         if (pendingFiles.length === 0 && activeBatches === 0) {
+            if (finalReviewRunRef.current !== myRunId) {
+                finalReviewRunRef.current = myRunId;
+                if (handleQualityReview(false, processingQueue)) return;
+            }
             if (isSmartAutoMode && !isFixPhaseRef?.current) {
                 const hasIssues = handleSmartFix();
                 if (!hasIssues) {
@@ -726,7 +784,7 @@ export const useTranslator = (
                 if (repairingFiles.length > 0) {
                     return;
                 }
-                const rawFiles = currentFiles.filter((f: FileItem) => f.status === FileStatus.COMPLETED && f.remainingRawCharCount > 0);
+                const rawFiles = currentFiles.filter((f: FileItem) => f.status === FileStatus.COMPLETED && !f.qaStatus && f.remainingRawCharCount > 0);
                 if (rawFiles.length > 0) {
                     handleFixRemainingRaw();
                 } else {
@@ -865,9 +923,10 @@ export const useTranslator = (
             
             processBatch(batchIds, currentTier, myRunId);
         }
-    }, [isProcessing, processingQueue, activeBatches, core.concurrency, core.batchLimits, translationTier, processBatch, isSmartAutoMode, autoFixEnabled, retryTrigger, handleSmartFix, handleFixRemainingRaw, setIsProcessing, setEndTime, setIsSmartAutoMode, setAutoFixEnabled, ui, core, scheduledBatchesRef, runIdRef, isFixPhaseRef, filesRef, setActiveBatches, isProcessingRef]);
+    }, [isProcessing, processingQueue, activeBatches, core.concurrency, core.batchLimits, translationTier, processBatch, isSmartAutoMode, autoFixEnabled, retryTrigger, handleSmartFix, handleFixRemainingRaw, handleQualityReview, isRepairRunningRef, setIsProcessing, setEndTime, setIsSmartAutoMode, setAutoFixEnabled, ui, core, scheduledBatchesRef, runIdRef, isFixPhaseRef, filesRef, setActiveBatches, isProcessingRef]);
 
     const executeProcessing = (smartAuto: boolean = false, overrideTier?: TranslationTier) => {
+        if (qaPausedRef) qaPausedRef.current = false;
         // BUGFIX (bước C): nếu đang có phiên Sửa Lỗi (Repair) thật sự chạy dưới nền, không cho bắt
         // đầu 1 lượt dịch mới đè lên (sẽ làm tăng runIdRef và khiến phiên repair đang chạy bị coi là
         // "người dùng hủy"). Báo cho người dùng biết và dừng ở đây.
@@ -897,6 +956,7 @@ export const useTranslator = (
         });
 
         const resetIds = new Set(filesToReset.map(f => f.id));
+        void invalidateTranslationMemory(filesToReset.map((f: FileItem) => f.translationMemoryKey).filter(Boolean));
 
         const queue = core.files.filter((f: FileItem) => {
             if (hasSelection && !ui.selectedFiles.has(f.id)) return false;
@@ -904,7 +964,8 @@ export const useTranslator = (
         }).map((f: FileItem) => f.id);
         
         if (queue.length === 0) {
-            ui.addToast("Không có file nào để dịch", 'info');
+            if (handleQualityReview(false, undefined, true)) return true;
+            ui.addToast("Không có file nào để dịch hoặc hậu kiểm lại", 'info');
             return false;
         }
         
@@ -924,6 +985,7 @@ export const useTranslator = (
         setAutoFixEnabled(smartAuto);
         setStartTime(Date.now());
         setEndTime(null);
+        isProcessingRef.current = true;
         setIsProcessing(true);
         isFixPhaseRef.current = false;
         
@@ -941,7 +1003,10 @@ export const useTranslator = (
                         errorMessage: undefined,
                         translatedContent: resetIds.has(f.id) ? null : f.translatedContent,
                         hasStaleTranslation: resetIds.has(f.id) ? false : f.hasStaleTranslation,
-                        remainingRawCharCount: resetIds.has(f.id) ? 0 : f.remainingRawCharCount
+                        remainingRawCharCount: resetIds.has(f.id) ? 0 : f.remainingRawCharCount,
+                        forceRetranslate: resetIds.has(f.id) ? true : f.forceRetranslate,
+                        translationMemoryKey: resetIds.has(f.id) ? undefined : f.translationMemoryKey,
+                        translationMemoryHit: resetIds.has(f.id) ? false : f.translationMemoryHit
                     };
                 }
                 return f;
@@ -958,7 +1023,10 @@ export const useTranslator = (
                     errorMessage: undefined,
                     translatedContent: resetIds.has(f.id) ? null : f.translatedContent,
                     hasStaleTranslation: resetIds.has(f.id) ? false : f.hasStaleTranslation,
-                    remainingRawCharCount: resetIds.has(f.id) ? 0 : f.remainingRawCharCount
+                    remainingRawCharCount: resetIds.has(f.id) ? 0 : f.remainingRawCharCount,
+                    forceRetranslate: resetIds.has(f.id) ? true : f.forceRetranslate,
+                    translationMemoryKey: resetIds.has(f.id) ? undefined : f.translationMemoryKey,
+                    translationMemoryHit: resetIds.has(f.id) ? false : f.translationMemoryHit
                 };
             }
             return f;
@@ -976,6 +1044,8 @@ export const useTranslator = (
     };
 
     const stopProcessing = () => {
+        if (qaPausedRef) qaPausedRef.current = true;
+        isProcessingRef.current = false;
         // We don't increment runIdRef?.current here, so the current batch won't be aborted
         setIsProcessing(false);
         setProcessingQueue([]);
@@ -993,7 +1063,9 @@ export const useTranslator = (
             ui.addToast("Chưa chọn file nào để dịch lại.", "warning");
             return;
         }
-        core.setFiles((prev: FileItem[]) => prev.map((f: FileItem) => selectedIds.includes(f.id) ? { ...f, status: FileStatus.IDLE, translatedContent: keepOld ? f.translatedContent : null, remainingRawCharCount: 0, retryCount: 0, usedModel: undefined } : f));
+        void invalidateTranslationMemory(core.stateRef.current.files.filter((f: FileItem) => selectedIds.includes(f.id)).map((f: FileItem) => f.translationMemoryKey).filter(Boolean));
+        if (qaPausedRef) qaPausedRef.current = false;
+        core.setFiles((prev: FileItem[]) => prev.map((f: FileItem) => selectedIds.includes(f.id) ? { ...f, status: FileStatus.IDLE, translatedContent: keepOld ? f.translatedContent : null, remainingRawCharCount: 0, retryCount: 0, usedModel: undefined, forceRetranslate: true, translationMemoryKey: undefined, translationMemoryHit: false, qaStatus: undefined, qaFingerprint: undefined } : f));
         
         const newQueue = Array.from(new Set([...processingQueue, ...selectedIds]));
         setProcessingQueue(newQueue);

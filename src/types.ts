@@ -9,6 +9,42 @@ export enum FileStatus {
 
 export type TranslationTier = 'flash' | 'normal' | 'pro' | 'full' | 'lite' | 'openrouter';
 
+export type QAStatus = 'PASS' | 'SUSPECT' | 'QA_DEFERRED' | 'CONFIRMED_FAILURE';
+export type QualityCategory = 'content' | 'pronoun' | 'terminology' | 'foreign' | 'format';
+export interface QualityFinding {
+  category: QualityCategory;
+  detail: string;
+  sourceQuote: string;
+  targetQuote: string;
+}
+export interface QualityReview {
+  status: QAStatus;
+  decision: 'PASS' | 'REPAIRABLE' | 'CONTENT_MISMATCH' | 'UNCERTAIN';
+  contentAlignment: 'PASS' | 'FAIL' | 'UNCERTAIN';
+  findings: QualityFinding[];
+  reason: string;
+  ruleProposals?: ConsistencyRule[];
+  retryable?: boolean;
+  retryClass?: 'availability';
+}
+export interface ConsistencyRule {
+  kind: 'term' | 'pronoun';
+  source: string;
+  target: string;
+  // Pronoun rules are directional: source speaks to interlocutor.
+  interlocutor?: string;
+  self?: string;
+  fromChapter?: number;
+  toChapter?: number;
+  condition?: string;
+  confidence: 'confirmed' | 'uncertain';
+  origin: 'analysis' | 'review';
+  evidence: string;
+  acceptedVariants?: string[];
+  sourceAliases?: string[];
+  forbiddenForms?: string[];
+}
+
 export interface BatchLimits {
     latin: { v36: number; v35: number; v31: number; v3: number; v25: number; maxTotalChars: number }; // Tiếng Việt, Convert
     complex: { v36: number; v35: number; v31: number; v3: number; v25: number; maxTotalChars: number }; // Raw, English, CJK
@@ -54,6 +90,18 @@ export interface FileItem {
   // Cờ được reset (về false) khi: chạy Smart Fix, khôi phục Backup ở phiên làm việc mới, hoặc
   // khi người dùng bấm bắt đầu dịch lại (executeProcessing).
   hasStaleTranslation?: boolean;
+  qaStatus?: QAStatus;
+  qaReason?: string;
+  qaFindings?: QualityFinding[];
+  // Binds QA to the actual source, output and rules; edits invalidate PASS.
+  qaFingerprint?: string;
+  qaRetryCount?: number;
+  qaNextRetryAt?: number;
+  qaAttemptFingerprint?: string;
+  qaAutoBlocked?: boolean;
+  translationMemoryKey?: string;
+  translationMemoryHit?: boolean;
+  forceRetranslate?: boolean;
 }
 
 export interface ProcessingStats {
@@ -91,6 +139,7 @@ export interface StoryInfo {
   // xưng hô theo 1 kiểu duy nhất (Hiện đại hoặc Cổ đại) thay vì để AI tự phân loại theo 3 NHÓM
   // A/B/C mặc định. 'flexible' (mặc định) = giữ nguyên hành vi phân tích sâu hiện tại.
   pronounMode?: 'modern' | 'ancient' | 'flexible';
+  consistencyRules?: ConsistencyRule[];
   enableTitleFormatting?: boolean; // Tắt bật chuẩn hóa tiêu đề
   enableAutoFormat?: boolean; // Tắt bật định dạng đoạn văn và lọc rác chung
   // UPDATED v1.0.2: tách riêng việc "chèn dòng trống giữa các đoạn văn" ra khỏi enableAutoFormat

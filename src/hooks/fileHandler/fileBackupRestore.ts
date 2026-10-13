@@ -3,6 +3,7 @@ import { FileItem } from '../../types';
 import { downloadJsonFile, fileToBase64, base64ToFile } from '../../utils/fileHelpers';
 import { clearDatabase } from '../../utils/storage';
 import { readFileAsText } from '../../utils/fileHelpers';
+import { recoverInterruptedQaFiles } from '../../services/workflows/translate/deferredQaScheduler';
 
 export const useFileBackupRestore = (core: any, ui: any) => {
     const handleBackup = async () => {
@@ -35,8 +36,8 @@ export const useFileBackupRestore = (core: any, ui: any) => {
                 
                 // Phiên làm việc mới: reset cờ "bản dịch nghi vấn do hậu kiểm" (hasStaleTranslation) -
                 // trạng thái cách ly tạm thời đó không nên tồn tại xuyên suốt qua các phiên khác nhau.
-                const restoredFiles = (data.files as FileItem[]).map(f => f.hasStaleTranslation ? { ...f, hasStaleTranslation: false } : f);
-                core.setFiles(restoredFiles);
+                const restoredFiles = (data.files as FileItem[]).map(f => f.hasStaleTranslation && !f.qaStatus ? { ...f, hasStaleTranslation: false } : f);
+                core.setFiles(recoverInterruptedQaFiles(restoredFiles));
                 if (data.storyInfo) core.setStoryInfo({ ...core.storyInfo, ...data.storyInfo });
                 if (data.creativeState) core.setCreativeState(data.creativeState);
                 if (data.sinoVietnameseState) core.setSinoVietnameseState(data.sinoVietnameseState);

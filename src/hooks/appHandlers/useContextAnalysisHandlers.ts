@@ -11,6 +11,7 @@ import { analyzeStoryContext, analyzeNameBatch, analyzeContextBatch, mergeContex
 import { buildDeepAnalysisChunks, deduplicateDictionary, extractGlossaryBlocks, selectDeepAnalysisFiles } from '../../utils/text';
 import { downloadTextFile, sortFiles, getSmartSampledFiles } from '../../utils/fileHelpers';
 import { DEEP_ANALYSIS_CHUNK_MODELS, DEEP_ANALYSIS_SYNTHESIS_MODELS } from '../../services/workflows/analyze/modelRouting';
+import { extractConsistencyRules, mergeConsistencyRules, stripConsistencyBlocks } from '../../services/workflows/translate/consistencyRules';
 
 export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) => {
     const createStorySignature = (files: Array<{ id?: string; name?: string; content?: string }>) => {
@@ -201,7 +202,11 @@ export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) 
                 }
                 
                 ui.setNameAnalysisProgress({ current: chunks.length, total: chunks.length, stage: "Đang hợp nhất ngữ cảnh (Merging)..." });
-                const mergedContext = await mergeContexts(results, config.updatedStoryInfo, core.enabledModels, DEEP_SYNTHESIS_CHAIN, pronounOverride);
+                const rawMergedContext = await mergeContexts(results, config.updatedStoryInfo, core.enabledModels, DEEP_SYNTHESIS_CHAIN, pronounOverride);
+                const extractedRules = extractConsistencyRules(rawMergedContext).map(rule => ({ ...rule,
+                    confidence: rule.confidence === 'confirmed' && chunks.some(chunk => chunk.includes(rule.evidence))
+                        ? 'confirmed' as const : 'uncertain' as const }));
+                const mergedContext = stripConsistencyBlocks(rawMergedContext);
                 
                 let finalAdditionalRules = effectiveAdditionalRules;
                 ui.setNameAnalysisProgress({ current: chunks.length, total: chunks.length, stage: "Đang tinh chỉnh quy tắc bổ sung..." });
@@ -228,7 +233,8 @@ export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) 
                     ...config.updatedStoryInfo,
                     summary: refinedSummary,
                     contextNotes: mergedContext,
-                    additionalRules: finalAdditionalRules
+                    additionalRules: finalAdditionalRules,
+                    consistencyRules: extractedRules
                 };
                 const specializedBasePrompt = generateBasePrompt(analysisStoryInfo.genres, analysisStoryInfo.worldSetting || [], analysisStoryInfo.enableTitleFormatting !== false);
                 const specializedPrompt = await optimizePrompt(specializedBasePrompt, analysisStoryInfo, mergedContext, updatedDictionary, finalAdditionalRules, core.enabledModels, DEEP_SYNTHESIS_CHAIN);
@@ -239,6 +245,7 @@ export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) 
                     summary: refinedSummary,
                     contextNotes: mergedContext,
                     additionalRules: finalAdditionalRules,
+                    consistencyRules: mergeConsistencyRules(prev.consistencyRules || [], extractedRules),
                     deepAnalysisSignature: createStorySignature(filesToAnalyze),
                     deepAnalysisChapterCount: filesToAnalyze.length,
                     deepAnalysisCompletedAt: new Date().toISOString()

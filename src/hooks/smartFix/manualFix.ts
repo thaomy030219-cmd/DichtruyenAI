@@ -2,6 +2,7 @@
 import { FileItem, FileStatus } from '../../types';
 import { repairTranslations } from '../../geminiService';
 import { findLinesWithForeignChars, mergeFixedLines, formatBookStyle, countForeignChars } from '../../utils/text';
+import { invalidateTranslationMemory } from '../../utils/text/translationMemory';
 
 export const useManualFix = (core: any, ui: any, sharedState: any) => {
     const { setProcessingQueue, setStartTime, isFixPhaseRef, scheduledBatchesRef, setIsProcessing, effectiveDictionary, translationTier } = sharedState;
@@ -10,12 +11,15 @@ export const useManualFix = (core: any, ui: any, sharedState: any) => {
         e.stopPropagation();
         const file = core.files.find((f: FileItem) => f.id === fileId);
         if (!file) return;
+        if (sharedState.isRepairRunningRef.current || file.status === FileStatus.REPAIRING || file.status === FileStatus.PROCESSING) return;
         const translatedLen = file.translatedContent?.length || 1;
         const ratio = file.remainingRawCharCount / translatedLen;
         
         if (file.remainingRawCharCount > 100 || ratio > 0.15) {
+            if (file.translationMemoryKey) void invalidateTranslationMemory([file.translationMemoryKey]);
             scheduledBatchesRef.current.delete(fileId);
-            core.setFiles((prev: FileItem[]) => prev.map((f: FileItem) => f.id === fileId ? { ...f, status: FileStatus.IDLE, retryCount: 0, translatedContent: null, remainingRawCharCount: 0 } : f));
+            core.setFiles((prev: FileItem[]) => prev.map((f: FileItem) => f.id === fileId ? { ...f, status: FileStatus.IDLE, retryCount: 0, translatedContent: null, remainingRawCharCount: 0,
+                forceRetranslate: true, translationMemoryKey: undefined, translationMemoryHit: false, qaStatus: undefined, qaFingerprint: undefined } : f));
             setProcessingQueue((prev: string[]) => [...prev, fileId]);
             setIsProcessing(true);
             isFixPhaseRef.current = true;

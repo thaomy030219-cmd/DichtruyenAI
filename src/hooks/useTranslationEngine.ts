@@ -4,6 +4,7 @@ import { DEFAULT_DICTIONARY } from '../constants';
 import { useTranslator } from './useTranslator';
 import { useSmartFix } from './useSmartFix';
 import { useTitleNormalizer } from './useTitleNormalizer';
+import { useDeferredQaScheduler } from './useDeferredQaScheduler';
 
 export const useTranslationEngine = (core: any, ui: any) => {
     const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -28,6 +29,7 @@ export const useTranslationEngine = (core: any, ui: any) => {
     // chính handleFixRemainingRaw bật/tắt, nên executeProcessing() và handleSmartFix() có thể dựa
     // vào đây để biết chắc có nên khởi động phiên mới (và tăng runIdRef) hay không.
     const isRepairRunningRef = useRef<boolean>(false);
+    const qaPausedRef = useRef<boolean>(false);
 
     useEffect(() => {
         filesRef.current = core.files;
@@ -51,12 +53,15 @@ export const useTranslationEngine = (core: any, ui: any) => {
         endTime, setEndTime,
         isFixPhaseRef, isProcessingRef, runIdRef, filesRef, scheduledBatchesRef,
         isRepairRunningRef,
+        qaPausedRef,
         effectiveDictionary
     };
 
     const smartFixFns = useSmartFix(core, ui, sharedState);
     const translatorFns = useTranslator(core, ui, sharedState, smartFixFns);
     const titleNormalizerFns = useTitleNormalizer(core, ui);
+    useDeferredQaScheduler(core, sharedState, smartFixFns.handleQualityReview,
+        !!(ui.isAnalyzingNames || ui.isRefiningContext || smartFixFns.isCustomFixing || titleNormalizerFns.isNormalizingTitles));
 
     return {
         isProcessing,
@@ -82,7 +87,7 @@ export const useTranslationEngine = (core: any, ui: any) => {
         handleAnalyzeCustomError: smartFixFns.handleAnalyzeCustomError,
         stopCustomFixing: smartFixFns.stopCustomFixing,
         handleFixRemainingRaw: smartFixFns.handleFixRemainingRaw,
-        handleSmartFix: smartFixFns.handleSmartFix,
+        handleSmartFix: () => smartFixFns.handleQualityReview(true) || smartFixFns.handleSmartFix(),
         handleManualFixSingle: smartFixFns.handleManualFixSingle,
         
         handleTitleNormalization: async (scope: 'all' | 'selected' = 'all') => {

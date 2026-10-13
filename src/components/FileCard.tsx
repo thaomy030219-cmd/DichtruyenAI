@@ -9,6 +9,7 @@ import { validateTranslationIntegrity } from '../utils/text';
 
 interface FileCardProps {
     file: FileItem;
+    qaStatus?: FileItem['qaStatus'];
     isSelected: boolean;
     storyInfo: StoryInfo;
     ratioLimits?: RatioLimits; // Added optional prop
@@ -22,7 +23,7 @@ interface FileCardProps {
 }
 
 const FileCard: React.FC<FileCardProps> = ({ 
-    file, isSelected, storyInfo, ratioLimits,
+    file, qaStatus, isSelected, storyInfo, ratioLimits,
     handleSelectFile, handleManualFixSingle, requestRetranslateSingle, handleAutoSplitChapters, openEditor, handleRemoveFile, handleRescueCopy 
 }) => {
     const formatNumber = (num: number) => new Intl.NumberFormat('vi-VN').format(num);
@@ -47,6 +48,7 @@ const FileCard: React.FC<FileCardProps> = ({
         if (isSelected) return 'bg-primary-50/80 dark:bg-primary-900/40 border-primary-500 ring-1 ring-primary-500';
         switch (file.status) {
             case FileStatus.COMPLETED:
+                if (qaStatus && qaStatus !== 'PASS') return 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/50 hover:border-amber-300';
                 if (file.remainingRawCharCount > 0) return 'bg-orange-50/50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900/50 hover:border-orange-300';
                 if (isRatioSuspicious) return 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/50 hover:border-rose-300';
                 return 'bg-emerald-50/30 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-900/30 hover:border-emerald-300';
@@ -102,14 +104,18 @@ const FileCard: React.FC<FileCardProps> = ({
                 <div className="flex items-center gap-1 flex-wrap">
                     {/* Main Status Badge */}
                     {file.status === FileStatus.COMPLETED ? (
-                        file.remainingRawCharCount === 0 ? (
+                        qaStatus && qaStatus !== 'PASS' ? (
+                            <span className="text-[9px] font-bold px-1 py-0.5 rounded border bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800" title={file.qaReason || 'Bản dịch hoặc quy tắc đã thay đổi; cần hậu kiểm lại.'}>
+                                {file.qaAutoBlocked ? 'Cần kiểm thủ công' : qaStatus === 'SUSPECT' ? 'Cần sửa cục bộ' : 'Chờ hậu kiểm'}
+                            </span>
+                        ) : file.remainingRawCharCount === 0 ? (
                             isRatioSuspicious ? (
                                 <span className="text-[9px] font-bold px-1 py-0.5 rounded border bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-900/50 flex items-center gap-0.5">
                                     <AlertTriangle className="w-2.5 h-2.5" /> Lệch?
                                 </span>
                             ) : (
                                 <span className="text-[9px] font-bold px-1 py-0.5 rounded border bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/50 flex items-center gap-0.5">
-                                    <Check className="w-2.5 h-2.5" /> Sạch
+                                    <Check className="w-2.5 h-2.5" /> {qaStatus === 'PASS' ? 'Hậu kiểm ✓' : 'Không sót raw'}
                                 </span>
                             )
                         ) : (
@@ -136,6 +142,7 @@ const FileCard: React.FC<FileCardProps> = ({
                             Chính tả ✓ {file.spellingCorrectionCount}
                         </span>
                     )}
+                    {file.translationMemoryHit && <span className="text-[9px] font-bold px-1 py-0.5 rounded border bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-300 dark:border-sky-800" title="Nguyên văn và quy tắc khớp bản đã hậu kiểm; chương này không gọi API dịch">Bộ nhớ ✓</span>}
                     {(file.spellingSuspicionCount || 0) > 0 && (
                         <span className="text-[9px] font-bold px-1 py-0.5 rounded border bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/50" title="Từ lạ được giữ nguyên vì không đủ chắc chắn để tự sửa">
                             Nghi vấn {file.spellingSuspicionCount}

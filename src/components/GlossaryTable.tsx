@@ -3,6 +3,7 @@ import {
     RefreshCw, Search, ArrowDownAZ,
     Trash2, Plus, AlertTriangle, CheckSquare, Square, Copy
 } from 'lucide-react';
+import { dictionaryMetadata, prepareLocalConsistency, updateDictionaryMetadata } from '../services/workflows/translate/localConsistency';
 
 interface GlossaryEntry {
     id: string;
@@ -98,6 +99,9 @@ export const GlossaryTable = ({ content, onChange, setConfirmModal }: { content:
                 if (superKey) {
                     newConflicts[entry.id] = `Xung đột: Là tập con của "${superKey}"`;
                 }
+                const sameKey = entries.filter(other => !other.isComment && other.key.trim().toLocaleLowerCase('vi') === entry.key.trim().toLocaleLowerCase('vi'));
+                const report = prepareLocalConsistency(sameKey.map(row => `${row.key}=${row.value}`).join('\n'), undefined, '');
+                if (report.conflicts.length) newConflicts[entry.id] = report.conflicts.join(' ');
             });
             setConflicts(newConflicts);
             setIsTesting(false);
@@ -304,6 +308,17 @@ export const GlossaryTable = ({ content, onChange, setConfirmModal }: { content:
                                                 onClick={(e) => e.stopPropagation()}
                                                 placeholder="Value"
                                             />
+                                            <details className="mt-1 text-[10px] text-slate-500 dark:text-slate-400" onClick={e => e.stopPropagation()}>
+                                                <summary className="cursor-pointer">Biến thể & khóa tên</summary>
+                                                <input aria-label={`Biến thể hợp lệ của ${row.key}`} className="mt-1 w-full rounded border border-slate-200 bg-transparent px-1 py-1 dark:border-slate-700" placeholder="Cách viết khác được chấp nhận; cách thứ hai"
+                                                    key={`${row.id}-aliases-${row.value}`} defaultValue={dictionaryMetadata(row.value).variants.join('; ')}
+                                                    onBlur={e => handleEdit(row.id, 'value', updateDictionaryMetadata(row.value, 'aliases', e.target.value))} />
+                                                <input aria-label={`Dạng không được dùng của ${row.key}`} className="mt-1 w-full rounded border border-slate-200 bg-transparent px-1 py-1 dark:border-slate-700" placeholder="Dạng sai không được dùng; dạng sai khác"
+                                                    key={`${row.id}-forbidden-${row.value}`} defaultValue={dictionaryMetadata(row.value).forbidden.join('; ')}
+                                                    onBlur={e => handleEdit(row.id, 'value', updateDictionaryMetadata(row.value, 'forbidden', e.target.value))} />
+                                                <label className="mt-1 flex items-center gap-1"><input type="checkbox" checked={dictionaryMetadata(row.value).lock} onChange={e => handleEdit(row.id, 'value', updateDictionaryMetadata(row.value, 'lock', e.target.checked))} />Khóa tên, cho phép biến thể</label>
+                                                <p className="mt-1">Chặn dạng sai khai báo; không tự thay đại từ.</p>
+                                            </details>
                                         </td>
                                     </>
                                 )}

@@ -6,6 +6,7 @@ import {
 import { DEFAULT_DICTIONARY, DEFAULT_PROMPT, generateBasePrompt } from '../constants';
 import { GlossaryTable } from './GlossaryTable';
 import { useKnowledgePage, KnowledgePageProps } from '../hooks/pages/useKnowledgePage';
+import { extractConsistencyRules, mergeConsistencyRules } from '../services/workflows/translate/consistencyRules';
 
 export const KnowledgePage: React.FC<KnowledgePageProps> = (props) => {
     const {
@@ -15,6 +16,7 @@ export const KnowledgePage: React.FC<KnowledgePageProps> = (props) => {
         handleLocalDictionaryUpload,
         processUpload,
     } = useKnowledgePage(props);
+    const consistencyRules = mergeConsistencyRules(props.storyInfo.consistencyRules || [], extractConsistencyRules(props.storyInfo.contextNotes || ''));
 
     // Prompt gốc (master template, chưa tùy chỉnh riêng cho truyện này) vs Prompt đã Tối Ưu
     // (kết quả của "Tối Ưu Hóa Prompt (AI Architect)" — đã lồng ghép Series Bible/từ điển/quy
@@ -96,6 +98,18 @@ export const KnowledgePage: React.FC<KnowledgePageProps> = (props) => {
                     )}
                 </div>
 
+                <details className="rounded-2xl border border-slate-200 bg-white p-4 text-xs dark:border-slate-800 dark:bg-slate-900">
+                    <summary className="cursor-pointer font-bold text-slate-700 dark:text-slate-200">Quy tắc nhất quán: {consistencyRules.filter(rule => rule.confidence === 'confirmed').length} xác nhận · {consistencyRules.filter(rule => rule.confidence === 'uncertain').length} tham khảo</summary>
+                    <p className="mt-2 text-slate-500 dark:text-slate-400">Ứng dụng chỉ lấy quy tắc liên quan đến chương đang dịch. Mục chưa chắc chắn dùng để đối chiếu, không tự ép thay tên hoặc xưng hô.</p>
+                    {!consistencyRules.length && <p className="mt-2 text-slate-500">Từ điển và ngữ cảnh hiện có vẫn được sử dụng. Phân tích sâu lần sau sẽ bổ sung quy tắc theo từng giai đoạn.</p>}
+                    <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
+                        {consistencyRules.map((rule, index) => <div key={index} className="rounded-lg bg-slate-50 p-2 dark:bg-slate-800">
+                            <div className="font-semibold text-slate-700 dark:text-slate-200">{rule.source}{rule.interlocutor ? ` → ${rule.interlocutor}: tự xưng ${rule.self || '?'}, gọi` : ' ='} {rule.target}</div>
+                            <div className="mt-1 text-slate-500 dark:text-slate-400">{rule.confidence === 'confirmed' ? 'Xác nhận' : 'Tham khảo'} · Chương {rule.fromChapter || '?'}–{rule.toChapter || '?'}{rule.condition ? ` · ${rule.condition}` : ''}</div>
+                            <p className="mt-1 text-slate-500 dark:text-slate-400">{rule.evidence}</p>
+                        </div>)}
+                    </div>
+                </details>
                 {/* 2. Dictionary Section */}
                 <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-elevation-1 border border-slate-200 dark:border-slate-800 flex-1 flex flex-col min-h-[450px]">
                     <div className="flex justify-between items-center mb-3">

@@ -6,18 +6,30 @@
 // tìm trong 1 file 1500 dòng gộp chung 8 hàm khác nhau.
 import { getAiClient, smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
 import { fetchOpenRouterStream, getOpenRouterModelInfo } from '../../api/openrouter';
-import { StoryInfo, TranslationTier, RatioLimits, FileItem, BatchLimits } from '../../../types';
-import { optimizeDictionary, optimizeContext, dedupeContextAgainstDictionary, findLinesWithForeignChars, mergeFixedLines, formatBookStyle, fixMergedTitle, createBatchFingerprints, validateBatch, registerCompletedChapterFingerprint } from '../../../utils/text';
+import { StoryInfo, TranslationTier, RatioLimits, FileItem, BatchLimits, QualityReview } from '../../../types';
+import { optimizeDictionary, optimizeContext, dedupeContextAgainstDictionary, formatBookStyle, fixMergedTitle, createBatchFingerprints, validateBatch, registerCompletedChapterFingerprint, proofreadVietnamese, applyInlineEnglishFix } from '../../../utils/text';
+import { VietnameseProofreadResult } from '../../../utils/text/vietnameseProofreader';
 import { getEffectiveModelsForTier } from './modelSelection';
-import { validateBatchWithAI } from './aiValidation';
-import { performAggregatedRepair, GlobalRepairEntry } from './repair';
+import { reviewAndRepairBatch } from './aiValidation';
 import { getRescueTarget } from './rescueTarget';
 import { DEFAULT_OPENROUTER_MODEL, sanitizeOpenRouterModels } from '../../../constants/openrouterModels';
 import { assertModelBatchCapacity } from '../../../utils/modelBatchLimits';
-import { buildReviewConsistencyContext } from './reviewContext';
+import { buildChapterReviewContext } from './reviewContext';
+import { buildConsistencyContract, stripConsistencyBlocks, resolveDictionaryOverrides } from './consistencyRules';
+import { checkLocalConsistency, enforceLocalLocks, formatLocalFindings, prepareLocalConsistency } from './localConsistency';
+import { buildMemoryContextFingerprint, lookupTranslationMemory, saveVerifiedTranslationMemory, TranslationMemoryDriver } from '../../../utils/text/translationMemory';
+
+export interface TranslationBatchResult {
+    results: Map<string, string>; model: string; models?: Map<string, string>;
+    stats?: { dictLines: number; contextLines: number }; streamError?: Error;
+    reviews?: Map<string, QualityReview>; reviewContexts?: Map<string, string>;
+    spelling?: Map<string, VietnameseProofreadResult>; errors?: Map<string, string>;
+    flaggedStaleIds?: Set<string>; blockedConsistencyIds?: Set<string>;
+    memoryKeys?: Map<string, string>; memoryHitIds?: Set<string>;
+}
 
 export const translateBatchStream = async (
-    files: { id: string, content: string, name?: string, fileRetryCount?: number, errorMessage?: string }[],
+    files: { id: string, content: string, name?: string, chapterIndex?: number, fileRetryCount?: number, errorMessage?: string, forceRetranslate?: boolean }[],
     userPrompt: string,
     dictionary: string,
     globalContext: string,
@@ -33,17 +45,52 @@ export const translateBatchStream = async (
     ratioLimits?: RatioLimits,
     openRouterKey?: string,
     openRouterModel?: string,
-    batchLimits?: BatchLimits
-): Promise<{ results: Map<string, string>, model: string, stats?: { dictLines: number, contextLines: number }, streamError?: Error }> => {
+    batchLimits?: BatchLimits,
+    runtime: { customDictionary?: string; memoryDriver?: TranslationMemoryDriver; disableMemory?: boolean } = {},
+): Promise<TranslationBatchResult> => {
+    const originalDictionary = dictionary;
+    const blockedErrors = new Map<string, string>();
+    for (const file of files) {
+        const preflight = prepareLocalConsistency(dictionary, storyInfo, file.content, file.chapterIndex, runtime.customDictionary);
+        if (preflight.conflicts.length) blockedErrors.set(file.id, 'Xung đột thuật ngữ trước khi dịch: ' + preflight.conflicts.join(' '));
+    }
+    const blockedConsistencyIds = new Set(blockedErrors.keys());
+    files = files.filter(file => !blockedConsistencyIds.has(file.id));
+    if (blockedErrors.size) onLog?.(`⚠️ ${blockedErrors.size} chương có xung đột thuật ngữ; tạm giữ các chương đó trước khi gọi API.`);
+    let memoryContext = '';
+    try { if (!runtime.disableMemory) memoryContext = await buildMemoryContextFingerprint(dictionary, storyInfo, userPrompt, previousBatchContext, ratioLimits, globalContext); } catch { /* Optional browser cache. */ }
+    const hits = await lookupTranslationMemory(files, memoryContext, runtime.memoryDriver);
+    const cachedResults = new Map<string, string>(), cachedReviews = new Map<string, QualityReview>(), cachedContexts = new Map<string, string>();
+    const cachedModels = new Map<string, string>(), cachedKeys = new Map<string, string>();
+    for (const file of files) {
+        const hit = hits.get(file.id);
+        if (!hit) continue;
+        const plan = prepareLocalConsistency(dictionary, storyInfo, file.content, file.chapterIndex, runtime.customDictionary);
+        if (checkLocalConsistency(file.content, hit.target, plan, storyInfo).some(finding => finding.severity === 'ERROR')) continue;
+        cachedResults.set(file.id, hit.target);
+        cachedReviews.set(file.id, { status: 'PASS', decision: 'PASS', contentAlignment: 'PASS', findings: [], reason: 'Tái sử dụng bản đã hậu kiểm; nguyên văn, quy tắc và ngữ cảnh SHA-256 đều khớp.' });
+        cachedContexts.set(file.id, buildChapterReviewContext(dictionary, storyInfo, file.content, file.chapterIndex));
+        cachedModels.set(file.id, hit.model); cachedKeys.set(file.id, hit.key);
+        registerCompletedChapterFingerprint(storyInfo?.title, file.id, hit.target);
+        onUpdate(file.id, hit.target);
+    }
+    if (cachedResults.size) onLog?.(`♻️ Tái sử dụng ${cachedResults.size} chương đã xác minh từ bộ nhớ bản dịch, không gọi API cho các chương này.`);
+    files = files.filter(file => !cachedResults.has(file.id));
+    if (shouldAbort?.()) throw new Error('ABORTED');
+    if (!files.length) return { results: cachedResults, model: 'Bộ nhớ bản dịch', models: cachedModels,
+        reviews: cachedReviews, reviewContexts: cachedContexts, memoryKeys: cachedKeys, memoryHitIds: new Set(cachedResults.keys()),
+        errors: blockedErrors, flaggedStaleIds: new Set(), blockedConsistencyIds };
     // Bước 2: Tạo fingerprints TRƯỚC khi gửi AI
     const batchFingerprints = createBatchFingerprints(files);
 
     const combined = files.map(f => f.content).join('\n');
+    dictionary = resolveDictionaryOverrides(dictionary);
+    const consistencyContract = files.map((file, index) => `[part_${index + 1} — mốc chương ${file.chapterIndex || '?'}]\n${buildConsistencyContract(dictionary, storyInfo, [file])}`).join('\n\n');
     let relDict = "";
     let relCtx = "";
     try {
         relDict = (typeof optimizeDictionary === 'function' ? optimizeDictionary(dictionary || "", combined) : dictionary) || "";
-        relCtx = (typeof optimizeContext === 'function' ? optimizeContext(globalContext || "", combined, relDict) : globalContext) || "";
+        relCtx = (typeof optimizeContext === 'function' ? optimizeContext(stripConsistencyBlocks(globalContext || ""), combined, relDict) : globalContext) || "";
         
         // --- ADDED: Deduplicate context against dictionary ---
         if (typeof dedupeContextAgainstDictionary === 'function') {
@@ -195,7 +242,7 @@ ${chapterTitleRule}
 CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startTag} and ${endTag}).`;
     };
 
-    return await smartExecution(effectiveModels, async mid => {
+    const liveResult: TranslationBatchResult = await smartExecution(effectiveModels, async mid => {
         // Batch có thể được xếp cho Pro rồi rơi sang Flash khi hết quota. Kiểm tra lại
         // ngay trước request để model dự phòng không nhận một lô vượt khả năng và cắt đuôi.
         assertModelBatchCapacity(mid, files.length, batchLimits, storyInfo?.languages || []);
@@ -237,7 +284,7 @@ CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startT
             const modelInfo = await getOpenRouterModelInfo(actualModelName);
             
             // Tính toán ước lượng token hiện tại (chưa kể context/dictionary)
-            const baseEstTokens = Math.ceil(currentInput.length / 2.5) + Math.ceil(instruction.length / 2.5) + 3000; // buffer an toàn cho output tokens và prompt cố định
+            const baseEstTokens = Math.ceil(currentInput.length / 2.5) + Math.ceil((instruction.length + consistencyContract.length) / 2.5) + 3000; // buffer an toàn cho output tokens và prompt cố định
             
             if (modelInfo && modelInfo.context_length) {
                 const maxAllowedContext = modelInfo.context_length;
@@ -294,7 +341,7 @@ CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startT
             }
         }
 
-        const fullPrompt = `[DICT]\n${localRelDict}\n[CTX]\n${localRelCtx}\n[PREV]\n${localRelPrevCtx}\n[INSTRUCT]\n${instruction}\n[DATA]\n${currentInput}\n\n=========================================\n[FINAL REMINDER / LỜI NHẮC CUỐI]:\n1. You MUST output exactly ${files.length} parts.\n2. Each part MUST start with ${startTagMock} and end with ${endTagMock}.\n3. DO NOT FORGET OR TRANSLATE THE TAGS.\n4. CRITICAL: NO CROSS-CONTAMINATION. Make sure the translated content strictly matches its original source tag. Do not mix chapters together.\n5. Giữ đúng tên và thuật ngữ trong [DICT], xưng hô và giai đoạn quan hệ trong [CTX]; [PREV] chỉ giúp nối mạch, không ghi đè quy tắc đã chốt.\n6. Không để sót câu raw hoặc tự chuyển sang tiếng Anh/ngôn ngữ khác trong bản dịch tiếng Việt (trừ tên riêng và thuật ngữ được giữ nguyên).`;
+        const fullPrompt = `[DICT]\n${localRelDict}\n[CTX]\n${localRelCtx}\n[PREV]\n${localRelPrevCtx}\n${consistencyContract}\n[INSTRUCT]\n${instruction}\n[DATA]\n${currentInput}\n\n=========================================\n[FINAL REMINDER / LỜI NHẮC CUỐI]:\n1. You MUST output exactly ${files.length} parts.\n2. Each part MUST start with ${startTagMock} and end with ${endTagMock}.\n3. DO NOT FORGET OR TRANSLATE THE TAGS.\n4. CRITICAL: NO CROSS-CONTAMINATION. Make sure the translated content strictly matches its original source tag. Do not mix chapters together.\n5. Giữ đúng tên và thuật ngữ trong [DICT], xưng hô và giai đoạn quan hệ trong [CTX]; [PREV] chỉ giúp nối mạch, không ghi đè quy tắc đã chốt.\n6. Không để sót câu raw hoặc tự chuyển sang tiếng Anh/ngôn ngữ khác trong bản dịch tiếng Việt (trừ tên riêng và thuật ngữ được giữ nguyên).`;
         
         // Add timeout for the initial connection
         let connectionTimeoutId: NodeJS.Timeout | undefined;
@@ -750,100 +797,54 @@ CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startT
             }
         });
 
-        // Các file bị hậu kiểm Tier 1/2 từ chối nhưng VẪN có nội dung dịch (chỉ nghi vấn, không
-        // chắc chắn sai). KHÔNG xoá khỏi `results` nữa - giữ lại bản dịch nghi vấn để người dùng
-        // xem xét, chỉ đánh dấu cách ly qua tập hợp này. Ở tầng useTranslator.ts, các id có trong
-        // đây sẽ được lưu translatedContent kèm cờ hasStaleTranslation=true, gắn lỗi, và đẩy xuống
-        // cuối hàng chờ - thay vì mất trắng bản dịch như trước đây. Bản dịch nghi vấn chỉ bị ghi đè
-        // khi lần dịch lại kế tiếp thành công (không còn bị hậu kiểm từ chối).
         const flaggedStaleIds = new Set<string>();
-
-        // Tích hợp kiểm tra nhầm chương & tỷ lệ bằng validateBatch (Tier 1)
-        const batchReport = validateBatch(files as FileItem[], results, { limits: ratioLimits, sourceLanguages: storyInfo?.languages, fingerprints: batchFingerprints, storyKey: storyInfo?.title });
-        
-        batchReport.details.forEach((report, id) => {
-            if (!report.isValid && results.has(id)) {
-                const warningMsg = report.warnings.join(' | ');
-                if (onLog) onLog(`⚠️ [Tier 1 - Cảnh báo File ${id}]: ${warningMsg}`);
-                
-                // Nếu "Nghi vấn nhầm chương" hoặc "Nghi vấn nhảy nội dung": giữ lại bản dịch nghi
-                // vấn (không xoá), chỉ đánh dấu cách ly và gửi lại vào hàng đợi.
-                if (warningMsg.includes("Nghi vấn nhầm chương") || warningMsg.includes("Nghi vấn nhảy nội dung") || warningMsg.includes("nhầm chương/chập chương") || report.contentConfidence < 0.4) {
-                    if (onLog) onLog(`❌ Nghi vấn sai lệch quá lớn ở ${id} (Confidence: ${report.contentConfidence.toFixed(2)}). Giữ lại bản dịch để kiểm tra, gửi lại vào hàng đợi.`);
-                    flaggedStaleIds.add(id);
-                    completedFileIds.delete(id);
-                }
-            }
-        });
-
-        // Repair foreign-language residue before AI review. Otherwise the reviewer
-        // rejects a whole chapter for a line the targeted repair can fix cheaply.
-        const preReviewBad: GlobalRepairEntry[] = [];
-        results.forEach((content, id) => {
-            if (!flaggedStaleIds.has(id)) {
-                findLinesWithForeignChars(content).forEach(line => preReviewBad.push({
-                    fileId: id, lineIndex: line.index, originalLine: line.originalLine,
-                }));
-            }
-        });
-        if (preReviewBad.length > 0) {
-            try {
-                onLog?.(`🛠️ Sửa ${preReviewBad.length} dòng raw/ngoại ngữ trước hậu kiểm AI...`);
-                const repairModels = mid.startsWith('openrouter:') ? [mid] : enabledModels;
-                const repaired = await performAggregatedRepair(preReviewBad, localRelDict, tier, localRelCtx, storyInfo, userPrompt, onLog, repairModels, undefined, shouldAbort, 'auto_fix', openRouterKey);
-                repaired.forEach((lines, id) => {
-                    const current = results.get(id);
-                    if (!current) return;
-                    const source = files.find(file => file.id === id);
-                    const updated = formatBookStyle(mergeFixedLines(current, Array.from(lines.entries()).map(([index, text]) => ({ index, text }))), source?.content, storyInfo?.enableTitleFormatting !== false);
-                    results.set(id, updated);
-                    onUpdate(id, updated);
-                });
-            } catch (error) {
-                onLog?.(`⚠️ Sửa raw trước hậu kiểm chưa thành công: ${error instanceof Error ? error.message : String(error)}`);
-            }
+        const spelling = new Map<string, VietnameseProofreadResult>();
+        for (const file of files) {
+            const text = results.get(file.id);
+            if (!text || !completedFileIds.has(file.id)) continue;
+            if (shouldAbort?.()) throw new Error('ABORTED');
+            const checked = await proofreadVietnamese(text, [dictionary, globalContext || '']);
+            spelling.set(file.id, checked);
+            results.set(file.id, applyInlineEnglishFix(formatBookStyle(fixMergedTitle(checked.text), file.content,
+                storyInfo?.enableTitleFormatting !== false, storyInfo?.titleFormat, storyInfo?.enableAutoFormat !== false)));
         }
-
-        // Tích hợp kiểm tra AI (Tier 2) - Chỉ áp dụng cho các file đã qua được vòng 1
-        const aiValidationResults = await validateBatchWithAI(
-            files.filter(f => results.has(f.id) && !flaggedStaleIds.has(f.id)),
-            results,
-            enabledModels,
-            onLog,
-            openRouterKey,
-            mid,
-            buildReviewConsistencyContext(localRelDict, localRelCtx, localRelPrevCtx, combined)
+        const batchReport = validateBatch(files as FileItem[], results, { limits: ratioLimits, sourceLanguages: storyInfo?.languages, fingerprints: batchFingerprints, storyKey: storyInfo?.title });
+        const reviewContexts = new Map(files.map(file => [file.id, buildChapterReviewContext(dictionary, storyInfo, file.content, file.chapterIndex)]));
+        // Only fully streamed chapters can be reviewed. Partial output still follows
+        // the existing translation retry path; regex suspicion alone cannot reject QA.
+        const reviewFiles = files.filter(file => completedFileIds.has(file.id) && results.has(file.id))
+            .map(file => {
+                const plan = prepareLocalConsistency(originalDictionary, storyInfo, file.content, file.chapterIndex, runtime.customDictionary);
+                const localFindings = checkLocalConsistency(file.content, results.get(file.id)!, plan, storyInfo);
+                return { ...file, consistencyContext: reviewContexts.get(file.id), localFindings, localHints: formatLocalFindings(localFindings, plan) };
+            });
+        const aiValidationResults = await reviewAndRepairBatch(
+            reviewFiles, results, enabledModels, onLog, openRouterKey, mid, '', { shouldAbort }
         );
-
-        aiValidationResults.forEach((val, id) => {
-            if (!val.isValid && results.has(id)) {
-                // Giữ lại bản dịch nghi vấn (không xoá), chỉ đánh dấu cách ly.
+        for (const file of reviewFiles) {
+            const review = aiValidationResults.get(file.id);
+            if (!review) continue;
+            const plan = prepareLocalConsistency(originalDictionary, storyInfo, file.content, file.chapterIndex, runtime.customDictionary);
+            aiValidationResults.set(file.id, enforceLocalLocks(review, checkLocalConsistency(file.content, results.get(file.id)!, plan, storyInfo)));
+        }
+        const specificErrors = new Map<string, string>();
+        aiValidationResults.forEach((review, id) => {
+            if (review.status === 'CONFIRMED_FAILURE') {
                 flaggedStaleIds.add(id);
                 completedFileIds.delete(id);
+                specificErrors.set(id, 'Nghi vấn lỗi nội dung — AI xác nhận lệch/thiếu chương: ' + review.reason);
+            } else {
+                if (review.status !== 'PASS') onLog?.(`⏳ ${id}: ${review.reason || 'Cần hậu kiểm lại'} — giữ nguyên bản dịch, không dịch lại chương.`);
+                const content = results.get(id);
+                if (content) onUpdate(id, content);
             }
         });
-
-        // NOTE: Việc cap số lần thử lại theo từng file (retryCount) được quyết định ở tầng
-        // orchestrator (useTranslator.ts: maxRetries = 1-2 tuỳ isFixPhaseRef), KHÔNG phải ở
-        // đây. Trước đây hàm này có 1 khối MAX_RETRIES=4 / missingOrInvalidFiles / fileRetryCount
-        // tự tính riêng, nhưng kết quả không bao giờ được return hay dùng ở đâu cả (dead code) —
-        // đã xoá để tránh gây hiểu nhầm khi đọc log debug.
-        const specificErrors = new Map<string, string>();
-
-        // "GATE" bắt buộc cho file khôi phục bằng Hybrid Split: chỉ chấp nhận khi Tier 2 AI xác
-        // nhận RÕ RÀNG là hợp lệ (isValid === true). Nếu Tier 2 bị người dùng tắt hẳn (không model
-        // nào bật -> validateBatchWithAI trả Map rỗng ngay từ đầu) hoặc vì lý do nào đó không có
-        // entry cho file này, aiValidationResults.get(id) sẽ là undefined — KHÔNG được coi đó là
-        // "không bị từ chối nên là hợp lệ" giống các file bình thường khác, vì ranh giới nội dung
-        // của các file này chỉ là suy đoán theo tỷ lệ ký tự, không phải do AI thực sự tách đúng.
+        // Guessed hybrid boundaries can only become verified through explicit PASS.
         hybridRecoveredIds.forEach(id => {
-            if (!completedFileIds.has(id)) return; // đã bị Tier 1/2 tự loại ở trên rồi, khỏi cần chặn thêm
-            const aiRes = aiValidationResults.get(id);
-            if (!aiRes || aiRes.isValid !== true) {
-                flaggedStaleIds.add(id);
-                completedFileIds.delete(id);
-                specificErrors.set(id, "Ranh giới file này do thuật toán Hybrid Split ĐOÁN theo tỷ lệ ký tự (AI gộp nhầm cả batch thành 1 khối) và chưa được Tier 2 AI xác nhận rõ ràng là đúng nội dung — tự động đưa vào diện nghi vấn, không coi là hoàn tất.");
-                if (onLog) onLog(`⚠️ File ${id}: khôi phục bằng Hybrid Split nhưng chưa được Tier 2 xác nhận rõ ràng -> đánh dấu nghi vấn.`);
+            const review = aiValidationResults.get(id);
+            if (review && review.status !== 'PASS' && review.status !== 'CONFIRMED_FAILURE') {
+                aiValidationResults.set(id, { ...review, status: 'QA_DEFERRED',
+                    reason: 'Ranh giới chương được khôi phục bằng Hybrid Split; cần AI xác minh lại. ' + review.reason });
             }
         });
 
@@ -851,7 +852,7 @@ CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startT
         // 1/2, không bị flaggedStaleIds) vào cache xuyên batch, để các batch dịch SAU (có thể là
         // chương liền kề, dịch ở lượt khác) có thể đối chiếu trùng lặp với các chương này.
         files.forEach(f => {
-            if (completedFileIds.has(f.id) && !flaggedStaleIds.has(f.id)) {
+            if (completedFileIds.has(f.id) && aiValidationResults.get(f.id)?.status === 'PASS') {
                 const content = results.get(f.id);
                 if (content) registerCompletedChapterFingerprint(storyInfo?.title, f.id, content);
             }
@@ -862,7 +863,7 @@ CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startT
                 // Determine specific error if batchReport flagged it
                 const report = batchReport.details.get(f.id);
                 const aiReport = aiValidationResults.get(f.id);
-                if (aiReport && !aiReport.isValid) {
+                if (aiReport?.status === 'CONFIRMED_FAILURE') {
                     specificErrors.set(f.id, "Lỗi kiểm định AI (Tier 2): " + aiReport.reason);
                 } else if (report && !report.isValid) {
                     const warningMsg = report.warnings.join(' | ');
@@ -916,43 +917,39 @@ CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startT
         }
         
         
-        // --- POST-STREAM AUTO FIX LOGIC ---
-        // Bỏ qua các file đã bị hậu kiểm đánh dấu nghi vấn (flaggedStaleIds) - sẽ được dịch lại
-        // từ đầu nên không cần tốn thêm request sửa lỗi sót chữ cho bản dịch nghi vấn này.
-        const bad: GlobalRepairEntry[] = [];
-        results.forEach((c, id) => {
-            if (flaggedStaleIds.has(id)) return;
-            findLinesWithForeignChars(c).forEach(bl => bad.push({ fileId: id, lineIndex: bl.index, originalLine: bl.originalLine }));
-        });
-
-        if (bad.length > 0) {
-            if (onLog) onLog(`🛠️ [Auto-Fix] Phát hiện ${bad.length} dòng lỗi sau khi Stream. Đang sửa...`);
-            
-            const fixModels = mid.startsWith('openrouter:') ? [mid] : enabledModels;
-            const fixes = await performAggregatedRepair(bad, relDict, tier, globalContext, storyInfo, userPrompt, onLog, fixModels, undefined, shouldAbort, 'auto_fix', openRouterKey);
-            
-            fixes.forEach((fm, id) => {
-                const cur = results.get(id);
-                if (cur) {
-                    const originalFile = files.find(f => f.id === id);
-                    const fixedContent = formatBookStyle(mergeFixedLines(cur, Array.from(fm.entries()).map(([idx, txt]) => ({ index: idx, text: txt }))), originalFile?.content, storyInfo?.enableTitleFormatting !== false);
-                    results.set(id, fixedContent);
-                    onUpdate(id, fixedContent); 
-                }
-            });
-        }
+        // Local repairs have already been verified above. Do not mutate a PASS afterwards.
 
 
+        const memoryKeys = await saveVerifiedTranslationMemory(files, results, aiValidationResults, memoryContext, mid, runtime.memoryDriver);
         return { 
             results, 
             model: mid, 
             stats: { dictLines: relDict.split('\n').length, contextLines: relCtx.split('\n').length },
             errors: specificErrors,
             streamError: streamErrorToReturn,
-            flaggedStaleIds
+            flaggedStaleIds,
+            reviews: aiValidationResults,
+            reviewContexts,
+            spelling,
+            memoryKeys
         };
         } finally {
             if (connectionTimeoutId) clearTimeout(connectionTimeoutId);
         }
-    }, "Dịch Streaming", onLog, preferredModelId);
+    }, "Dịch Streaming", onLog, preferredModelId).catch((error: Error) => {
+        if (shouldAbort?.() || error.message === 'ABORTED' || (!cachedResults.size && !blockedErrors.size)) throw error;
+        // A failed uncached request must not discard chapters already restored from
+        // verified memory or turn preflight conflicts into API retry candidates.
+        return { results: new Map<string, string>(), model: '', streamError: error,
+            errors: new Map(files.map(file => [file.id, error.message || 'Chưa nhận được bản dịch.'])) };
+    });
+    return { ...liveResult,
+        results: new Map([...cachedResults, ...liveResult.results]),
+        reviews: new Map([...cachedReviews, ...(liveResult.reviews || [])]),
+        reviewContexts: new Map([...cachedContexts, ...(liveResult.reviewContexts || [])]),
+        models: new Map([...cachedModels, ...files.map(file => [file.id, liveResult.model] as const)]),
+        memoryKeys: new Map([...cachedKeys, ...(liveResult.memoryKeys || [])]),
+        memoryHitIds: new Set(cachedResults.keys()), blockedConsistencyIds,
+        errors: new Map([...blockedErrors, ...(liveResult.errors || [])]),
+    };
 };

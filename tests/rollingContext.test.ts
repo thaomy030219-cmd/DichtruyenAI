@@ -14,6 +14,18 @@ const file = (id: string, status: FileStatus, translatedContent: string | null):
 });
 
 describe('rolling chapter context', () => {
+    it('does not feed unverified or suspect translations back into future chapters', () => {
+        const files: FileItem[] = [
+            { ...file('1', FileStatus.COMPLETED, 'đã kiểm tra'), qaStatus: 'PASS' },
+            { ...file('2', FileStatus.COMPLETED, 'xưng hô sai'), qaStatus: 'SUSPECT' },
+            { ...file('3', FileStatus.COMPLETED, 'chưa kiểm'), qaStatus: 'QA_DEFERRED' },
+            file('4', FileStatus.IDLE, null),
+        ];
+        const result = buildRollingChapterContext(files, ['4']);
+        expect(result).toContain('đã kiểm tra');
+        expect(result).not.toContain('xưng hô sai');
+        expect(result).not.toContain('chưa kiểm');
+    });
     it('keeps only completed chapters immediately before the batch', () => {
         const files = [
             file('1', FileStatus.COMPLETED, 'đuôi chương một'),

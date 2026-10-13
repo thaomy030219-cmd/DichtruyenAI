@@ -1,3 +1,7 @@
+import { StoryInfo } from '../../../types';
+import { buildConsistencyContract, stripConsistencyBlocks, resolveDictionaryOverrides } from './consistencyRules';
+import { optimizeContext, optimizeDictionary } from '../../../utils/text/optimization';
+
 // Keep the quality gate's limited context focused on canonical names and
 // relationship rules. Previously the rolling chapter excerpt could consume the
 // entire 14k-character allowance before the dictionary was reached.
@@ -66,4 +70,16 @@ export const buildRelevantTermChecklist = (
         if (lines.length >= maxTerms) break;
     }
     return lines.join('\n');
+};
+
+export const buildChapterReviewContext = (dictionary: string, story: StoryInfo | undefined, source: string, chapterIndex?: number): string => {
+    dictionary = resolveDictionaryOverrides(dictionary);
+    const relevantDictionary = optimizeDictionary(dictionary, source);
+    const relevantContext = optimizeContext(stripConsistencyBlocks(story?.contextNotes || ''), source, relevantDictionary);
+    return [
+    buildConsistencyContract(dictionary, story, [{ content: source, chapterIndex }]),
+    buildReviewConsistencyContext(relevantDictionary, relevantContext, '', source),
+    `[QUY TẮC NGƯỜI DÙNG — ƯU TIÊN CAO NHẤT]\n${story?.additionalRules || ''}`,
+    `[THẾ GIỚI/THỜI ĐẠI]\n${(story?.worldSetting || []).join(', ')}; kiểu xưng hô: ${story?.pronounMode || 'flexible'}`,
+].join('\n\n');
 };
