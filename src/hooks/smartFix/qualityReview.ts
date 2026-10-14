@@ -4,7 +4,7 @@ import { deferredReview } from '../../services/workflows/translate/qualityReview
 import { buildChapterReviewContext } from '../../services/workflows/translate/reviewContext';
 import { applyQualityOutcome, currentQaStatus } from '../../services/workflows/translate/qaState';
 import { mergeConsistencyRules } from '../../services/workflows/translate/consistencyRules';
-import { isDeferredQaCandidate, qaTaskFingerprint, scheduleQaOutcome, selectDeferredQaWave } from '../../services/workflows/translate/deferredQaScheduler';
+import { isTranslationComplete, isDeferredQaCandidate, qaTaskFingerprint, scheduleQaOutcome, selectDeferredQaWave } from '../../services/workflows/translate/deferredQaScheduler';
 import { checkLocalConsistency, enforceLocalLocks, formatLocalFindings, prepareLocalConsistency } from '../../services/workflows/translate/localConsistency';
 import { countForeignChars, proofreadVietnamese, buildRollingChapterContext } from '../../utils/text';
 import { buildMemoryContextFingerprint, invalidateTranslationMemory, saveVerifiedTranslationMemory } from '../../utils/text/translationMemory';
@@ -13,6 +13,7 @@ export const createQualityReviewHandlers = (core: any, ui: any, shared: any) => 
   const handleQualityReview = (force = true, automaticIds?: string[], ignoreBackoff = false): boolean => {
     if (shared.isRepairRunningRef.current || shared.activeBatches > 0) return false;
     const state = core.stateRef.current;
+    if (!force && (!isTranslationComplete(state.files) || shared.qaPausedRef?.current)) return false;
     const initialCustom = state.additionalDictionary || '';
     const baseDictionary = shared.effectiveDictionary.endsWith(initialCustom)
       ? shared.effectiveDictionary.slice(0, shared.effectiveDictionary.length - initialCustom.length).trimEnd() : shared.effectiveDictionary;
@@ -30,7 +31,7 @@ export const createQualityReviewHandlers = (core: any, ui: any, shared: any) => 
       if (force) ui.addToast('Không có bản dịch để hậu kiểm.', 'info');
       return false;
     }
-    if (shared.qaPausedRef) shared.qaPausedRef.current = false;
+    if (force && shared.qaPausedRef) shared.qaPausedRef.current = false;
     const run = shared.runIdRef.current;
     shared.isRepairRunningRef.current = true;
     shared.setProcessingQueue([]);
@@ -45,6 +46,11 @@ export const createQualityReviewHandlers = (core: any, ui: any, shared: any) => 
     void (async () => {
       const visited = new Set<string>(), activeIds = new Set<string>();
       let waves = 0;
+      let quotaStopped = false;
+      const pauseForQuota = () => {
+        quotaStopped = true;
+        if (shared.qaPausedRef) shared.qaPausedRef.current = true;
+      };
       const abort = () => run !== shared.runIdRef.current;
       try {
         while (!abort()) {
@@ -52,12 +58,13 @@ export const createQualityReviewHandlers = (core: any, ui: any, shared: any) => 
           const live = core.stateRef.current;
           const story: StoryInfo = live.storyInfo;
           const files: FileItem[] = live.files;
+          if (!force && !isTranslationComplete(files)) break;
           const dictionary = getDictionary();
           const wave = selectDeferredQaWave(files, dictionary, story, visited, Date.now(), force, scope);
           if (!wave.length) break;
           const model = wave[0].usedModel?.startsWith('openrouter:') ? wave[0].usedModel : '';
           const batch = wave.filter(file => (file.usedModel?.startsWith('openrouter:') ? file.usedModel : '') === model);
-          if (waves && !hasReadyQualityModel(live.enabledModels, live.openRouterKey, model)) break;
+          if (!hasReadyQualityModel(live.enabledModels, live.openRouterKey, model)) { pauseForQuota(); break; }
           waves++;
           batch.forEach(file => { visited.add(file.id); activeIds.add(file.id); });
           ui.addLog(`🔎 Hậu kiểm đợt ${waves}: ${batch.length} chương; đã xét ${visited.size} chương trong lượt này.`, 'info');
@@ -77,7 +84,7 @@ export const createQualityReviewHandlers = (core: any, ui: any, shared: any) => 
           }
           const reviewable = reviewFiles.filter(file => !file.plan.conflicts.length);
           const reports = await reviewAndRepairBatch(reviewable, results, live.enabledModels,
-            (message) => ui.addLog(message, 'info'), live.openRouterKey, model, '', { shouldAbort: abort });
+            (message) => ui.addLog(message, 'info'), live.openRouterKey, model, '', { shouldAbort: abort, onQuotaExhausted: pauseForQuota });
           for (const file of reviewFiles) {
             if (file.plan.conflicts.length) reports.set(file.id, { ...deferredReview('Xung đột thuật ngữ: ' + file.plan.conflicts.join(' ')), retryable: false });
             const report = reports.get(file.id);
@@ -124,12 +131,13 @@ export const createQualityReviewHandlers = (core: any, ui: any, shared: any) => 
           // Yield to UI between waves; never rescan the same chapter in a tight loop.
           await new Promise(resolve => setTimeout(resolve, 0));
           await core.saveSession(true);
+          if (quotaStopped) break;
         }
         const remaining = core.stateRef.current.files.filter((file: FileItem, index: number) => targetIds.has(file.id)
           && currentQaStatus(file, getDictionary(), core.stateRef.current.storyInfo, index + 1) !== 'PASS').length;
         ui.addToast(remaining === 0
           ? 'Không còn gì để hậu kiểm — các chương vừa quét đã đạt kiểm tra.'
-          : `Hậu kiểm qua ${waves} đợt: còn ${remaining} chương chờ kiểm/sửa. Đã lưu hàng đợi để tiếp tục khi model sẵn sàng.`,
+          : `Hậu kiểm qua ${waves} đợt: còn ${remaining} chương chờ kiểm/sửa. ${quotaStopped ? 'Đã dừng vì model không khả dụng hoặc hết quota. Khi có quota, nhấn Hậu kiểm lại để tiếp tục.' : 'Đã lưu hàng đợi hậu kiểm.'}`,
           remaining === 0 ? 'success' : 'warning');
       } catch (error) {
         if (!abort()) ui.addToast(`Hậu kiểm chưa hoàn tất: ${error instanceof Error ? error.message : String(error)}`, 'warning');

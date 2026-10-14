@@ -20,13 +20,41 @@ const harness = (files: FileItem[], selectedFiles = new Set<string>()) => {
     setFiles: (update: (prev: FileItem[]) => FileItem[]) => { state.files = update(state.files); },
     setStoryInfo: (update: (prev: StoryInfo) => StoryInfo) => { state.storyInfo = update(state.storyInfo); } };
   const ui = { selectedFiles, addToast: vi.fn(), addLog: vi.fn() };
-  const shared = { isRepairRunningRef: { current: false }, activeBatches: 0, effectiveDictionary: '', runIdRef: { current: 1 },
+  const shared = { qaPausedRef: { current: false }, isRepairRunningRef: { current: false }, activeBatches: 0, effectiveDictionary: '', runIdRef: { current: 1 },
     isProcessingRef: { current: true }, isFixPhaseRef: { current: false }, setProcessingQueue: vi.fn(), setEndTime: vi.fn(),
     setIsProcessing: vi.fn(), setIsSmartAutoMode: vi.fn(), setAutoFixEnabled: vi.fn() };
   return { core, ui, shared, state, handler: createQualityReviewHandlers(core, ui, shared).handleQualityReview };
 };
 
 describe('manual and deferred quality review', () => {
+  it('waits for the whole restored project, not just the selected translation queue', () => {
+    const h = harness([{ ...file('a'), qaStatus: 'QA_DEFERRED' }, { ...file('b'), status: FileStatus.IDLE, translatedContent: undefined }]);
+    expect(h.handler(false, ['a'])).toBe(false);
+    expect(h.shared.setProcessingQueue).not.toHaveBeenCalled();
+    h.state.files[1] = file('b');
+    h.shared.qaPausedRef.current = true;
+    expect(h.handler(false)).toBe(false);
+  });
+  it('stops on quota after one wave and does not automatically restart', async () => {
+    const h = harness(Array.from({ length: 20 }, (_, i) => ({ ...file(String(i)), qaStatus: 'QA_DEFERRED' as const })));
+    let calls = 0;
+    vi.mocked(reviewAndRepairBatch).mockImplementation(async (files, _results, _models, _log, _key, _model, _context, options) => {
+      calls++;
+      options?.onQuotaExhausted?.();
+      return new Map(files.map(f => [f.id, { ...pass, status: 'QA_DEFERRED', reason: '429 quota' }]));
+    });
+    expect(h.handler(false)).toBe(true);
+    await vi.waitFor(() => expect(h.shared.isRepairRunningRef.current).toBe(false));
+    expect(calls).toBe(1);
+    expect(h.shared.qaPausedRef.current).toBe(true);
+    expect(h.shared.isProcessingRef.current).toBe(false);
+    expect(h.handler(false)).toBe(false);
+    expect(h.state.files.every(f => f.translatedContent && f.status === FileStatus.COMPLETED)).toBe(true);
+    vi.mocked(reviewAndRepairBatch).mockImplementation(async files => new Map(files.map(f => [f.id, pass])));
+    expect(h.handler(true)).toBe(true);
+    await vi.waitFor(() => expect(h.shared.isRepairRunningRef.current).toBe(false));
+    expect(h.state.files.every(f => f.qaStatus === 'PASS')).toBe(true);
+  });
   it('actually rechecks the selected chapter and releases the processing lock', async () => {
     vi.mocked(reviewAndRepairBatch).mockResolvedValue(new Map([['b', pass]]));
     const h = harness([file('a'), file('b')], new Set(['b']));

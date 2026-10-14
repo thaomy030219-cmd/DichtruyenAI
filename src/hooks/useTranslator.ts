@@ -709,6 +709,9 @@ export const useTranslator = (
             if (isAllQuotaExhausted) {
                 ui.addToast("Tất cả model khả dụng đã hết Quota. Dừng hệ thống dịch.", "error");
                 if (myRunId === runIdRef?.current) {
+                    qaPausedRef.current = true;
+                    isProcessingRef.current = false;
+                    setIsProcessing(false);
                     setProcessingQueue([]); // Clear queue to stop
                     setEndTime(Date.now());
                     setIsSmartAutoMode(false);
@@ -738,7 +741,7 @@ export const useTranslator = (
             setActiveBatches(prev => Math.max(0, prev - 1));
             batchIds.forEach(id => scheduledBatchesRef?.current.delete(id));
         }
-    }, [isProcessing, effectiveDictionary, core, ui, setRetryTrigger, setActiveBatches, scheduledBatchesRef, runIdRef, filesRef, isFixPhaseRef, setAutoFixEnabled, setEndTime, setIsSmartAutoMode, setProcessingQueue]);
+    }, [isProcessing, effectiveDictionary, core, ui, setRetryTrigger, setActiveBatches, scheduledBatchesRef, runIdRef, filesRef, isFixPhaseRef, setAutoFixEnabled, setEndTime, setIsSmartAutoMode, setProcessingQueue, isProcessingRef, qaPausedRef, setIsProcessing]);
 
     useEffect(() => {
         if (!isProcessing) return;

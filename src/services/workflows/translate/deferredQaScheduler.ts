@@ -5,6 +5,8 @@ import { currentQaStatus } from './qaState';
 
 export const QA_WAVE_SIZE = 6;
 export const MAX_AUTO_QA_ATTEMPTS = 4;
+export const isTranslationComplete = (files: FileItem[]): boolean => files.length > 0
+  && files.every(file => file.status === FileStatus.COMPLETED && !!file.translatedContent?.trim() && !file.hasStaleTranslation);
 const taskCache = new WeakMap<FileItem, { dictionary: string; story: StoryInfo; index: number; fingerprint: string }>();
 export const qaTaskFingerprint = (file: FileItem, dictionary: string, story: StoryInfo, index: number): string => {
   const cached = taskCache.get(file);
@@ -45,6 +47,7 @@ export const recoverInterruptedQaFiles = (files: FileItem[]): FileItem[] => file
       qaReason: 'Phiên hậu kiểm trước bị gián đoạn; đã giữ bản dịch và đưa lại vào hàng đợi.' }
     : file);
 export const nextDeferredQaWake = (files: FileItem[], dictionary: string, story: StoryInfo, now = Date.now()): number | undefined => {
+  if (!isTranslationComplete(files)) return undefined;
   let next: number | undefined;
   files.forEach((file, index) => {
     if (!isDeferredQaCandidate(file, dictionary, story, index + 1)) return;

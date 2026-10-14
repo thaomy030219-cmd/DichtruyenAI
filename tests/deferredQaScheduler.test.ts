@@ -6,6 +6,13 @@ const story: StoryInfo = { title: '', author: '', languages: [], genres: [], wor
 const file = (id: string): FileItem => ({ id, name: id, content: 'source ' + id, translatedContent: 'target ' + id, status: FileStatus.COMPLETED,
   originalCharCount: 8, remainingRawCharCount: 0, retryCount: 2, qaStatus: 'QA_DEFERRED' });
 describe('persisted deferred QA scheduling', () => {
+  it('does not schedule a restored unfinished project', () => {
+    for (const status of [FileStatus.IDLE, FileStatus.ERROR, FileStatus.PROCESSING]) {
+      expect(nextDeferredQaWake([file('a'), { ...file('b'), status }], '', story)).toBeUndefined();
+    }
+    expect(nextDeferredQaWake([file('a'), { ...file('b'), translatedContent: '' }], '', story)).toBeUndefined();
+    expect(nextDeferredQaWake([file('a'), file('b')], '', story, 1000)).toBe(1000);
+  });
   it('visits the entire backlog fairly without a 12-chapter cap', () => {
     const files = Array.from({ length: 1001 }, (_, index) => file(String(index)));
     const visited = new Set<string>();

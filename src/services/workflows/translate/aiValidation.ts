@@ -8,8 +8,24 @@ import { enforceLocalLocks, LocalFinding } from './localConsistency';
 export interface ReviewFile { id: string; content: string; name?: string; consistencyContext?: string; localHints?: string; localFindings?: LocalFinding[] }
 export interface ReviewOptions {
   shouldAbort?: () => boolean;
+  onQuotaExhausted?: () => void;
   request?: (instruction: string, prompt: string) => Promise<string>;
 }
+export const isQualityQuotaError = (reason: string): boolean => /429|quota|resource[ _.-]*exhausted|hết lượt/i.test(reason);
+const stopOnQuota = (request: (instruction: string, prompt: string) => Promise<string>, options: ReviewOptions) => {
+  let quotaError: unknown;
+  return async (instruction: string, prompt: string): Promise<string> => {
+    if (quotaError) throw quotaError;
+    try { return await request(instruction, prompt); }
+    catch (error) {
+      if (isQualityQuotaError(error instanceof Error ? error.message : String(error))) {
+        quotaError = error;
+        options.onQuotaExhausted?.();
+      }
+      throw error;
+    }
+  };
+};
 const SUPPORT_REVIEW_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemma-4-31b-it', 'gemma-4-26b-a4b-it'];
 export const hasReadyQualityModel = (enabled: string[], openRouterKey?: string, translationModel?: string): boolean =>
   !!(openRouterKey?.trim() && translationModel?.startsWith('openrouter:'))
@@ -26,6 +42,7 @@ export const requestQualityJson = async (
   const satellites = translationModel?.startsWith('openrouter:') && openRouterKey?.trim() ? [translationModel] : [];
   const candidates = [...satellites, ...SUPPORT_REVIEW_MODELS.filter(id => !enabledModels.length || enabledModels.includes(id))];
   let lastError = 'Model hậu kiểm đang bận hoặc hết quota.';
+  let quotaError = '';
   let attempts = 0;
   for (const id of candidates) {
     if (excludedModels.includes(id)) continue;
@@ -46,13 +63,14 @@ export const requestQualityJson = async (
       return response.text || '{}';
     } catch (error) {
       lastError = error instanceof Error ? error.message : String(error);
+      if (isQualityQuotaError(lastError)) quotaError = lastError;
       if (!id.startsWith('openrouter:')) {
         if (/429|quota|resource exhausted/i.test(lastError)) quotaManager.recordRateLimit(id);
         else quotaManager.recordError(id);
       }
     } finally { clearTimeout(timeout); }
   }
-  throw new Error(lastError);
+  throw new Error(quotaError || lastError);
 };
 
 export const validateBatchWithAI = async (
@@ -61,7 +79,7 @@ export const validateBatchWithAI = async (
   consistencyContext = '', options: ReviewOptions = {},
 ): Promise<Map<string, QualityReview>> => {
   const report = new Map<string, QualityReview>();
-  const request = options.request || ((instruction, prompt) => requestQualityJson(instruction, prompt, enabledModels, openRouterKey, translationModel, options.shouldAbort));
+  const request = stopOnQuota(options.request || ((instruction, prompt) => requestQualityJson(instruction, prompt, enabledModels, openRouterKey, translationModel, options.shouldAbort)), options);
   const chunks: ReviewFile[][] = [];
   let chunk: ReviewFile[] = [], chars = 0;
   for (const file of files) {
@@ -100,14 +118,20 @@ export const reviewAndRepairBatch = async (
   openRouterKey?: string, translationModel?: string, consistencyContext = '', options: ReviewOptions = {},
 ): Promise<Map<string, QualityReview>> => {
   const reviewModels = new Set<string>();
-  const request = options.request || ((instruction, prompt) => requestQualityJson(instruction, prompt, enabledModels, openRouterKey, translationModel, options.shouldAbort, [], model => reviewModels.add(model)));
+  let quotaStopped = false;
+  const guardedOptions = { ...options, onQuotaExhausted: () => { quotaStopped = true; options.onQuotaExhausted?.(); } };
+  const guard = (request: (instruction: string, prompt: string) => Promise<string>) => stopOnQuota(async (instruction, prompt) => {
+    if (quotaStopped) throw new Error('Hết quota hậu kiểm; đã tạm dừng.');
+    return request(instruction, prompt);
+  }, guardedOptions);
+  const request = guard(options.request || ((instruction, prompt) => requestQualityJson(instruction, prompt, enabledModels, openRouterKey, translationModel, options.shouldAbort, [], model => reviewModels.add(model))));
   const report = await validateBatchWithAI(files, results, enabledModels, onLog, openRouterKey, translationModel, consistencyContext, { ...options, request });
   const failures = files.filter(file => report.get(file.id)?.status === 'CONFIRMED_FAILURE');
   if (failures.length) {
     onLog?.(`🔎 Xác nhận chéo ${failures.length} chương nghi lệch nội dung trước khi yêu cầu dịch lại.`);
-    const confirmationRequest = options.request || ((instruction: string, prompt: string) => requestQualityJson(
+    const confirmationRequest = guard(options.request || ((instruction: string, prompt: string) => requestQualityJson(
       instruction, prompt, enabledModels, openRouterKey, translationModel, options.shouldAbort, [...reviewModels],
-    ));
+    )));
     const confirmed = await validateBatchWithAI(failures, results, enabledModels, onLog, openRouterKey, translationModel, consistencyContext, { ...options, request: confirmationRequest });
     for (const file of failures) {
       const verdict = confirmed.get(file.id)!;
@@ -138,7 +162,7 @@ export const reviewAndRepairBatch = async (
   if (verifyFiles.length) {
     // Old local findings point at the pre-repair text; callers re-run local checks
     // on the accepted output, rather than blocking a correct patch with stale hints.
-    const verified = await validateBatchWithAI(verifyFiles.map(file => ({ ...file, localFindings: undefined, localHints: undefined })), candidates, enabledModels, onLog, openRouterKey, translationModel, consistencyContext, options);
+    const verified = await validateBatchWithAI(verifyFiles.map(file => ({ ...file, localFindings: undefined, localHints: undefined })), candidates, enabledModels, onLog, openRouterKey, translationModel, consistencyContext, { ...options, request });
     for (const file of verifyFiles) {
       const verdict = verified.get(file.id)!;
       if (verdict.status === 'PASS') {
