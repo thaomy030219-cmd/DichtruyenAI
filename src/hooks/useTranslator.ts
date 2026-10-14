@@ -9,6 +9,7 @@ import { qualityFingerprint, mergeConsistencyRules } from '../services/workflows
 import { currentQaStatus } from '../services/workflows/translate/qaState';
 import { scheduleQaOutcome } from '../services/workflows/translate/deferredQaScheduler';
 import { invalidateTranslationMemory } from '../utils/text/translationMemory';
+import { planTranslationResume, prepareResumeFiles } from '../services/workflows/translate/resumePlan';
 
 // FIX (starvation hàng chờ): trước đây MỌI tệp lỗi (kể cả tệp vừa bị "cách ly để kiểm tra
 // riêng" hoặc đã xác nhận cần "Bàn giao OpenRouter") đều bị xếp chung xuống TẬN CUỐI
@@ -764,7 +765,7 @@ export const useTranslator = (
         if (pendingFiles.length === 0 && activeBatches === 0) {
             if (finalReviewRunRef.current !== myRunId) {
                 finalReviewRunRef.current = myRunId;
-                if (handleQualityReview(false, processingQueue)) return;
+                if (handleQualityReview(false, undefined, true)) return;
             }
             if (isSmartAutoMode && !isFixPhaseRef?.current) {
                 const hasIssues = handleSmartFix();
@@ -928,47 +929,26 @@ export const useTranslator = (
         }
     }, [isProcessing, processingQueue, activeBatches, core.concurrency, core.batchLimits, translationTier, processBatch, isSmartAutoMode, autoFixEnabled, retryTrigger, handleSmartFix, handleFixRemainingRaw, handleQualityReview, isRepairRunningRef, setIsProcessing, setEndTime, setIsSmartAutoMode, setAutoFixEnabled, ui, core, scheduledBatchesRef, runIdRef, isFixPhaseRef, filesRef, setActiveBatches, isProcessingRef]);
 
-    const executeProcessing = (smartAuto: boolean = false, overrideTier?: TranslationTier) => {
-        if (qaPausedRef) qaPausedRef.current = false;
+    const executeProcessing = (smartAuto: boolean = false, overrideTier?: TranslationTier, resume = false) => {
         // BUGFIX (bước C): nếu đang có phiên Sửa Lỗi (Repair) thật sự chạy dưới nền, không cho bắt
         // đầu 1 lượt dịch mới đè lên (sẽ làm tăng runIdRef và khiến phiên repair đang chạy bị coi là
         // "người dùng hủy"). Báo cho người dùng biết và dừng ở đây.
-        if (isRepairRunningRef?.current) {
-            ui.addToast("Đang có phiên Sửa Lỗi chạy dở, vui lòng đợi hoàn tất trước khi Bắt đầu dịch lại.", 'info');
+        if (isRepairRunningRef?.current || isProcessingRef.current || activeBatches > 0) {
+            ui.addToast("Tác vụ hiện tại vẫn đang chạy hoặc đang dừng. Vui lòng đợi trước khi Bắt đầu tiếp.", 'info');
             return false;
         }
-        const hasSelection = ui.selectedFiles && ui.selectedFiles.size > 0;
-
-        const filesToReset = core.files.filter((f: FileItem) => {
-            if (hasSelection && !ui.selectedFiles.has(f.id)) return false;
-            
-            const isSuspiciousContentError = f.errorMessage && (f.errorMessage.includes('Nghi vấn lỗi nội dung') || f.errorMessage.toLowerCase().includes('an toàn') || f.errorMessage.toLowerCase().includes('safety') || f.errorMessage.includes('BLOCKLIST') || f.errorMessage.includes('PROHIBITED_CONTENT'));
-
-            // Ngoại trừ các file dịch từ thủ công nếu không chọn trực tiếp (NHƯNG NGOẠI TRỪ LỖI NGHI VẤN NỘI DUNG)
-            if (!hasSelection && f.usedModel === 'Thủ công' && !isSuspiciousContentError) return false;
-
-            if (f.status === FileStatus.ERROR) return true;
-            if (f.status === FileStatus.IDLE && isSuspiciousContentError) return true;
-            if (f.status === FileStatus.PROCESSING || f.status === FileStatus.REPAIRING) return true;
-            if (f.status === FileStatus.COMPLETED && f.translatedContent) {
-                if (f.translatedContent.trim() === f.content.trim()) return true;
-                if (f.translatedContent.includes(BATCH_MISSING_TAG_WARNING)) return true;
-                if (f.remainingRawCharCount > 100) return true;
-            }
-            return false;
-        });
-
-        const resetIds = new Set(filesToReset.map(f => f.id));
+        if (qaPausedRef) qaPausedRef.current = false;
+        const resumeFiles = prepareResumeFiles(core.stateRef.current.files);
+        core.setFiles(resumeFiles);
+        if (filesRef) filesRef.current = resumeFiles;
+        const { queue, resetIds } = planTranslationResume(resumeFiles, ui.selectedFiles, resume);
+        const filesToReset = resumeFiles.filter(file => resetIds.has(file.id));
         void invalidateTranslationMemory(filesToReset.map((f: FileItem) => f.translationMemoryKey).filter(Boolean));
 
-        const queue = core.files.filter((f: FileItem) => {
-            if (hasSelection && !ui.selectedFiles.has(f.id)) return false;
-            return f.status === FileStatus.IDLE || resetIds.has(f.id);
-        }).map((f: FileItem) => f.id);
-        
         if (queue.length === 0) {
+            setStartTime(Date.now());
             if (handleQualityReview(false, undefined, true)) return true;
-            ui.addToast("Không có file nào để dịch hoặc hậu kiểm lại", 'info');
+            ui.addToast("Không còn tác vụ trong phạm vi này. Các chương đã đạt hậu kiểm sẽ không bị quét lại.", 'info');
             return false;
         }
         

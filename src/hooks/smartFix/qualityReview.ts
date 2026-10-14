@@ -13,7 +13,8 @@ export const createQualityReviewHandlers = (core: any, ui: any, shared: any) => 
   const handleQualityReview = (force = true, automaticIds?: string[], ignoreBackoff = false): boolean => {
     if (shared.isRepairRunningRef.current || shared.activeBatches > 0) return false;
     const state = core.stateRef.current;
-    if (!force && (!isTranslationComplete(state.files) || shared.qaPausedRef?.current)) return false;
+    if (!force && (!isTranslationComplete(state.files) || (!ignoreBackoff && shared.qaPausedRef?.current))) return false;
+    if (ignoreBackoff && shared.qaPausedRef) shared.qaPausedRef.current = false;
     const initialCustom = state.additionalDictionary || '';
     const baseDictionary = shared.effectiveDictionary.endsWith(initialCustom)
       ? shared.effectiveDictionary.slice(0, shared.effectiveDictionary.length - initialCustom.length).trimEnd() : shared.effectiveDictionary;
@@ -24,7 +25,7 @@ export const createQualityReviewHandlers = (core: any, ui: any, shared: any) => 
     const snapshot: FileItem[] = state.files;
     const scope = force && ui.selectedFiles?.size ? new Set<string>(ui.selectedFiles)
       : automaticIds ? new Set(automaticIds) : undefined;
-    if (ignoreBackoff) core.setFiles((prev: FileItem[]) => prev.map(file => (!scope || scope.has(file.id)) && file.qaStatus !== 'PASS'
+    if (ignoreBackoff) core.setFiles((prev: FileItem[]) => prev.map((file, index) => (!scope || scope.has(file.id)) && isDeferredQaCandidate(file, shared.effectiveDictionary, state.storyInfo, index + 1)
       ? { ...file, qaRetryCount: 0, qaNextRetryAt: undefined, qaAutoBlocked: false, qaAttemptFingerprint: undefined } : file));
     const first = selectDeferredQaWave(core.stateRef.current.files, shared.effectiveDictionary, state.storyInfo, new Set(), Date.now(), force, scope);
     if (!first.length) {

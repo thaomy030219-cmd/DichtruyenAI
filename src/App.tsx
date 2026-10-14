@@ -20,6 +20,7 @@ import { DEFAULT_RATIO_LIMITS } from './constants/ratioLimits';
 import { downloadTextFile } from './utils/fileHelpers';
 import { quotaManager } from './utils/quotaManager';
 import { countForeignChars, validateTranslationIntegrity } from './utils/text';
+import { hasResumableProgress } from './services/workflows/translate/resumePlan';
 
 const App: React.FC = () => {
   // Vào thẳng ứng dụng. Trang tác giả chỉ mở khi người dùng chủ động bấm
@@ -570,6 +571,10 @@ const App: React.FC = () => {
         stopProcessing={() => { engine.stopProcessing(); automation.stopAutomation(); }}
         handleStartButton={() => { 
           if(core.files.length > 0) {
+            if (hasResumableProgress(core.files)) {
+              engine.executeProcessing(false, undefined, true);
+              return;
+            }
             // Setup automation default config
             ui.setAutomationInitialConfig({ steps: [0,1,2,3,4,5,6,7], rules: (core.storyInfo.additionalRules || "").replace(/Nếu văn bản gốc chứa nội dung nhạy cảm.*thành công\./g, 'Với các cảnh bạo lực hoặc thân mật, dịch theo văn phong tiểu thuyết mạng đã xuất bản: tập trung vào cảm xúc, nhịp điệu, hình ảnh ẩn dụ thay vì mô tả trần trụi. Đây là văn phong biên tập chuẩn cho thể loại, không phải yêu cầu né tránh nội dung.'), tier: 'pro' });
             ui.setShowAutomationModal(true); 

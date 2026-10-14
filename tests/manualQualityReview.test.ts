@@ -27,6 +27,22 @@ const harness = (files: FileItem[], selectedFiles = new Set<string>()) => {
 };
 
 describe('manual and deferred quality review', () => {
+  it('Start resumes blocked QA but skips chapters that already passed', async () => {
+    const h = harness([file('a'), file('b')]);
+    const batches: string[][] = [];
+    vi.mocked(reviewAndRepairBatch).mockImplementation(async files => {
+      batches.push(files.map(f => f.id));
+      return new Map(files.map(f => [f.id, pass]));
+    });
+    h.handler(true);
+    await vi.waitFor(() => expect(h.shared.isRepairRunningRef.current).toBe(false));
+    h.state.files[1] = { ...h.state.files[1], qaStatus: 'QA_DEFERRED', qaAutoBlocked: true, qaRetryCount: 4, qaNextRetryAt: Date.now() + 3600000 };
+    h.shared.qaPausedRef.current = true;
+    expect(h.handler(false, undefined, true)).toBe(true);
+    await vi.waitFor(() => expect(h.shared.isRepairRunningRef.current).toBe(false));
+    expect(batches).toEqual([['a', 'b'], ['b']]);
+    expect(h.handler(false, undefined, true)).toBe(false);
+  });
   it('waits for the whole restored project, not just the selected translation queue', () => {
     const h = harness([{ ...file('a'), qaStatus: 'QA_DEFERRED' }, { ...file('b'), status: FileStatus.IDLE, translatedContent: undefined }]);
     expect(h.handler(false, ['a'])).toBe(false);

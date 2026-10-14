@@ -1,8 +1,25 @@
 [
     {
+        "version": "1.1.0",
+        "title": "Một Nút Tiếp Tục Dịch Và Hậu Kiểm",
+        "isLatest": true,
+        "changes": [
+            {
+                "icon": "Play",
+                "bold": "Bắt đầu tự nhận diện tác vụ dở dang:",
+                "text": "Ưu tiên dịch các chương còn thiếu, sau đó tiếp tục toàn bộ hàng đợi hậu kiểm. Bản dịch đã có và chương đã đạt hậu kiểm được giữ nguyên; không cần nhớ phiên trước dừng ở bước nào."
+            },
+            {
+                "icon": "ShieldCheck",
+                "bold": "Dừng khi hết quota, tiếp tục khi bạn sẵn sàng:",
+                "text": "Hậu kiểm tự động chờ dịch xong toàn bộ truyện. Khi hết quota, lưu hàng đợi và dừng; lần sau chỉ cần nhấn Bắt đầu để tiếp tục."
+            }
+        ]
+    },
+    {
         "version": "1.0.10",
         "title": "Bổ Sung Gemini 3.0 Turbo Cho Dịch Trực Tiếp",
-        "isLatest": true,
+        "isLatest": false,
         "changes": [
             {
                 "icon": "Zap",
