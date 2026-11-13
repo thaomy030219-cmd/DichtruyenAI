@@ -2,9 +2,8 @@
 
 export const testContentSafety = async (content: string, enabledModels: string[]): Promise<{ isSafe: boolean, modelUsed: string }> => {
     try {
-        const { getAiClient, SAFETY_SETTINGS } = await import('../../api/gemini');
-        const { quotaManager } = await import('../../../utils/quotaManager');
-        const ai = getAiClient();
+        const { SAFETY_SETTINGS } = await import('../../api/gemini');
+        const { getGeminiModelRoutes, getGeminiProjects, recordGeminiRateLimit } = await import('../../api/geminiProjects');
         
         // Use quotaManager to find available flash models to avoid 429 errors
 
@@ -17,30 +16,19 @@ export const testContentSafety = async (content: string, enabledModels: string[]
             else modelsToTry.push('gemini-3.5-flash-lite');
         }
         
-        // Sort by quota availability but keep priority order if wait times are similar
-        modelsToTry.sort((a, b) => {
-            const waitA = quotaManager.getWaitTimeForModel(a);
-            const waitB = quotaManager.getWaitTimeForModel(b);
-            if (waitA === waitB) return 0;
-            return waitA - waitB;
-        });
-        
         const prompt = `Đây là bài test. Chỉ cần trả lời đúng chữ "OK" và không làm gì khác, không cần đọc nội dung đoạn văn bên dưới.\n\n[NỘI DUNG]:\n${content.substring(0, 4000)}`;
 
         let lastErr: any;
-        for (const targetModel of modelsToTry) {
+        const routes = getGeminiModelRoutes(modelsToTry);
+        for (const { project, id: targetModel } of routes) {
+            const quotaManager = project.quota;
             try {
-                // Check if we need to wait
-                const wait = quotaManager.getWaitTimeForModel(targetModel);
-                if (wait > 0 && wait !== Infinity) {
-                    await new Promise(r => setTimeout(r, wait));
-                }
-                if (!quotaManager.isModelAvailable(targetModel)) continue;
+                if (!getGeminiProjects().includes(project) || !quotaManager.isModelAvailable(targetModel)) continue;
 
                 console.log("testContentSafety recording request for:", targetModel);
                 quotaManager.recordRequest(targetModel);
 
-                await ai.models.generateContent({
+                await project.client.models.generateContent({
                     model: targetModel,
                     contents: prompt,
                     config: { maxOutputTokens: 10, safetySettings: SAFETY_SETTINGS }
@@ -58,10 +46,7 @@ export const testContentSafety = async (content: string, enabledModels: string[]
                 }
                 // If it's a quota error, continue to next model
                 if (msg.includes("429") || msg.includes("quota") || msg.includes("exhausted")) {
-                    quotaManager.recordQuotaError(targetModel);
-                    if (msg.includes('per day') || msg.includes('daily')) {
-                        quotaManager.markAsDepleted(targetModel);
-                    }
+                    recordGeminiRateLimit(project, targetModel, err);
                     continue;
                 }
                 if (msg.includes("trả về nội dung rỗng")) {
@@ -70,8 +55,7 @@ export const testContentSafety = async (content: string, enabledModels: string[]
                 }
                 
                 quotaManager.recordError(targetModel);
-                // Other errors, break and return false
-                break;
+                // Try the next model or project if this request fails.
             }
         }
         

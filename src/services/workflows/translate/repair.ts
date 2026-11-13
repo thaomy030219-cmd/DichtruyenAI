@@ -1,7 +1,7 @@
 // Nhóm hàm SỬA LỖI HÀNG LOẠT: repairBatch (gọi AI sửa từng dòng lỗi cụ thể),
 // performAggregatedRepair (gom nhiều lỗi từ nhiều file thành ít batch hơn để sửa),
 // repairTranslations (dùng cho luồng Sửa Lỗi Thông Minh - Smart Fix).
-import { getAiClient, smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
+import { smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
 import { REPAIR_CONFIG, TIER_MODELS } from '../../../constants';
 import { StoryInfo, TranslationTier } from '../../../types';
 import { optimizeContext, optimizeDictionary, dedupeContextAgainstDictionary, LineContext } from '../../../utils/text';
@@ -37,14 +37,14 @@ CRITICAL: You MUST return EXACTLY ONE LINE per ID. Do not use multiple lines for
     const isPro = candidates.some(id => TIER_MODELS.PRO_POOL.includes(id));
     const fixModelLabel = isPro ? "Pro" : "Flash";
     
-    return await smartExecution(candidates, async mid => {
+    return await smartExecution(candidates, async (mid, ai) => {
         let timeoutId: NodeJS.Timeout | undefined;
         const connectionTimeout = new Promise<never>((_, reject) => {
             timeoutId = setTimeout(() => reject(new Error('CONNECTION_TIMEOUT')), 900000); // 900s timeout for full generation
         });
         try {
             if (shouldAbort && shouldAbort()) throw new Error('ABORTED');
-            const ai = getAiClient();
+
             const resPromise = ai.models.generateContent({ model: mid, contents: prompt, config: { systemInstruction: instruction, temperature: 0.1, maxOutputTokens: 65536, safetySettings: SAFETY_SETTINGS } });
             const res = await Promise.race([resPromise, connectionTimeout]);
             const text = res.text;

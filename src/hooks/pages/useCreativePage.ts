@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { getAiClient, smartExecution, SAFETY_SETTINGS } from '../../services/api/gemini';
+import { smartExecution, SAFETY_SETTINGS } from '../../services/api/gemini';
 import { CreativeState, CreativeChapter, Character } from '../../types';
 import { parseEpub } from '../../utils/fileHelpers';
 
@@ -87,10 +87,10 @@ export const useCreativePage = ({
         setIsAnalyzing(true);
         addLog?.('Bắt đầu phân tích ý tưởng (3.6 Flash)...', 'info');
         try {
-            const ai = getAiClient();
+
             const res = await smartExecution(
                 ['gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.0-flash'],
-                async (modelId) => {
+                async (modelId, ai) => {
                     const r = await ai.models.generateContent({
                         model: modelId,
                         contents: `Bạn là chuyên gia thiết kế cốt truyện tiên hiệp/đô thị/khoa huyễn. 
@@ -167,10 +167,9 @@ Hãy phát triển và điền vào các mục sau. Trả về đúng định d�
 
             const textContent = parsed.files.map(f => f.content).join('\n\n').substring(0, 100000);
 
-            const ai = getAiClient();
             const response = await smartExecution(
                 ['gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.0-flash'],
-                async (modelId) => {
+                async (modelId, ai) => {
                     const r = await ai.models.generateContent({
                         model: modelId,
                         contents: `Bạn là biên tập văn học. Đọc nội dung truyện sau. Hãy tóm tắt và trích xuất thông tin để chuẩn bị viết tiếp.
@@ -231,7 +230,7 @@ ${textContent}`,
         addLog?.('Bắt đầu sáng tác liên hoàn (tối đa 65.536 token)...', 'info');
         
         try {
-            const ai = getAiClient();
+
             const systemInst = `Bạn là đại tác giả viết truyện chuyên nghiệp.
 Hãy viết THẬT DÀI, BỨT PHÁ GIỚI HẠN. Lần này bạn được yêu cầu viết liên tiếp ${state.targetChapters || 10} chương (tận dụng tối đa 65536 tokens output).
 
@@ -280,7 +279,7 @@ Văn phong mượt mà, cuốn hút. Không tóm tắt nội dung để qua loa.
 
             const res = await smartExecution(
                 ['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3.6-flash'],
-                async (modelId) => {
+                async (modelId, ai) => {
                     const r = await ai.models.generateContent({
                         model: modelId,
                         contents: prompt,

@@ -7,8 +7,8 @@ import { TranslationMemoryDriver, TranslationMemoryEntry } from '../src/utils/te
 
 const { stream } = vi.hoisted(() => ({ stream: vi.fn() }));
 vi.mock('../src/services/api/gemini', () => ({
-  SAFETY_SETTINGS: [], getAiClient: () => ({ models: { generateContentStream: stream } }),
-  smartExecution: async (models: string[], task: (id: string) => Promise<unknown>) => task(models[0]),
+  SAFETY_SETTINGS: [],
+  smartExecution: async (models: string[], task: (id: string, client: unknown) => Promise<unknown>) => task(models[0], { models: { generateContentStream: stream } }),
 }));
 vi.mock('../src/services/workflows/translate/aiValidation', () => ({ reviewAndRepairBatch: vi.fn() }));
 vi.mock('../src/utils/text', async importOriginal => ({

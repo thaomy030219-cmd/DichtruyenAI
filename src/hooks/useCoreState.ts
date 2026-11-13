@@ -1,11 +1,12 @@
 /* eslint-disable react-hooks/set-state-in-effect, react-hooks/preserve-manual-memoization */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { StoryInfo, FileItem, ModelQuota, BatchLimits, RatioLimits, CreativeState, SinoVietnameseState, FixErrorState } from '../types';
-import { DEFAULT_PROMPT, MODEL_CONFIGS, DEFAULT_ENABLED_MODEL_IDS } from '../constants';
+import { StoryInfo, FileItem, BatchLimits, RatioLimits, CreativeState, SinoVietnameseState, FixErrorState } from '../types';
+import { DEFAULT_PROMPT, DEFAULT_ENABLED_MODEL_IDS } from '../constants';
 import { DEFAULT_RATIO_LIMITS } from '../constants/ratioLimits';
 import { loadFromStorage, saveToStorage, clearDatabase, getStoredLastSaved } from '../utils/storage';
 import { quotaManager } from '../utils/quotaManager';
+import { GEMINI_PROJECT_SETTINGS_KEY } from '../services/api/geminiProjects';
 import { base64ToFile, fileToBase64 } from '../utils/fileHelpers';
 import { createSafeSetter } from './coreState/createSafeSetter';
 import { clearTranslationMemory } from '../utils/text/translationMemory';
@@ -54,9 +55,9 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
     const [coverImage, setCoverImage] = useState<File | null>(null);
     const [autoSaveInterval, setAutoSaveInterval] = useState<number>(2);
     const [enabledModels, setEnabledModels] = useState<string[]>(DEFAULT_ENABLED_MODEL_IDS);
-    const [modelConfigs, setModelConfigs] = useState<ModelQuota[]>(MODEL_CONFIGS);
     // NEW: Real-time Usage Stats
-    const [modelUsages, setModelUsages] = useState(quotaManager.getUsageSnapshot());
+    const [modelUsages, setModelUsages] = useState(() => quotaManager.getUsageSnapshot());
+    const modelConfigs = quotaManager.getConfigs();
 
     // Limits - AGGRESSIVE BATCHING DEFAULTS (Tuned for Stability)
     const [batchLimits, setBatchLimits] = useState<BatchLimits>({
@@ -98,7 +99,7 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
     // Ref for saving to avoid stale closures in timeouts.
     // (Được đưa lên sớm hơn vị trí cũ để các setter "an toàn" bên dưới có thể tham chiếu
     // tới stateRef ngay khi khai báo, thay vì phải định nghĩa 14 khối trùng lặp riêng lẻ.)
-    const stateRef = useRef({ files, promptTemplate, storyInfo, creativeState, sinoVietnameseState, fixErrorState, additionalDictionary, autoSaveInterval, enabledModels, modelConfigs, batchLimits, ratioLimits, coverImage, concurrency });
+    const stateRef = useRef({ files, promptTemplate, storyInfo, creativeState, sinoVietnameseState, fixErrorState, additionalDictionary, autoSaveInterval, enabledModels, batchLimits, ratioLimits, coverImage, concurrency });
 
     // Custom setters to update stateRef immediately
     //
@@ -134,8 +135,6 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
     const setSinoVietnameseStateSafe = useCallback(createSafeSetter<SinoVietnameseState>('sinoVietnameseState', setSinoVietnameseState, stateRef), []);
 
     const setFixErrorStateSafe = useCallback(createSafeSetter<FixErrorState>('fixErrorState', setFixErrorState, stateRef), []);
-
-    const setModelConfigsSafe = useCallback(createSafeSetter<ModelQuota[]>('modelConfigs', setModelConfigs, stateRef), []);
 
     /* eslint-enable react-hooks/refs, react-hooks/use-memo, react-hooks/exhaustive-deps */
 
@@ -216,9 +215,6 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
                 } else {
                     try { localStorage.removeItem('app_global_last_saved'); } catch {}
                 }
-                
-                // Sync quota manager
-                quotaManager.updateConfigs(MODEL_CONFIGS);
                 
                 // Update initial usages
                 setModelUsages(quotaManager.getUsageSnapshot());
@@ -371,7 +367,7 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
         if (isLoadedRef.current) {
             hasUnsavedChangesRef.current = true;
         }
-    }, [files, storyInfo, creativeState, sinoVietnameseState, fixErrorState, promptTemplate, additionalDictionary, enabledModels, batchLimits, ratioLimits, concurrency, autoSaveInterval, modelConfigs, coverImage]);
+    }, [files, storyInfo, creativeState, sinoVietnameseState, fixErrorState, promptTemplate, additionalDictionary, enabledModels, batchLimits, ratioLimits, concurrency, autoSaveInterval, coverImage]);
 
     // --- PERIODIC AUTO SAVE ---
     useEffect(() => {
@@ -418,7 +414,11 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
         try {
             await clearDatabase();
             await clearTranslationMemory().catch(error => console.warn('Không xóa được bộ nhớ bản dịch:', error));
-            try { localStorage.clear(); } catch {}
+            try {
+                for (const key of Object.keys(localStorage)) {
+                    if (key !== GEMINI_PROJECT_SETTINGS_KEY) localStorage.removeItem(key);
+                }
+            } catch { /* Browser storage may be unavailable. */ }
             quotaManager.reset();
             setFilesSafe([]);
             setStoryInfoSafe(initialStoryInfo);
@@ -462,7 +462,7 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
         coverImage, setCoverImage: setCoverImageSafe,
         autoSaveInterval, setAutoSaveInterval: setAutoSaveIntervalSafe,
         enabledModels, setEnabledModels: setEnabledModelsSafe,
-        modelConfigs, setModelConfigs: setModelConfigsSafe,
+        modelConfigs,
         batchLimits, setBatchLimits: setBatchLimitsSafe,
         ratioLimits, setRatioLimits: setRatioLimitsSafe,
         concurrency, setConcurrency: setConcurrencySafe,

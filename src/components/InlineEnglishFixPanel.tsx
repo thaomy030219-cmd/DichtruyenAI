@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { FileItem } from '../types';
-import { getAiClient, SAFETY_SETTINGS, smartExecution } from '../services/api/gemini';
+import { SAFETY_SETTINGS, smartExecution } from '../services/api/gemini';
 import { Loader2, Zap, RefreshCw, AlertTriangle, CheckCircle, Eye } from 'lucide-react';
 import { applyInlineEnglishFix, detectUnmappedInlineEnglish, COMMON_EN_VI_MAP } from '../utils/text/inlineEnglishFixer';
 
@@ -111,8 +111,6 @@ export const InlineEnglishFixPanel: React.FC<Props> = ({ files, setFilesSafe, ad
         addLog?.('Bắt đầu AI Fix tiếng Anh inline...', 'info');
 
         try {
-            const ai = getAiClient();
-            
             const problemLines: { fileId: string; lineIndex: number; line: string; enWords: string[] }[] = [];
             
             for (const f of translatedFiles) {
@@ -159,7 +157,7 @@ CHỈ TRẢ VỀ CÁC DÒNG ĐÃ SỬA, KHÔNG GIẢI THÍCH.`;
 
                     const result = await smartExecution(
                         ['gemini-3.6-flash', 'gemini-3-flash-preview'],
-                        async (modelId) => {
+                        async (modelId, ai) => {
                             const r = await ai.models.generateContent({
                                 model: modelId, contents: prompt,
                                 config: { safetySettings: SAFETY_SETTINGS, temperature: 0.1, maxOutputTokens: 8192 }

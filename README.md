@@ -15,9 +15,10 @@ View your app in AI Studio: https://ai.studio/apps/a66e8c47-2880-435e-a1da-26742
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+2. Run the app with `npm run dev`.
+3. Mở **API** trên thanh trên cùng. Nhập Project ID và một Gemini API key Free Tier cho mỗi project, bấm **Kiểm tra và thêm key**, rồi **Lưu API**. Key được lưu trong trình duyệt đến khi bạn xóa key hoặc xóa dữ liệu trang. App thử project theo thứ tự thêm. Các key thuộc cùng project dùng chung hạn mức.
+
+Khi chạy local, bạn cũng có thể cấu hình `GEMINI_API_KEY` trong `.env.local` để dùng làm key mặc định. Khi thêm key riêng, app dùng danh sách project bạn đã nhập. Với bản web công khai, để trống biến này khi build để tránh đưa key dùng chung vào JavaScript tải xuống trình duyệt.
 
 ## Nhất quán và hậu kiểm bản dịch dài
 

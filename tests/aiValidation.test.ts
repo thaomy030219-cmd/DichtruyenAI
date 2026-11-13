@@ -66,7 +66,7 @@ describe('QA request and repair workflow', () => {
   });
   it('does not borrow the main model quota when all support models are disabled', async () => {
     const ready = vi.spyOn(quotaManager, 'isModelAvailable').mockReturnValue(true);
-    const record = vi.spyOn(quotaManager, 'recordRequest');
+    const record = vi.spyOn(quotaManager.getDefaultQuota(), 'recordRequest');
     await expect(requestQualityJson('instruction', 'prompt', ['gemini-3.1-pro-preview'])).rejects.toThrow('hậu kiểm');
     expect(ready).not.toHaveBeenCalled();
     expect(record).not.toHaveBeenCalled();

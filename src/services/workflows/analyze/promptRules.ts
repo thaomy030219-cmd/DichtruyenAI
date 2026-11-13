@@ -1,5 +1,6 @@
 // Nhóm hàm liên quan PROMPT/QUY TẮC dịch: tối ưu prompt, tinh chỉnh additionalRules, tóm tắt.
-import { getAiClient, smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
+import type { GoogleGenAI } from '@google/genai';
+import { smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
 import { StoryInfo } from '../../../types';
 import { replacePromptVariables } from '../../../prompts';
 import { DEEP_ANALYSIS_SYNTHESIS_MODELS, selectAnalysisModels } from './modelRouting';
@@ -13,7 +14,7 @@ export const optimizePrompt = async (
   enabledModels?: string[],
   forcedCandidates?: string[]
 ): Promise<string> => {
-  const ai = getAiClient();
+
   const candidates = selectAnalysisModels(forcedCandidates || DEEP_ANALYSIS_SYNTHESIS_MODELS, enabledModels);
   const filledTemplate = replacePromptVariables(promptTemplate, storyInfo);
   const pronounMarker = '# === [7. XƯNG HÔ & QUAN HỆ / PRONOUNS] ===';
@@ -87,7 +88,7 @@ ${context.substring(0, 50000)}
 ${filledTemplate}`;
 
   try {
-      const performTask = async (modelId: string) => {
+      const performTask = async (modelId: string, ai: GoogleGenAI) => {
         const response = await ai.models.generateContent({
           model: modelId,
           contents: "Thực hiện kiến trúc lại Prompt dựa trên Series Bible.",
@@ -160,8 +161,8 @@ ${pronounSection}
 
 CHỈ TRẢ VỀ NỘI DUNG QUY TẮC BỔ SUNG theo đúng format trên, không thêm lời chào hỏi hay giải thích dư thừa. KHÔNG bọc trong block code markdown (như \`\`\`markdown).`;
 
-    const performTask = async (modelId: string) => {
-        const response = await getAiClient().models.generateContent({
+    const performTask = async (modelId: string, ai: GoogleGenAI) => {
+        const response = await ai.models.generateContent({
             model: modelId,
             contents: prompt,
             config: { ...(!['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3.6-flash'].includes(modelId) && { temperature: 0.3 }), safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }
@@ -202,8 +203,8 @@ LƯU Ý: Giữ nguyên Tên Nhân Vật và Thuật Ngữ chính. Không trả v
 [Ngữ cảnh chi tiết]
 ${mergedContext}`;
 
-    const performTask = async (modelId: string) => {
-        const response = await getAiClient().models.generateContent({
+    const performTask = async (modelId: string, ai: GoogleGenAI) => {
+        const response = await ai.models.generateContent({
             model: modelId,
             contents: prompt,
             config: { ...(!['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3.6-flash'].includes(modelId) && { temperature: 0.3 }), safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }

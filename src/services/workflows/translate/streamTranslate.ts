@@ -4,7 +4,7 @@
 // này (rủi ro cao nếu không có bộ test hồi quy đầy đủ). Việc tách RIÊNG hàm này ra 1 file
 // chỉ nhằm mục đích: khi cần sửa lỗi luồng dịch, chỉ cần mở đúng 1 file này thay vì phải
 // tìm trong 1 file 1500 dòng gộp chung 8 hàm khác nhau.
-import { getAiClient, smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
+import { smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
 import { StoryInfo, TranslationTier, RatioLimits, FileItem, BatchLimits, QualityReview } from '../../../types';
 import { optimizeDictionary, optimizeContext, dedupeContextAgainstDictionary, formatBookStyle, fixMergedTitle, createBatchFingerprints, validateBatch, registerCompletedChapterFingerprint, proofreadVietnamese, applyInlineEnglishFix } from '../../../utils/text';
 import { VietnameseProofreadResult } from '../../../utils/text/vietnameseProofreader';
@@ -158,11 +158,11 @@ ${chapterTitleRule}
 CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startTag} and ${endTag}).`;
     };
 
-    const liveResult: TranslationBatchResult = await smartExecution(effectiveModels, async mid => {
+    const liveResult: TranslationBatchResult = await smartExecution(effectiveModels, async (mid, ai) => {
         // Batch có thể được xếp cho Pro rồi rơi sang Flash khi hết quota. Kiểm tra lại
         // ngay trước request để model dự phòng không nhận một lô vượt khả năng và cắt đuôi.
         assertModelBatchCapacity(mid, files.length, batchLimits, storyInfo?.languages || []);
-        const ai = getAiClient();
+
         
         // Dynamic input and instruction based on model ID
         const is25Pro = mid && mid.includes('2.5-pro');

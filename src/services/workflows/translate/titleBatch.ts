@@ -1,5 +1,5 @@
 // Tạo lại tiêu đề chương hàng loạt bằng AI (dùng model nhanh/rẻ - Flash).
-import { getAiClient, smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
+import { smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
 import { StoryInfo } from '../../../types';
 
 export const generateTitleBatch = async (
@@ -50,8 +50,8 @@ FORMATTING RULES:
     let candidates = ['gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash-lite'].filter(id => enabledModels?.includes(id) ?? true);
     if (candidates.length === 0) candidates = ['gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash-lite']; // Fallback if none enabled
 
-    return await smartExecution(candidates, async mid => {
-        const ai = getAiClient();
+    return await smartExecution(candidates, async (mid, ai) => {
+
         let timeoutId: NodeJS.Timeout | undefined;
         const connectionTimeout = new Promise<never>((_, reject) => {
             // Tạo tiêu đề chỉ là 1 tác vụ nhỏ/nhanh (không phải dịch full nội dung), nên timeout

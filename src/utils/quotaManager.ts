@@ -27,11 +27,10 @@ const getPacificDateString = (): string => {
     }
 };
 
-class QuotaManager {
+export class QuotaManager {
   private usage: Record<string, ModelUsage> = {};
   private listeners: (() => void)[] = [];
-  // Store configs internally so they can be updated dynamically
-  private currentConfigs: ModelQuota[] = [...MODEL_CONFIGS];
+  private readonly currentConfigs: ModelQuota[] = MODEL_CONFIGS;
   
   // Track enabled models dynamically
   private enabledModels: Set<string> = new Set(DEFAULT_ENABLED_MODEL_IDS);
@@ -39,16 +38,10 @@ class QuotaManager {
   // NEW: Track the last model assigned to enforce rotation
   private lastAllocatedId: string | null = null;
   
-  constructor() {
+  constructor(private readonly storageKey = STORAGE_KEY) {
     this.loadUsage();
   }
 
-  // Allow App to update configs (e.g. from user edits)
-  public updateConfigs(newConfigs: ModelQuota[]) {
-    this.currentConfigs = newConfigs;
-    this.notifyListeners();
-  }
-  
   // Update enabled models from UI state
   public setEnabledModels(models: string[]) {
       this.enabledModels = new Set(models);
@@ -87,7 +80,7 @@ class QuotaManager {
 
   private loadUsage() {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(this.storageKey);
       if (stored) {
         this.usage = JSON.parse(stored);
       }
@@ -142,11 +135,11 @@ class QuotaManager {
 
   private saveUsage() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.usage));
-      this.notifyListeners();
+      localStorage.setItem(this.storageKey, JSON.stringify(this.usage));
     } catch (e) {
       console.error("Failed to save quota usage", e);
     }
+    this.notifyListeners();
   }
 
   public subscribe(listener: () => void) {
@@ -408,7 +401,7 @@ class QuotaManager {
 
   public reset() {
     this.usage = {};
-    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+    try { localStorage.removeItem(this.storageKey); } catch {}
     this.loadUsage(); 
     this.notifyListeners();
   }
@@ -431,4 +424,93 @@ class QuotaManager {
   }
 }
 
-export const quotaManager = new QuotaManager();
+export interface GeminiQuotaProject {
+  id: string;
+  modelIds: readonly string[];
+  quota: QuotaManager;
+}
+
+const defaultProject: GeminiQuotaProject = {
+  id: '',
+  modelIds: DEFAULT_ENABLED_MODEL_IDS,
+  quota: new QuotaManager()
+};
+let projects = [defaultProject];
+let enabledModels = new Set(DEFAULT_ENABLED_MODEL_IDS);
+const listeners = new Set<() => void>();
+const notify = () => listeners.forEach(listener => listener());
+let subscriptions = [defaultProject.quota.subscribe(notify)];
+
+export const quotaManager = {
+  setProjects(next: GeminiQuotaProject[]) {
+    subscriptions.forEach(unsubscribe => unsubscribe());
+    projects = next.length ? next : [defaultProject];
+    subscriptions = projects.map(project => {
+      project.quota.setEnabledModels([...enabledModels]);
+      return project.quota.subscribe(notify);
+    });
+    notify();
+  },
+
+  getDefaultQuota: () => defaultProject.quota,
+
+  subscribe(listener: () => void) {
+    listeners.add(listener);
+    return () => { listeners.delete(listener); };
+  },
+
+  setEnabledModels(models: string[]) {
+    enabledModels = new Set(models);
+    projects.forEach(project => project.quota.setEnabledModels(models));
+  },
+
+  isModelAvailable(id: string) {
+    return projects.some(project => project.modelIds.includes(id) && project.quota.isModelAvailable(id));
+  },
+
+  isModelEnabled(id: string) {
+    return enabledModels.has(id) && projects.some(project => project.modelIds.includes(id));
+  },
+
+  isModelDepleted(id: string) {
+    return projects.every(project => !project.modelIds.includes(id) || project.quota.isModelDepleted(id));
+  },
+
+  getBestModelForTask(models: string[], excluded: string[] = [], preferred?: string, priorities?: Record<string, number>) {
+    for (const project of projects) {
+      const id = project.quota.getBestModelForTask(models.filter(model => project.modelIds.includes(model)), excluded, preferred, priorities);
+      if (id) return id;
+    }
+    return null;
+  },
+
+  getUsageSnapshot() {
+    const snapshot: Record<string, ModelUsage> = {};
+    for (const project of projects) {
+      for (const id of project.modelIds) {
+        const usage = project.quota.getModelUsage(id);
+        if (!usage) continue;
+        const previous = snapshot[id];
+        snapshot[id] = previous ? {
+          ...previous,
+          requestsToday: previous.requestsToday + usage.requestsToday,
+          recentRequests: [...previous.recentRequests, ...usage.recentRequests],
+          cooldownUntil: Math.min(previous.cooldownUntil, usage.cooldownUntil)
+        } : { ...usage };
+      }
+    }
+    for (const [id, usage] of Object.entries(snapshot)) usage.isDepleted = this.isModelDepleted(id);
+    return snapshot;
+  },
+
+  getConfigs() {
+    return MODEL_CONFIGS.map(model => {
+      const count = projects.filter(project => project.modelIds.includes(model.id)).length;
+      return count < 2 ? model : { ...model, rpmLimit: model.rpmLimit * count, rpdLimit: model.rpdLimit * count };
+    });
+  },
+
+  applyDailyResetIfNeeded: () => projects.forEach(project => project.quota.applyDailyResetIfNeeded()),
+  clearUsage: () => projects.forEach(project => project.quota.clearUsage()),
+  reset: () => projects.forEach(project => project.quota.reset())
+};

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { FileItem } from '../../types';
-import { getAiClient, SAFETY_SETTINGS, smartExecution } from '../../services/api/gemini';
+import { SAFETY_SETTINGS, smartExecution } from '../../services/api/gemini';
 
 export interface UseSinoVietnameseFixerPageProps {
     files: FileItem[];
@@ -74,7 +74,7 @@ export const useSinoVietnameseFixerPage = ({
         }
         setIsAnalyzingRules(true);
         try {
-            const ai = getAiClient();
+
             const contentParts: any[] = [];
             if (ruleImages.length > 0) {
                 ruleImages.forEach(img => {
@@ -96,7 +96,7 @@ CHỈ TRẢ VỀ CÁC DÒNG QUY TẮC, KHÔNG GIẢI THÍCH DÀI DÒNG.`
 
             const res = await smartExecution(
                 ['gemini-3.6-flash', 'gemini-3-flash-preview'],
-                async (modelId) => {
+                async (modelId, ai) => {
                     const r = await ai.models.generateContent({
                         model: modelId,
                         contents: contentParts,
@@ -170,8 +170,8 @@ Văn bản:\n${chunk}`;
                     try {
                         return await smartExecution(
                             ['gemini-3.6-flash', 'gemini-3-flash-preview'],
-                            async (modelId) => {
-                                const ai = getAiClient();
+                            async (modelId, ai) => {
+
                                 const r = await ai.models.generateContent({
                                     model: modelId, contents: prompt,
                                     config: { safetySettings: SAFETY_SETTINGS }
@@ -273,8 +273,8 @@ Danh sách (Phần ${i + bIdx + 1}/${errorChunks.length}):\n${chunkList}`;
 
                     return await smartExecution(
                         ['gemini-3.1-pro-preview', 'gemini-3.6-flash'],
-                        async (modelId) => {
-                            const ai = getAiClient();
+                        async (modelId, ai) => {
+
                             const r = await ai.models.generateContent({
                                 model: modelId, contents: prompt,
                                 config: { safetySettings: SAFETY_SETTINGS }

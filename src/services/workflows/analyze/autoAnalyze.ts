@@ -1,7 +1,8 @@
 // Quy trình TỰ ĐỘNG PHÂN TÍCH truyện khi mới thêm truyện (lấy mẫu chương, phân tích qua AI,
 // trả về thông tin phân tích tác phẩm). Đây là hàm điều phối lớn (~195 dòng) — giữ nguyên khối, không
 // tách nhỏ nội dung để tránh rủi ro đổi hành vi ở bước refactor thuần vị trí code này.
-import { getAiClient, smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
+import type { GoogleGenAI } from '@google/genai';
+import { smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
 import { StoryInfo, FileItem } from '../../../types';
 import { safeJsonParse } from '../../../utils/text';
 import { AUTO_ANALYZE_PROMPT } from '../../../constants';
@@ -61,9 +62,9 @@ export const autoAnalyzeStory = async (
             const flashModels = ['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash'].filter(id => enabledModels?.includes(id) ?? true);
             if (flashModels.length === 0) flashModels.push('gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash');
             
-            const performAnalysis = async (mid: string) => {
+            const performAnalysis = async (mid: string, ai: GoogleGenAI) => {
                 try {
-                    const res = await getAiClient().models.generateContent({ 
+                    const res = await ai.models.generateContent({
                         model: mid, 
                         contents: chunk + "\n" + AUTO_ANALYZE_PROMPT, 
                         config: { responseMimeType: 'application/json', safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 } 
@@ -77,8 +78,8 @@ export const autoAnalyzeStory = async (
                     if (!parsed) {
                         console.warn("safeJsonParse failed, attempting AI JSON repair...");
                         // Attempt to repair JSON using AI
-                        const repairRes = await smartExecution(flashModels, async (repairMid) => {
-                            return await getAiClient().models.generateContent({
+                        const repairRes = await smartExecution(flashModels, async (repairMid, ai) => {
+                            return await ai.models.generateContent({
                                 model: repairMid,
                                 contents: "Fix this invalid JSON and return ONLY valid JSON without markdown blocks:\n\n" + (res.text || ""),
                                 config: { responseMimeType: 'application/json', safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }
@@ -128,8 +129,8 @@ LƯU Ý QUAN TRỌNG:
     {
         const fallbackModels = ['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash'].filter(id => enabledModels?.includes(id) ?? true);
         if (fallbackModels.length === 0) fallbackModels.push('gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash');
-        synthesis = await smartExecution(fallbackModels, async mid => {
-            const res = await getAiClient().models.generateContent({ 
+        synthesis = await smartExecution(fallbackModels, async (mid, ai) => {
+            const res = await ai.models.generateContent({
                 model: mid, 
                 contents: currentMeta + JSON.stringify(results) + "\n\n" + synthesisInstruction + "\n\n" + AUTO_ANALYZE_PROMPT, 
                 config: { responseMimeType: 'application/json', safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 } 
@@ -142,7 +143,7 @@ LƯU Ý QUAN TRỌNG:
             let parsed = safeJsonParse(res.text || "");
             if (!parsed) {
                 console.warn("safeJsonParse failed for synthesis, attempting AI JSON repair...");
-                const repairRes = await smartExecution(fallbackModels, repairModel => getAiClient().models.generateContent({
+                const repairRes = await smartExecution(fallbackModels, (repairModel, ai) => ai.models.generateContent({
                     model: repairModel,
                     contents: "Fix this invalid JSON and return ONLY valid JSON without markdown blocks:\n\n" + (res.text || ""),
                     config: { responseMimeType: 'application/json', safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }

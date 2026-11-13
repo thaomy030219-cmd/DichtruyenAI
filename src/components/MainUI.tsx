@@ -48,6 +48,7 @@ export const MainUI: React.FC<MainUIProps> = (props) => {
                     setShowLogs={props.setShowLogs}
                     onShowChangelog={props.onShowChangelog}
                     onShowIntro={props.onShowIntro}
+                    onShowGeminiApi={props.onShowGeminiApi}
                     enabledModels={props.enabledModels}
                     modelConfigs={props.modelConfigs}
                     modelUsages={props.modelUsages}

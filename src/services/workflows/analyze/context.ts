@@ -1,7 +1,7 @@
 // Nhóm hàm PHÂN TÍCH NGỮ CẢNH truyện: phân tích từng đoạn (analyzeContextBatch), gộp nhiều
 // kết quả phân tích lại (mergeContexts - đệ quy chia đôi), điều phối lấy mẫu + phân tích toàn
 // bộ truyện (analyzeStoryContext), và gộp ngữ cảnh thô khi hết quota AI (refineRawContext).
-import { getAiClient, smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
+import { smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
 import { StoryInfo, FileItem } from '../../../types';
 import { cleanRepetitiveContent, extractPotentialEntities } from '../../../utils/text';
 import { getSmartSampledFiles } from '../../../utils/fileHelpers';
@@ -13,7 +13,7 @@ export const analyzeContextBatch = async (
     contentChunk: string, storyInfo: StoryInfo, existingDictionary: string, useSearch: boolean = false,
     forcedCandidates?: string[], additionalRules: string = "", enabledModels?: string[]
 ): Promise<string> => {
-    const ai = getAiClient();
+
     let candidates = forcedCandidates || ['gemini-3.1-pro-preview', 'gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash'];
     candidates = candidates.filter(id => enabledModels?.includes(id) ?? true);
     if (candidates.length === 0) candidates = forcedCandidates || ['gemini-3.1-pro-preview', 'gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash'];
@@ -36,7 +36,7 @@ export const analyzeContextBatch = async (
 
     const metaHeader = `[METADATA]\n- Tên: ${storyInfo.title}\n- Thể loại: ${storyInfo.genres.join(', ')}\n- Ngôn ngữ truyện: ${storyInfo.languages.join(', ')}\n- CHẾ ĐỘ: ${sourceInstruction}${additionalRules ? `\n- QUY TẮC BỔ SUNG: ${additionalRules}` : ''}${hintSection}`;
 
-    return await smartExecution(candidates, async (modelId) => {
+    return await smartExecution(candidates, async (modelId, ai) => {
             const config: any = { systemInstruction: GLOSSARY_ANALYSIS_PROMPT + CONSISTENCY_EXTRACTION_INSTRUCTION, ...(!['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3.6-flash'].includes(modelId) && { temperature: 0.2 }), safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 };
             if (useSearch && (modelId.includes('gemini-3.1-pro') || modelId.includes('gemini-3-pro'))) config.tools = [{googleSearch: {}}];
             const response = await ai.models.generateContent({ model: modelId, contents: `${metaHeader}\n${contentChunk}`, config });
@@ -67,8 +67,8 @@ export const mergeContexts = async (
     const synthesisModels = selectAnalysisModels(forcedCandidates || DEEP_ANALYSIS_SYNTHESIS_MODELS, enabledModels);
     
     try {
-        return await smartExecution(synthesisModels, async (modelId) => {
-                const response = await getAiClient().models.generateContent({
+        return await smartExecution(synthesisModels, async (modelId, ai) => {
+                const response = await ai.models.generateContent({
                     model: modelId,
                     contents: `[DỮ LIỆU ĐẦU VÀO - GỒM ${contexts.length} PHẦN]\n${contexts.join("\n\n=== HẾT PHẦN ===\n\n")}${pronounOverride ? `\n\n${pronounOverride}` : ''}`,
                     config: { systemInstruction: MERGE_CONTEXT_PROMPT + CONSISTENCY_EXTRACTION_INSTRUCTION, ...(!['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3.6-flash'].includes(modelId) && { temperature: 0.2 }), safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }
@@ -88,8 +88,8 @@ export const mergeContexts = async (
             const fallbackModels = ['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash'].filter(id => enabledModels?.includes(id) ?? true);
             if (fallbackModels.length === 0) fallbackModels.push('gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash');
             
-            return await smartExecution(fallbackModels, async (modelId) => {
-                const response = await getAiClient().models.generateContent({
+            return await smartExecution(fallbackModels, async (modelId, ai) => {
+                const response = await ai.models.generateContent({
                     model: modelId,
                     contents: `[DỮ LIỆU ĐẦU VÀO - GỒM ${contexts.length} PHẦN]\n${contexts.join("\n\n=== HẾT PHẦN ===\n\n")}\n\nNHIỆM VỤ: TỔNG HỢP THÔ DỮ LIỆU TRÊN. GIỮ NGUYÊN CÁC MỤC QUAN TRỌNG.${pronounOverride ? `\n\n${pronounOverride}` : ''}`,
                     config: { systemInstruction: MERGE_CONTEXT_PROMPT + CONSISTENCY_EXTRACTION_INSTRUCTION, ...(!['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3.6-flash'].includes(modelId) && { temperature: 0.2 }), safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }

@@ -1,5 +1,6 @@
-import { getAiClient, SAFETY_SETTINGS } from '../../api/gemini';
+import { SAFETY_SETTINGS } from '../../api/gemini';
 import { quotaManager } from '../../../utils/quotaManager';
+import { getGeminiModelRoutes, getGeminiProjects, recordGeminiRateLimit } from '../../api/geminiProjects';
 import { QualityReview } from '../../../types';
 import { applyQualityEdits, deferredReview, parseQualityReview, QUALITY_REVIEW_INSTRUCTION } from './qualityReview';
 import { enforceLocalLocks, LocalFinding } from './localConsistency';
@@ -27,7 +28,7 @@ const stopOnQuota = (request: (instruction: string, prompt: string) => Promise<s
 };
 const SUPPORT_REVIEW_MODELS = ['gemini-3.5-flash-lite', 'gemma-4-31b-it', 'gemma-4-26b-a4b-it'];
 export const hasReadyQualityModel = (enabled: string[]): boolean =>
-  !!process.env.GEMINI_API_KEY && SUPPORT_REVIEW_MODELS.some(id => (!enabled.length || enabled.includes(id)) && quotaManager.isModelAvailable(id));
+  getGeminiProjects().length > 0 && SUPPORT_REVIEW_MODELS.some(id => (!enabled.length || enabled.includes(id)) && quotaManager.isModelAvailable(id));
 const parseJson = (text: string): any => JSON.parse(text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, ''));
 
 // Bounded support requests defer on quota/cooldown instead of waiting in the
@@ -40,27 +41,28 @@ export const requestQualityJson = async (
   let lastError = 'Model hậu kiểm đang bận hoặc hết quota.';
   let quotaError = '';
   let attempts = 0;
-  for (const id of candidates) {
+  const routes = getGeminiModelRoutes(candidates);
+  const maxAttempts = 2 * getGeminiProjects().length;
+  for (const { project, id } of routes) {
     if (excludedModels.includes(id)) continue;
     if (shouldAbort?.()) throw new Error('ABORTED');
-    if (!quotaManager.isModelAvailable(id)) continue;
-    if (attempts++ >= 2) break;
+    if (!getGeminiProjects().includes(project) || !project.quota.isModelAvailable(id)) continue;
+    if (attempts++ >= maxAttempts) break;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60_000);
     try {
       onModelUsed?.(id);
-      const client = getAiClient();
-      quotaManager.recordRequest(id);
-      const response = await client.models.generateContent({ model: id, contents: prompt,
+      project.quota.recordRequest(id);
+      const response = await project.client.models.generateContent({ model: id, contents: prompt,
         config: { systemInstruction: instruction, safetySettings: SAFETY_SETTINGS, temperature: 0.1,
           responseMimeType: 'application/json', abortSignal: controller.signal } });
-      quotaManager.recordSuccess(id);
+      project.quota.recordSuccess(id);
       return response.text || '{}';
     } catch (error) {
       lastError = error instanceof Error ? error.message : String(error);
       if (isQualityQuotaError(lastError)) quotaError = lastError;
-      if (/429|quota|resource exhausted/i.test(lastError)) quotaManager.recordRateLimit(id);
-      else quotaManager.recordError(id);
+      if (isQualityQuotaError(lastError)) recordGeminiRateLimit(project, id, error);
+      else project.quota.recordError(id);
     } finally { clearTimeout(timeout); }
   }
   throw new Error(quotaError || lastError);

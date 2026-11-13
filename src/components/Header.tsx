@@ -5,7 +5,7 @@ import {
     Terminal, FileText, Loader2, AlertCircle,
     Activity, Moon, Sun, ChevronUp, ChevronDown, 
     Scale, HardDrive, Maximize, Minimize,
-    Ban, Hourglass, Languages
+    Ban, Hourglass, Languages, KeyRound
 } from 'lucide-react';
 import { ModelQuota, BatchLimits, RatioLimits } from '../types';
 import { TIER_MODELS } from '../constants';
@@ -128,6 +128,7 @@ interface HeaderProps {
     setShowLogs: (v: boolean) => void;
     onShowChangelog: () => void;
     onShowIntro: () => void;
+    onShowGeminiApi: () => void;
     enabledModels: string[];
     modelConfigs: ModelQuota[];
     modelUsages: any;
@@ -306,6 +307,10 @@ export const Header: React.FC<HeaderProps> = (props) => {
 
                     <button aria-label="Toàn màn hình" onClick={toggleFullScreen} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-primary-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1">
                         {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
+                    </button>
+
+                    <button aria-label="Cài đặt Gemini API" onClick={props.onShowGeminiApi} className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30">
+                        <KeyRound className="w-3.5 h-3.5" /> API
                     </button>
 
                     <button aria-label="Xem Nhật ký (Logs)" onClick={() => props.setShowLogs(true)} className={`relative p-1.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 ${props.showLogs ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600' : 'hover:bg-slate-100 text-slate-400'}`}>

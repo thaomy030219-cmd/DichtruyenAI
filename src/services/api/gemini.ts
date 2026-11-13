@@ -1,16 +1,9 @@
 
 import { logger } from "../../utils/logger";
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from '@google/genai';
-import { quotaManager } from '../../utils/quotaManager';
+import { getGeminiProjects, type GeminiProject, isGeminiDailyQuota, isGeminiRateLimit, recordGeminiRateLimit } from './geminiProjects';
 import { MODEL_CONFIGS } from '../../constants';
 
-export const getAiClient = () => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("Không tìm thấy API Key. Vui lòng kiểm tra biến môi trường.");
-  }
-  return new GoogleGenAI({ apiKey });
-};
 
 const SAFETY_SETTINGS = [
     { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -22,62 +15,23 @@ const SAFETY_SETTINGS = [
 
 export { SAFETY_SETTINGS };
 
-export const testCurrentKey = async (): Promise<{ success: boolean; message: string }> => {
-    const ai = getAiClient();
-    try {
-        await ai.models.generateContent({
-            model: 'gemini-3.6-flash',
-            contents: "Hi",
-            config: { safetySettings: SAFETY_SETTINGS }
-        });
-        return { success: true, message: "Key hợp lệ và còn Quota!" };
-    } catch (error: any) {
-        const msg = (error.message || error.toString()).toLowerCase();
-        if (msg.includes("resource exhausted") || msg.includes("quota")) {
-            return { success: false, message: "Key này đã hết Quota (Resource Exhausted)." };
-        }
-        if (msg.includes("api key not valid") || msg.includes("api_key_invalid") || (error.status === 400 && msg.includes('key'))) {
-            return { success: false, message: "API Key không hợp lệ hoặc đã bị khóa." };
-        }
-        return { success: false, message: error.message };
-    }
-};
-
 export const testModelConnection = async (modelId: string): Promise<{ success: boolean; message: string }> => {
-    const config = quotaManager.getConfigs().find(model => model.id === modelId);
-    if (config?.rpdLimit === 0) return { success: false, message: "Model này cần gói trả phí." };
-    if (quotaManager.isModelDepleted(modelId)) return { success: false, message: "Model đã hết hạn mức hôm nay." };
-    if (quotaManager.getWaitTimeForModel(modelId) > 0) return { success: false, message: "Model đang chờ hạn mức theo phút. Thử lại sau." };
-
     try {
-        const ai = getAiClient();
-        quotaManager.recordRequest(modelId);
-        const response = await ai.models.generateContent({
-            model: modelId,
-            contents: "Hi",
+        await smartExecution([modelId], (id, client) => client.models.generateContent({
+            model: id,
+            contents: 'Trả lời OK.',
             config: { safetySettings: SAFETY_SETTINGS }
-        });
-        quotaManager.recordSuccess(modelId);
-        return response ? { success: true, message: "Kết nối thành công! Model sẵn sàng." } : { success: false, message: "Không có phản hồi." };
-    } catch (error: any) {
-        const msg = (error.message || error.toString()).toLowerCase();
-        if (msg.includes("resource exhausted") || msg.includes("quota")) {
-            quotaManager.recordRateLimit(modelId);
-            return { success: false, message: "Google báo vượt hạn mức của model (429)." };
-        }
-        return { success: false, message: error.message };
+        }), 'Kiểm tra model');
+        return { success: true, message: 'Kết nối thành công! Model sẵn sàng.' };
+    } catch (error) {
+        return { success: false, message: error instanceof Error ? error.message : 'Không thể kiểm tra model.' };
     }
 };
 
-/**
- * SMART EXECUTION ENGINE v3.1 (Retry Strategy)
- * - 2 Consecutive Errors -> Depleted.
- * - 1 Error -> Wait 1 minute -> Retry.
- * - Success -> Reset error count.
- */
+// Select a compatible project and reserve quota before starting an API request.
 export const smartExecution = async <T>(
     candidateModels: string[],
-    operation: (modelId: string) => Promise<T>,
+    operation: (modelId: string, client: GoogleGenAI) => Promise<T>,
     taskName: string = "Tác vụ",
     onLog?: (msg: string) => void,
     preferredModelId?: string,
@@ -86,7 +40,10 @@ export const smartExecution = async <T>(
     logger.log(`[smartExecution] task: ${taskName}, candidateModels:`, candidateModels);
     const validCandidates = candidateModels.filter(id => MODEL_CONFIGS.some(c => c.id === id));
     logger.log(`[smartExecution] task: ${taskName}, validCandidates:`, validCandidates);
-    const temporaryBlacklist: string[] = []; // Models that completely failed in this execution
+    const blocked = new Map<GeminiProject, Set<string>>();
+    let accessError = "";
+    let quotaLimited = false;
+    let retryModel: string | undefined;
     
     if (validCandidates.length === 0) {
         throw new Error(`[${taskName}] Không có model nào khả dụng. Vui lòng kiểm tra lại cài đặt.`);
@@ -96,76 +53,69 @@ export const smartExecution = async <T>(
     let iterations = 0;
 
     while (iterations++ < MAX_ITERATIONS) {
-        // 1. Get Best Model
-        const selectedId = quotaManager.getBestModelForTask(validCandidates, temporaryBlacklist, preferredModelId, priorityOverrides);
-
-        if (!selectedId) {
-            // All exhausted or temporary blacklisted
-            const allDepletedOrBlacklisted = validCandidates.every(id => 
-                quotaManager.isModelDepleted(id) || !quotaManager.isModelEnabled(id) || temporaryBlacklist.includes(id)
-            );
-
-            logger.log(`[smartExecution] task: ${taskName}, allDepletedOrBlacklisted:`, allDepletedOrBlacklisted, validCandidates.map(id => ({
-                id,
-                isDepleted: quotaManager.isModelDepleted(id),
-                isEnabled: quotaManager.isModelEnabled(id),
-                inBlacklist: temporaryBlacklist.includes(id)
-            })));
-
-            if (allDepletedOrBlacklisted) {
-                 if (temporaryBlacklist.length > 0 && temporaryBlacklist.length === validCandidates.length) {
-                     throw new Error(`[${taskName}] Tất cả model đã thử đều gặp lỗi hoặc hết Quota. Dừng tác vụ. ${temporaryBlacklist.join(', ')}`);
-                 }
-                 
-                 const diagnostics = validCandidates.map(id => 
-                     `${id}: enabled=${quotaManager.isModelEnabled(id)}, depleted=${quotaManager.isModelDepleted(id)}, waitTime=${quotaManager.getWaitTimeForModel(id)}`
-                 ).join('; ');
-                 
-                 throw new Error(`[${taskName}] Tất cả model khả dụng đã hết Quota hoặc bị tắt hoặc bị lỗi. Debug: ${diagnostics}`);
-            }
-
-            // Waiting logic (Cooldown)
-            const activeCandidates = validCandidates.filter(id => !temporaryBlacklist.includes(id));
-            const waitTimes = activeCandidates.map(id => quotaManager.getWaitTimeForModel(id));
-            const minWaitTime = Math.min(...waitTimes);
-            
-            const actualWait = minWaitTime > 0 && minWaitTime !== Infinity ? minWaitTime : 2000;
-            const waitSeconds = (actualWait / 1000).toFixed(1);
-
-            if (onLog) onLog(`💤 Hệ thống đang điều phối tải (Chờ xen kẽ). Đợi ${waitSeconds}s...`);
-            await new Promise(resolve => setTimeout(resolve, actualWait));
-            continue; // Retry loop
+        const projects = getGeminiProjects();
+        if (!projects.length) throw new Error("Chưa có Gemini API key. Mở mục API để nhập key.");
+        const candidates = projects.flatMap(project => {
+            const excluded = blocked.get(project) ?? new Set<string>();
+            blocked.set(project, excluded);
+            const models = validCandidates.filter(id => project.modelIds.includes(id) && !excluded.has(id)
+                && project.quota.isModelEnabled(id) && !project.quota.isModelDepleted(id));
+            if (!models.length) return [];
+            const waitModels = preferredModelId && models.includes(preferredModelId) ? [preferredModelId] : models;
+            return [{ project, models, waitModels }];
+        });
+        if (!candidates.length) {
+            throw new Error((!quotaLimited && accessError) || `[${taskName}] Tất cả model khả dụng đã hết Quota hoặc bị tắt hoặc bị lỗi.`);
         }
 
+        const retry = retryModel;
+        const readyProject = retry && candidates.find(({ project, models }) =>
+            models.includes(retry) && project.quota.isModelAvailable(retry));
+        const selection = readyProject ? { project: readyProject.project, id: retry } : candidates.map(({ project, models }) => ({
+            project,
+            id: project.quota.getBestModelForTask(models, [], preferredModelId, priorityOverrides)
+        })).find(candidate => candidate.id);
+
+        if (!selection?.id) {
+            const wait = Math.min(...candidates.flatMap(({ project, waitModels }) =>
+                waitModels.map(id => project.quota.getWaitTimeForModel(id))));
+            const delay = Number.isFinite(wait) && wait > 0 ? wait : 2000;
+            onLog?.(`[${taskName}] Chờ quota trong ${(delay / 1000).toFixed(1)} giây...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+        }
+
+        const { project, id: selectedId } = selection;
+        retryModel = undefined;
+        const quota = project.quota;
+        const temporaryBlacklist = blocked.get(project)!;
+
         // --- MODEL SELECTED ---
-        quotaManager.recordRequest(selectedId);
+        quota.recordRequest(selectedId);
 
         try {
             if (onLog) onLog(`🚀 [${taskName}] Đang chạy trên model: ${selectedId}...`);
             await new Promise(r => setTimeout(r, 600)); // Giãn cách request
-            const result = await operation(selectedId);
+            if (!getGeminiProjects().includes(project)) continue;
+            const result = await operation(selectedId, project.client);
             
             // SUCCESS: Reset consecutive errors
-            quotaManager.recordSuccess(selectedId);
+            quota.recordSuccess(selectedId);
             return result;
         } catch (error: any) {
             let msg = (error.message || error.toString()).toLowerCase();
             if (error.statusText) msg += " " + error.statusText.toLowerCase();
             
-            const isQuotaError = msg.includes('429') || msg.includes('exceeded quota') || msg.includes('quota exceeded') || msg.includes('resource exhausted') || msg.includes('quota');
-            // UPDATED v1.0.2: bổ sung "không tìm thấy api key" (thông báo getAiClient() ném ra khi
-            // biến môi trường GEMINI_API_KEY trống/không được nạp — hay gặp nhất khi bản Publish
-            // chưa cấu hình đúng Secrets trong AI Studio). Trước đây lỗi này không khớp điều kiện
-            // nào, bị rơi xuống nhánh lỗi chung ở cuối hàm, âm thầm tích lũy consecutiveErrors và
-            // SAU 25-105 LẦN THỬ mới bị đánh dấu "hết Quota" — khiến người dùng tưởng lầm là vấn đề
-            // quota trong khi gốc rễ là thiếu Key ngay từ đầu. Giờ nhận diện và báo lỗi rõ ràng, tức
-            // thì thay vì chờ tích lũy.
+            const isQuotaError = isGeminiRateLimit(error);
             const isInvalidKey = msg.includes('api key not valid') || msg.includes('api_key_invalid') || (error.status === 400 && msg.includes('key')) || msg.includes('401 unauthorized') || msg.includes('không tìm thấy api key');
             const isSafetyError = !isQuotaError && (msg.includes('bộ lọc an toàn') || msg.includes('safety') || msg.includes('blocklist') || msg.includes('prohibited_content'));
             const isHallucinationError = msg.includes('lặp từ hoặc mất thẻ') || msg.includes('tỷ lệ >') || msg.includes('vượt giới hạn');
             
             if (isInvalidKey) {
-                 throw new Error("API Key không hợp lệ, đã bị khóa, hoặc chưa được cấu hình (kiểm tra mục Secrets nếu đang chạy bản Publish trên AI Studio).", { cause: error });
+                accessError = "Gemini API key không hợp lệ. Kiểm tra key trong mục API.";
+                onLog?.(accessError);
+                validCandidates.forEach(id => temporaryBlacklist.add(id));
+                continue;
             }
             
             if (isSafetyError) {
@@ -175,114 +125,65 @@ export const smartExecution = async <T>(
             
             if (isHallucinationError) {
                 if (onLog) onLog(`⚠️ Model ${selectedId} bị ảo giác (lặp từ). Bỏ qua model này cho mẻ hiện tại.`);
-                temporaryBlacklist.push(selectedId);
+                temporaryBlacklist.add(selectedId);
                 continue; // Skip this model and try another one
             }
             
             if (isQuotaError) {
-                // We no longer strictly isolate 'per day' strings to immediately deplete the model
-                // because Google often returns 'GenerateRequestsPerDayPerProjectPerModel' even for rate limits.
-                // It will go through the normal 429 retry logic below.
-                
-                quotaManager.recordQuotaError(selectedId);
-                const usage = quotaManager.getModelUsage(selectedId);
-                const quotaErrorCount = usage.consecutiveQuotaErrors || 0;
-                
-                // Check hard request limit from config
-                const modelConfig = quotaManager.getConfigs().find((m: any) => m.id === selectedId);
-                const isHardLimitReached = modelConfig && usage.requestsToday >= modelConfig.rpdLimit;
-
-                if (isHardLimitReached) {
-                    if (onLog) onLog(`⛔ CƯỠNG CHẾ HẾT QUOTA: Model ${selectedId} đã chạm ngưỡng giới hạn request cứng (${usage.requestsToday}/${modelConfig.rpdLimit}).`);
-                    quotaManager.markAsDepleted(selectedId);
-                    temporaryBlacklist.push(selectedId);
-                    continue;
+                quotaLimited = true;
+                quota.recordQuotaError(selectedId);
+                const count = quota.getModelUsage(selectedId).consecutiveQuotaErrors || 1;
+                if (isGeminiDailyQuota(error)) {
+                    retryModel = selectedId;
+                    onLog?.(`${selectedId} hết quota ngày ở project hiện tại. Đang tìm project còn lượt.`);
                 }
-
-                // UPDATED v1.0.2: FIX BUG NGHIÊM TRỌNG — trước đây CHỈ CẦN 3 lần 429 liên tiếp
-                // (quotaErrorCount > 2) là bị coi "hết Quota thực sự" và gọi markAsDepleted(),
-                // BẤT KỂ usage.requestsToday còn cách rpdLimit thật rất xa (vd 9/500, 17/500).
-                // Vấn đề: 429 mà Google trả về ở đây tuyệt đại đa số là do CHẠM RPM (giới hạn số
-                // request/PHÚT — rất thấp, vd 3.1 Pro chỉ 2 RPM), KHÔNG phải chạm RPD (giới hạn
-                // request/NGÀY — mới thật sự là "hết Quota"). RPM là giới hạn TẠM THỜI, chỉ cần
-                // đợi ít lâu là dùng lại được — không nên khoá cả ngày. Lỗi này đặc biệt nghiêm
-                // trọng khi app chạy ở bản Publish dùng CHUNG 1 API Key cho nhiều người cùng lúc:
-                // chỉ cần vài người vô tình gửi request gần nhau là dễ dàng dính đủ 3 lần 429 liên
-                // tiếp dù quota thật của Key vẫn còn rất nhiều, khiến model bị khoá oan cho TẤT CẢ
-                // mọi người dùng chung Key, không chỉ riêng người vừa gặp lỗi.
-                // Sửa: tín hiệu đáng tin cậy DUY NHẤT cho "hết Quota thật" là isHardLimitReached ở
-                // trên (đã kiểm tra đúng theo rpdLimit thật). Ở đây, dù dính 429 liên tục bao nhiêu
-                // lần cũng KHÔNG markAsDepleted nữa — chỉ tăng dần thời gian đợi (backoff), và nếu
-                // đã đợi quá lâu (quotaErrorCount vượt ngưỡng an toàn) thì tạm loại khỏi danh sách
-                // thử của LƯỢT NÀY thôi (temporaryBlacklist, không ảnh hưởng trạng thái quota lưu
-                // trong ngày) để tránh treo vô hạn, model vẫn còn nguyên cơ hội ở lượt dịch kế tiếp.
-                if (quotaErrorCount > 6) {
-                     if (onLog) onLog(`⚠️ Model ${selectedId} dính Quota/Rate limit (429) liên tục ${quotaErrorCount} lần (RPM tạm thời, requestsToday=${usage.requestsToday}/${modelConfig?.rpdLimit ?? '?'} — CHƯA chạm hạn mức ngày thật). Tạm bỏ qua model này cho lượt hiện tại, không khoá cả ngày.`);
-                     temporaryBlacklist.push(selectedId);
-                     continue;
-                } else {
-                     const waitTimeSeconds = Math.min(5 * quotaErrorCount, 30);
-                     const waitTime = waitTimeSeconds * 1000;
-                     if (onLog) onLog(`⚠️ Model ${selectedId} dính Quota/Rate limit (429) tạm thời (RPM). Lần ${quotaErrorCount}, thử lại sau ${waitTimeSeconds}s...`);
-                     quotaManager.recordRateLimit(selectedId, waitTime);
-                     await new Promise(r => setTimeout(r, waitTime));
-                     continue;
-                }
+                recordGeminiRateLimit(project, selectedId, error, Math.min(5 * count, 30) * 1000);
+                if (count > 6) temporaryBlacklist.add(selectedId);
+                continue;
             }
+
+            if (msg === 'aborted') throw error;
 
             if (error.status === 400 || msg.includes('400')) {
                 if (onLog) onLog(`⚠️ CẢNH BÁO LỖI trên model ${selectedId}: ${msg.substring(0, 150)}.`);
             }
 
             if (msg.includes('500') || error.status >= 500 || msg.includes('503') || msg.includes('overloaded')) {
-                quotaManager.recordError(selectedId);
-                const usage = quotaManager.getModelUsage(selectedId);
+                quota.recordError(selectedId);
+                const usage = quota.getModelUsage(selectedId);
                 const errorCount = usage.consecutiveErrors || 0;
                 
                 if (errorCount >= 3) {
                      if (onLog) onLog(`🚨 Lỗi máy chủ Google (${selectedId}) 3 lần liên tiếp. Bỏ qua model này cho mẻ hiện tại.`);
-                     temporaryBlacklist.push(selectedId);
+                     temporaryBlacklist.add(selectedId);
                      // DO NOT markAsDepleted() vì đây chỉ là lỗi server tạm thời
                      continue;
                 } else {
                      if (onLog) onLog(`🚨 Lỗi máy chủ Google trên ${selectedId}. Đợi 5s rồi thử lại...`);
-                     quotaManager.recordRateLimit(selectedId, 5000);
+                     quota.recordRateLimit(selectedId, 5000);
                      await new Promise(r => setTimeout(r, 5000));
                      continue;
                 }
             }
 
-            // UPDATED v1.0.2: FIX lỗi nghiêm trọng — 403 (Permission Denied) TRƯỚC ĐÂY bị coi là
-            // "hết Quota" (gọi markAsDepleted), khiến quota bị đánh dấu "HẾT" vĩnh viễn dù request
-            // đầu tiên trong ngày còn chưa thực hiện được lần nào (0 request). 403 và "hết Quota"
-            // (429/Resource Exhausted) là 2 LOẠI LỖI HOÀN TOÀN KHÁC NHAU:
-            //   - 429/Resource Exhausted = Key ĐÚNG, chỉ là đã dùng hết định mức trong ngày.
-            //   - 403/Permission Denied = Key SAI/bị chặn/bị giới hạn quyền truy cập — có thể do
-            //     Key bị giới hạn theo domain (HTTP referrer restriction) chỉ cho phép domain
-            //     preview của AI Studio, không có domain của bản Publish (Cloud Run) trong danh
-            //     sách cho phép. Đây chính là nguyên nhân phổ biến nhất gây ra hiện tượng "chạy
-            //     tốt trong AI Studio nhưng lỗi khi Publish" — Reset Quota không giải quyết được
-            //     vì vấn đề gốc không nằm ở quota.
-            // Sửa: KHÔNG markAsDepleted() nữa. Chỉ loại model này khỏi danh sách thử của LƯỢT NÀY
-            // (temporaryBlacklist, không ảnh hưởng tới trạng thái quota lưu trong ngày), đồng thời
-            // in rõ nguyên nhân thật + hướng khắc phục ra log để người dùng tự sửa đúng chỗ.
             if (error.status === 403 || msg.includes('403') || msg.includes('permission_denied')) {
-                if (onLog) onLog(`⛔ LỖI QUYỀN TRUY CẬP (403) trên model ${selectedId} — KHÔNG PHẢI hết Quota. API Key hiện tại bị từ chối truy cập. Nguyên nhân thường gặp: Key bị giới hạn theo domain (HTTP referrer restriction) trong Google Cloud Console/AI Studio API Key settings chưa cho phép domain của bản Publish này. Vào Google AI Studio > API Keys, kiểm tra lại giới hạn của Key đang dùng.`);
-                temporaryBlacklist.push(selectedId);
+                accessError = "Google từ chối quyền gọi model (403). Kiểm tra quyền của Gemini API key.";
+                onLog?.(accessError);
+                temporaryBlacklist.add(selectedId);
                 continue;
             }
 
             // Normal Error Handle (Network, Parsed, Unknown)
-            quotaManager.recordError(selectedId);
+            quota.recordError(selectedId);
             
-            const usage = quotaManager.getModelUsage(selectedId);
+            const usage = quota.getModelUsage(selectedId);
             const errorCount = usage.consecutiveErrors || 0;
             const maxRetries = 3;
             const hardErrorLimit = selectedId.includes("pro") ? 25 : 105;
             if (errorCount >= hardErrorLimit) {
                 if (onLog) onLog(`⛔ CƯỠNG CHẾ HẾT QUOTA: Model ${selectedId} lỗi liên tiếp ${errorCount} lần. Đánh dấu hết Quota!`);
-                quotaManager.markAsDepleted(selectedId);
-                temporaryBlacklist.push(selectedId);
+                quota.markAsDepleted(selectedId);
+                temporaryBlacklist.add(selectedId);
                 continue;
             }
 
@@ -293,12 +194,12 @@ export const smartExecution = async <T>(
                 
                 if (onLog) onLog(`⚠️ Lỗi lần ${errorCount}/${maxRetries} trên ${selectedId}. Đợi ${backoffSeconds}s trước khi thử lại... (${msg.substring(0, 50)}...)`);
                 
-                quotaManager.recordRateLimit(selectedId, waitTime);
+                quota.recordRateLimit(selectedId, waitTime);
                 await new Promise(r => setTimeout(r, waitTime));
             } else {
                 // MAX STRIKES: Lỗi nặng, bỏ qua cho mẻ dịch này, NHƯNG không đánh dấu hết Quota
                 if (onLog) onLog(`⛔ Model ${selectedId} lỗi ${maxRetries} lần liên tiếp không xác định rõ. Loại khỏi lần thử hiện tại.`);
-                temporaryBlacklist.push(selectedId);
+                temporaryBlacklist.add(selectedId);
             }
             
             // Short pause

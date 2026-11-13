@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { FileItem } from '../../types';
-import { getAiClient, SAFETY_SETTINGS, smartExecution } from '../../services/api/gemini';
+import { SAFETY_SETTINGS, smartExecution } from '../../services/api/gemini';
 import { cleanRepetitiveContent } from '../../utils/text/optimization';
 
 export interface UsePromptFixPageProps {
@@ -79,7 +79,7 @@ export const usePromptFixPage = ({
         }
         setIsAnalyzingReq(true);
         try {
-            const ai = getAiClient();
+
             const parts: any[] = [];
             fixImages.forEach(img => {
                 const mimeType = img.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)?.[1] || 'image/jpeg';
@@ -99,7 +99,7 @@ CHỈ TRẢ VỀ CÁC DÒNG QUY TẮC GỌN GÀNG, KHÔNG GIẢI THÍCH DÀI DÒ
 
             const res = await smartExecution(
                 ['gemini-3.6-flash', 'gemini-3-flash-preview'],
-                async (modelId) => {
+                async (modelId, ai) => {
                     const r = await ai.models.generateContent({
                         model: modelId,
                         contents: parts,
@@ -161,7 +161,7 @@ CHỈ TRẢ VỀ CÁC DÒNG QUY TẮC GỌN GÀNG, KHÔNG GIẢI THÍCH DÀI DÒ
 
             let collectedRaw = rawErrors ? rawErrors + '\n' : '';
             setRawErrors(collectedRaw);
-            const ai = getAiClient();
+
 
             for (let i = 0; i < chunks.length; i += 2) {
                 const batch = chunks.slice(i, i + 2);
@@ -185,7 +185,7 @@ Chỉ liệt kê lỗi tìm thấy, dạng gạch đầu dòng, KHÔNG giải th
 
                     return smartExecution(
                         ['gemini-3.6-flash', 'gemini-3-flash-preview'],
-                        async (modelId) => {
+                        async (modelId, ai) => {
                             const res = await ai.models.generateContent({
                                 model: modelId,
                                 contents: parts,
@@ -241,7 +241,6 @@ Chỉ liệt kê lỗi tìm thấy, dạng gạch đầu dòng, KHÔNG giải th
                 }
             }));
 
-            const ai = getAiClient();
             let finalOut = '';
 
             // Process in parallel batches of 2
@@ -278,7 +277,7 @@ Phần ${i + bIdx + 1}/${errorChunks.length}:`
 
                     return smartExecution(
                         ['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3.6-flash'],
-                        async (modelId) => {
+                        async (modelId, ai) => {
                             const r = await ai.models.generateContent({
                                 model: modelId,
                                 contents: parts,

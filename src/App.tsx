@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { MainUI } from './components/MainUI';
+import { GeminiApiSettingsModal } from './components/modals/GeminiApiSettingsModal';
 import { ModalManager } from './components/ModalManager';
 import { ToastContainer, LoadingModal, RawDownloadModal } from './components/modals';
 import { Loader2, AlertTriangle } from 'lucide-react';
@@ -24,6 +25,7 @@ import { hasResumableProgress } from './services/workflows/translate/resumePlan'
 const App: React.FC = () => {
   // Vào thẳng ứng dụng. Trang tác giả chỉ mở khi người dùng chủ động bấm
   // "Về tác giả"; forceShowIntro vẫn có quyền chặn app khi phiên bản hết hạn.
+  const [showGeminiApi, setShowGeminiApi] = useState(false);
   const [hasSeenIntro, setHasSeenIntro] = useState<boolean>(true);
   const [forceShowIntro, setForceShowIntro] = useState<boolean>(false);
 
@@ -284,6 +286,11 @@ const App: React.FC = () => {
         />
       )}
       
+      {showGeminiApi && <GeminiApiSettingsModal onClose={() => setShowGeminiApi(false)} onSave={() => {
+          setShowGeminiApi(false);
+          engine.resumeDeferredQa();
+          ui.addToast("Đã cập nhật Gemini API.", "success");
+      }} />}
       <RawDownloadModal isOpen={ui.showRawDownloadModal} onClose={() => ui.setShowRawDownloadModal(false)} onConfirm={(parts) => fileHandler.handleDownloadRaw(parts)} />
       
 
@@ -418,6 +425,7 @@ const App: React.FC = () => {
         isAutoSaving={core.isAutoSaving}
         lastSaved={core.lastSaved}
         
+        onShowGeminiApi={() => setShowGeminiApi(true)}
         enabledModels={core.enabledModels}
         toggleModel={handleToggleModel}
         modelConfigs={core.modelConfigs}

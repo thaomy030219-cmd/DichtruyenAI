@@ -1,5 +1,5 @@
 // Sửa nhanh 1 đoạn text ngắn theo yêu cầu tuỳ chỉnh (dùng trong luồng Smart Fix / sửa nhanh).
-import { getAiClient, smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
+import { smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
 import { TranslationTier } from '../../../types';
 import { getEffectiveModelsForTier } from './modelSelection';
 
@@ -62,9 +62,9 @@ ${inputs}`;
 
     return await smartExecution(
         modelsToUse,
-        async (modelId) => {
+        async (modelId, ai) => {
             if (shouldAbort && shouldAbort()) throw new Error('ABORTED');
-            const ai = getAiClient();
+
             const response = await ai.models.generateContent({
                 model: modelId,
                 contents,

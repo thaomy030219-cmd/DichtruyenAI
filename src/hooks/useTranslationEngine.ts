@@ -65,6 +65,7 @@ export const useTranslationEngine = (core: any, ui: any) => {
 
     return {
         isProcessing,
+        resumeDeferredQa: () => { qaPausedRef.current = false; },
         isCustomFixing: smartFixFns.isCustomFixing,
         customFixProgress: smartFixFns.customFixProgress,
         activeBatches,

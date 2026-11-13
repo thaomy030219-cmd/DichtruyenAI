@@ -1,5 +1,5 @@
 // Phân tích 1 lỗi cụ thể do người dùng báo cáo (dùng cho luồng Sửa Lỗi Tuỳ Chỉnh).
-import { getAiClient, smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
+import { smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
 
 export const analyzeCustomError = async (
     sampleText: string,
@@ -7,7 +7,7 @@ export const analyzeCustomError = async (
     enabledModels?: string[],
     imageBase64?: string
 ): Promise<string> => {
-    const ai = getAiClient();
+
     const candidates = ['gemini-3.1-pro-preview', 'gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash'].filter(id => enabledModels?.includes(id) ?? true);
     if (candidates.length === 0) candidates.push('gemini-3.1-pro-preview', 'gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash');
 
@@ -57,7 +57,7 @@ ${sampleText.substring(0, 80000)}`;
     contents.parts.push({ text: textPrompt });
 
     try {
-        return await smartExecution(candidates, async (modelId) => {
+        return await smartExecution(candidates, async (modelId, ai) => {
             const response = await ai.models.generateContent({
                 model: modelId,
                 contents: contents,
