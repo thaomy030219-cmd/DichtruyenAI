@@ -331,7 +331,7 @@ export const CreativePage: React.FC<CreativePageProps> = (props) => {
                                 <div className="absolute top-0 right-0 p-8 opacity-10">
                                     <Sparkles className="w-48 h-48 text-amber-500" />
                                 </div>
-                                <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 relative z-10">Sẵn sàng sáng tác với Gemini 3.1 Pro</h3>
+                                <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 relative z-10">Sẵn sàng sáng tác với Gemini</h3>
                                 <p className="text-slate-500 dark:text-slate-400 text-[15px] mb-8 max-w-2xl mx-auto leading-relaxed relative z-10">
                                     Mô hình sẽ tận dụng tối đa <b>65,536 tokens</b> output để viết liên tiếp <b>hàng tá chương truyện</b> trong một lần thực thi duy nhất. Hãy bấm "Bắt Đầu" và đi pha một tách trà.
                                 </p>

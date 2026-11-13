@@ -44,19 +44,26 @@ export const testCurrentKey = async (): Promise<{ success: boolean; message: str
 };
 
 export const testModelConnection = async (modelId: string): Promise<{ success: boolean; message: string }> => {
-    const ai = getAiClient();
+    const config = quotaManager.getConfigs().find(model => model.id === modelId);
+    if (config?.rpdLimit === 0) return { success: false, message: "Model này cần gói trả phí." };
+    if (quotaManager.isModelDepleted(modelId)) return { success: false, message: "Model đã hết hạn mức hôm nay." };
+    if (quotaManager.getWaitTimeForModel(modelId) > 0) return { success: false, message: "Model đang chờ hạn mức theo phút. Thử lại sau." };
+
     try {
+        const ai = getAiClient();
+        quotaManager.recordRequest(modelId);
         const response = await ai.models.generateContent({
             model: modelId,
             contents: "Hi",
             config: { safetySettings: SAFETY_SETTINGS }
         });
+        quotaManager.recordSuccess(modelId);
         return response ? { success: true, message: "Kết nối thành công! Model sẵn sàng." } : { success: false, message: "Không có phản hồi." };
     } catch (error: any) {
         const msg = (error.message || error.toString()).toLowerCase();
         if (msg.includes("resource exhausted") || msg.includes("quota")) {
-            quotaManager.markAsDepleted(modelId);
-            return { success: false, message: "Model đã hết Quota (Resource Exhausted)." };
+            quotaManager.recordRateLimit(modelId);
+            return { success: false, message: "Google báo vượt hạn mức của model (429)." };
         }
         return { success: false, message: error.message };
     }

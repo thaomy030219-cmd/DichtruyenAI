@@ -1,6 +1,6 @@
 
 import { ModelQuota, ModelUsage } from '../types';
-import { MODEL_CONFIGS } from '../constants';
+import { DEFAULT_ENABLED_MODEL_IDS, MODEL_CONFIGS } from '../constants';
 
 const STORAGE_KEY = 'gemini_quota_usage_v1';
 const SAFETY_BUFFER_MS = 5000; // Tăng lên 5s để đảm bảo an toàn tuyệt đối cho RPM thấp
@@ -34,7 +34,7 @@ class QuotaManager {
   private currentConfigs: ModelQuota[] = [...MODEL_CONFIGS];
   
   // Track enabled models dynamically
-  private enabledModels: Set<string> = new Set(MODEL_CONFIGS.map(m => m.id));
+  private enabledModels: Set<string> = new Set(DEFAULT_ENABLED_MODEL_IDS);
 
   // NEW: Track the last model assigned to enforce rotation
   private lastAllocatedId: string | null = null;
@@ -347,7 +347,7 @@ class QuotaManager {
     const usage = this.usage[modelId];
     if (usage) {
       this.lastAllocatedId = modelId; // Update rotation tracker
-      // DO NOT increment requestsToday here to avoid inflating the count on retries
+      usage.requestsToday++;
       usage.recentRequests.push(Date.now()); 
       
       // Cleanup old entries
@@ -358,11 +358,10 @@ class QuotaManager {
     }
   }
 
-  // --- NEW: Call this AFTER successful API response ---
+  // Clear failure counters after a successful response.
   public recordSuccess(modelId: string) {
       const usage = this.usage[modelId];
       if (usage) {
-          usage.requestsToday++; // Increment only on success
           usage.consecutiveErrors = 0; // Reset normal errors
           usage.consecutiveQuotaErrors = 0; // Reset quota errors
           this.saveUsage();

@@ -39,7 +39,7 @@ export const StartOptionsModal: React.FC<StartOptionsModalProps> = ({ isOpen, on
                         </button>
                         <button onClick={() => setSelectedTier('full')} className={`w-full p-4 rounded-2xl flex items-start gap-4 transition-all group text-left border ${selectedTier === 'full' ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-200 shadow-md' : 'bg-white border-slate-200 hover:border-emerald-200'}`}>
                             <div className={`p-3 rounded-xl shadow-sm transition-colors ${selectedTier === 'full' ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-500 group-hover:bg-emerald-100'}`}><Layers className="w-6 h-6" /></div>
-                            <div><h4 className={`font-bold text-sm ${selectedTier === 'full' ? 'text-emerald-800' : 'text-slate-700'}`}>Full Mode</h4><p className="text-xs text-slate-500">Dịch bằng Pro (3 luồng), dự phòng Flash. Auto Fix bằng Flash.</p></div>
+                            <div><h4 className={`font-bold text-sm ${selectedTier === 'full' ? 'text-emerald-800' : 'text-slate-700'}`}>Full Mode</h4><p className="text-xs text-slate-500">Dịch với 3 luồng, ưu tiên Hydrogen. Auto Fix dùng nhóm model hỗ trợ.</p></div>
                         </button>
                     </div>
                 </div>

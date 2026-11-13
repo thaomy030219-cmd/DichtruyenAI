@@ -28,7 +28,7 @@ export const PromptFixPage: React.FC<PromptFixPageProps> = (props) => {
                     </div>
                     <div>
                         <h2 className="font-bold text-base text-slate-800 dark:text-slate-100">AI Quét & Sửa Lỗi Hàng Loạt</h2>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">3.6 Flash quét lỗi thô → 3.1 Pro đề xuất quy tắc → Áp dụng tự động</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">3.6 Flash quét lỗi thô → Gemini đề xuất quy tắc → Áp dụng tự động</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -132,7 +132,7 @@ export const PromptFixPage: React.FC<PromptFixPageProps> = (props) => {
                                     disabled={isWorking || !rawErrors.trim()}
                                     className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all duration-200 ease-smooth shadow-glow-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1"
                                 >
-                                    {isProposing ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Đề xuất...</> : <><Sparkles className="w-3.5 h-3.5" /> Đề xuất Pro</>}
+                                    {isProposing ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Đề xuất...</> : <><Sparkles className="w-3.5 h-3.5" /> Đề xuất quy tắc</>}
                                 </button>
                                 <label className="p-1.5 hover:bg-primary-100 dark:hover:bg-primary-900/50 rounded-lg text-primary-500 cursor-pointer transition-colors duration-200 ease-smooth focus-within:ring-2 focus-within:ring-primary-400" title="Tải lên quy tắc đã xử lý (.txt)">
                                     <Upload className="w-3.5 h-3.5" />
@@ -146,7 +146,7 @@ export const PromptFixPage: React.FC<PromptFixPageProps> = (props) => {
                                 value={processedFixes || ''}
                                 onChange={e => setProcessedFixes(e.target.value)}
                                 className="absolute inset-0 w-full h-full p-4 text-sm font-mono bg-primary-50/20 dark:bg-primary-950/20 border-none focus:ring-0 outline-none resize-none leading-relaxed custom-scrollbar scroll-smooth text-slate-700 dark:text-slate-300"
-                                placeholder="Định dạng: Lỗi cũ = Đoạn mới sửa&#10;(Nhấn 'Đề xuất Pro' sau khi có lỗi thô)"
+                                placeholder="Định dạng: Lỗi cũ = Đoạn mới sửa&#10;(Nhấn 'Đề xuất quy tắc' sau khi có lỗi thô)"
                                 spellCheck={false}
                             />
                         </div>

@@ -228,7 +228,7 @@ ${textContent}`,
     const handleGenerateCreativeChapters = async () => {
         setIsGenerating(true);
         if (setStartTime) setStartTime(Date.now());
-        addLog?.('Bắt đầu sáng tác liên hoàn với Gemini 3.1 Pro (Max 65536 tokens)...', 'info');
+        addLog?.('Bắt đầu sáng tác liên hoàn (tối đa 65.536 token)...', 'info');
         
         try {
             const ai = getAiClient();
@@ -279,12 +279,12 @@ Viết liên tục đúng ${state.targetChapters || 10} chương với chất l�
 Văn phong mượt mà, cuốn hút. Không tóm tắt nội dung để qua loa. Thiết lập các chi tiết, thoại, hành động đầy đủ. Hãy bám sát Dàn ý đã cho.`;
 
             const res = await smartExecution(
-                ['gemini-3.1-pro-preview'],
+                ['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3.6-flash'],
                 async (modelId) => {
                     const r = await ai.models.generateContent({
                         model: modelId,
                         contents: prompt,
-                        config: { systemInstruction: systemInst, safetySettings: SAFETY_SETTINGS, temperature: 0.8, maxOutputTokens: 65536 }
+                        config: { systemInstruction: systemInst, safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }
                     });
                     return r.text || '';
                 },

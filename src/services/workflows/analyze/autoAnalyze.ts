@@ -142,11 +142,11 @@ LƯU Ý QUAN TRỌNG:
             let parsed = safeJsonParse(res.text || "");
             if (!parsed) {
                 console.warn("safeJsonParse failed for synthesis, attempting AI JSON repair...");
-                const repairRes = await getAiClient().models.generateContent({
-                    model: mid,
+                const repairRes = await smartExecution(fallbackModels, repairModel => getAiClient().models.generateContent({
+                    model: repairModel,
                     contents: "Fix this invalid JSON and return ONLY valid JSON without markdown blocks:\n\n" + (res.text || ""),
                     config: { responseMimeType: 'application/json', safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }
-                });
+                }), "Sửa JSON phân tích");
                 parsed = safeJsonParse(repairRes.text || "");
                 if (!parsed) {
                     throw new Error("AI trả về kết quả tổng hợp không phải JSON hợp lệ.");

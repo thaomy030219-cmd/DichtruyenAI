@@ -22,15 +22,16 @@ export const ACCESS_CONFIG = {
   EDITION: '1 Năm'
 };
 
+// Gemini API project limits on Free Tier.
 export const MODEL_CONFIGS: ModelQuota[] = [
-  { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro (Siêu cấp)', rpmLimit: 2, rpdLimit: 100, priority: 2 },
-  { id: 'gemini-4-hydrogen', name: 'Gemini 4 Hydrogen', rpmLimit: 10, rpdLimit: 500, priority: 1 },
-  { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', rpmLimit: 10, rpdLimit: 500, priority: 2.8 },
-  { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', rpmLimit: 10, rpdLimit: 500, priority: 4 },
-  { id: 'gemini-3-flash-preview', name: 'Gemini 3.0 Flash (Turbo)', rpmLimit: 10, rpdLimit: 500, priority: 3.5 },
-  { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash Lite', rpmLimit: 10, rpdLimit: 500, priority: 4.65 },
-  { id: 'gemma-4-31b-it', name: 'Gemma 4 31B IT', rpmLimit: 10, rpdLimit: 500, priority: 4.55 },
-  { id: 'gemma-4-26b-a4b-it', name: 'Gemma 4 26B A4B IT', rpmLimit: 10, rpdLimit: 500, priority: 4.95 },
+  { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', rpmLimit: 0, rpdLimit: 0, priority: 2 },
+  { id: 'gemini-4-hydrogen', name: 'Gemini 4 Hydrogen', rpmLimit: 5, rpdLimit: 20, priority: 1 },
+  { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', rpmLimit: 5, rpdLimit: 20, priority: 2.8 },
+  { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', rpmLimit: 5, rpdLimit: 20, priority: 4 },
+  { id: 'gemini-3-flash-preview', name: 'Gemini 3.0 Flash (Turbo)', rpmLimit: 5, rpdLimit: 20, priority: 3.5 },
+  { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash Lite', rpmLimit: 15, rpdLimit: 500, priority: 4.65 },
+  { id: 'gemma-4-31b-it', name: 'Gemma 4 31B IT', rpmLimit: 30, rpdLimit: 14400, priority: 4.55 },
+  { id: 'gemma-4-26b-a4b-it', name: 'Gemma 4 26B A4B IT', rpmLimit: 30, rpdLimit: 14400, priority: 4.95 },
 ];
 
 export const TIER_MODELS = {
@@ -41,8 +42,7 @@ export const TIER_MODELS = {
 export const TRANSLATION_MODEL_IDS = ['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.1-pro-preview'] as const;
 export const SUPPORT_MODEL_IDS = ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemma-4-31b-it', 'gemma-4-26b-a4b-it'] as const;
 
-export const restoreEnabledModels = (saved: string[]): string[] =>
-  MODEL_CONFIGS.filter(model => model.id !== 'gemini-3.1-pro-preview' || saved.includes(model.id)).map(model => model.id);
+export const DEFAULT_ENABLED_MODEL_IDS = MODEL_CONFIGS.filter(model => model.rpdLimit > 0).map(model => model.id);
 
 export const CONCURRENCY_CONFIG = { 
     FLASH: 3, // Reduced to 3 per user request

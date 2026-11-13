@@ -1,5 +1,5 @@
 // Central model routing for translation and support tasks.
-import { MODEL_CONFIGS, SUPPORT_MODEL_IDS, TRANSLATION_MODEL_IDS } from '../../../constants';
+import { DEFAULT_ENABLED_MODEL_IDS, SUPPORT_MODEL_IDS, TRANSLATION_MODEL_IDS } from '../../../constants';
 import { TranslationTier } from '../../../types';
 
 export const getTranslationPriorities = (tier: TranslationTier): Record<string, number> | undefined =>
@@ -8,7 +8,7 @@ export const getTranslationPriorities = (tier: TranslationTier): Record<string, 
 export const getEffectiveModelsForTier = (
     tier: TranslationTier,
     taskType: 'translate' | 'auto_fix' | 'smart_fix',
-    enabledModels: string[] = MODEL_CONFIGS.map(model => model.id)
+    enabledModels: string[] = DEFAULT_ENABLED_MODEL_IDS
 ): string[] => {
     const filterEnabled = (models: readonly string[]) =>
         models.filter(id => enabledModels.includes(id) || enabledModels.length === 0);

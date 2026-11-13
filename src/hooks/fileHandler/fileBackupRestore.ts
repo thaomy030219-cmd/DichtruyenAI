@@ -1,4 +1,4 @@
-import { restoreEnabledModels } from '../../constants';
+import { DEFAULT_ENABLED_MODEL_IDS } from '../../constants';
 // Nhóm hàm: BACKUP/KHÔI PHỤC toàn bộ dữ liệu app ra/from 1 file JSON.
 import { FileItem } from '../../types';
 import { downloadJsonFile, fileToBase64, base64ToFile } from '../../utils/fileHelpers';
@@ -70,14 +70,7 @@ export const useFileBackupRestore = (core: any, ui: any) => {
                     core.setRatioLimits(rl);
                 }
 
-                if (data.enabledModels) {
-                    core.setEnabledModels(restoreEnabledModels(data.enabledModels));
-                } else {
-                    // If no enabledModels in backup, enable all by default
-                    if (core.modelConfigs) {
-                        core.setEnabledModels(core.modelConfigs.map((m: any) => m.id));
-                    }
-                }
+                core.setEnabledModels(DEFAULT_ENABLED_MODEL_IDS);
 
                 if (data.coverImageBase64) {
                     try { core.setCoverImage(base64ToFile(data.coverImageBase64, "restored_cover.png")); } catch { /* ignore */ }

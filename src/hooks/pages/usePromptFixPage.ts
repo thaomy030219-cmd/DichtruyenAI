@@ -209,7 +209,7 @@ Chỉ liệt kê lỗi tìm thấy, dạng gạch đầu dòng, KHÔNG giải th
             }
 
             addLog?.('Quét xong. Sẵn sàng đề xuất Pro.', 'success');
-            addToast('Quét xong! Nhấn "Đề xuất Pro" để tạo quy tắc sửa.', 'success');
+            addToast('Quét xong! Nhấn "Đề xuất quy tắc" để tạo quy tắc sửa.', 'success');
 
         } catch (e: any) {
             addToast(`Lỗi quét: ${e.message}`, 'error');
@@ -231,7 +231,7 @@ Chỉ liệt kê lỗi tìm thấy, dạng gạch đầu dòng, KHÔNG giải th
         for (let i = 0; i < errorLines.length; i += CHUNK_ITEMS) errorChunks.push(errorLines.slice(i, i + CHUNK_ITEMS));
 
         setIsProposing(true);
-        addLog?.(`Bắt đầu Đề xuất Pro - ${errorChunks.length} phần...`, 'info');
+        addLog?.(`Bắt đầu Đề xuất quy tắc - ${errorChunks.length} phần...`, 'info');
 
         try {
             const baseImageParts: any[] = fixImages.map(img => ({
@@ -277,16 +277,16 @@ Phần ${i + bIdx + 1}/${errorChunks.length}:`
                     ];
 
                     return smartExecution(
-                        ['gemini-3.1-pro-preview'],
+                        ['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3.6-flash'],
                         async (modelId) => {
                             const r = await ai.models.generateContent({
                                 model: modelId,
                                 contents: parts,
-                                config: { safetySettings: SAFETY_SETTINGS, temperature: 0.1 }
+                                config: { safetySettings: SAFETY_SETTINGS }
                             });
                             return r.text || '';
                         },
-                        `Đề xuất Pro phần ${i + bIdx + 1}`,
+                        `Đề xuất quy tắc phần ${i + bIdx + 1}`,
                         addLog
                     );
                 });
@@ -298,7 +298,7 @@ Phần ${i + bIdx + 1}/${errorChunks.length}:`
 
             setProcessedFixes(cleanRepetitiveContent(finalOut));
             addToast('Đã tạo đề xuất quy tắc!', 'success');
-            addLog?.('Đề xuất Pro hoàn tất.', 'success');
+            addLog?.('Đề xuất quy tắc hoàn tất.', 'success');
         } catch (e: any) {
             addToast(`Lỗi đề xuất: ${e.message}`, 'error');
         } finally {

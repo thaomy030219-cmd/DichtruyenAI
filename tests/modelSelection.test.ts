@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { SUPPORT_MODEL_IDS, TRANSLATION_MODEL_IDS } from '../src/constants';
+import { DEFAULT_ENABLED_MODEL_IDS, MODEL_CONFIGS, SUPPORT_MODEL_IDS, TRANSLATION_MODEL_IDS } from '../src/constants';
 import { getEffectiveModelsForTier } from '../src/services/workflows/translate/modelSelection';
 
 const enabled = [...TRANSLATION_MODEL_IDS, ...SUPPORT_MODEL_IDS];
 
 describe('model role routing', () => {
+    it('excludes models without Free Tier quota from default translation', () => {
+        expect(DEFAULT_ENABLED_MODEL_IDS).not.toContain('gemini-3.1-pro-preview');
+        expect(getEffectiveModelsForTier('pro', 'translate')).not.toContain('gemini-3.1-pro-preview');
+        expect(MODEL_CONFIGS.find(model => model.id === 'gemini-3.1-pro-preview')?.rpdLimit).toBe(0);
+    });
     it.each(['normal', 'flash'] as const)(
         'keeps %s translation inside the dedicated translation pool',
         tier => {

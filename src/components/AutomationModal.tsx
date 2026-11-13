@@ -203,8 +203,8 @@ export const AutomationModal: React.FC<AutomationModalProps> = ({
                                     {tier === 'lite'        && '* Chế độ Lite: Dùng Gemini 3 Flash để dịch nhanh.'}
                                     {tier === 'flash'       && '* Chế độ Flash: ưu tiên Hydrogen và các model Flash.'}
                                     {tier === 'normal'      && '* Chế độ Normal: 2 luồng, ưu tiên Hydrogen.'}
-                                    {tier === 'pro'         && '* Chế độ Pro: 2 luồng, ưu tiên 3.1 Pro.'}
-                                    {tier === 'full'        && '* Chế độ Full: 3 luồng, ưu tiên Pro, tự chuyển Flash khi hết.'}
+                                    {tier === 'pro'         && '* Chế độ Pro: 2 luồng, ưu tiên Hydrogen.'}
+                                    {tier === 'full'        && '* Chế độ Full: 3 luồng, ưu tiên Hydrogen và chuyển sang Flash khi cần.'}
                                 </p>
                             </div>
                         )}

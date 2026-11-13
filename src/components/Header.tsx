@@ -201,13 +201,14 @@ export const Header: React.FC<HeaderProps> = (props) => {
     const flashModels = props.modelConfigs.filter(m => TIER_MODELS.FLASH_POOL.includes(m.id));
     
     const renderModelBadge = (config: ModelQuota) => {
-        const isEnabled = props.enabledModels.includes(config.id);
+        const hasNoFreeQuota = config.rpdLimit === 0;
+        const isEnabled = !hasNoFreeQuota && props.enabledModels.includes(config.id);
         const usage = props.modelUsages[config.id] || { requestsToday: 0, recentRequests: [], isDepleted: false, cooldownUntil: 0 };
         const requestsToday = usage.requestsToday || 0;
         const recentReqs = usage.recentRequests || [];
         const currentRpmCount = recentReqs.filter((t: number) => now - t < 60000).length;
         const isRpmFull = currentRpmCount >= config.rpmLimit;
-        const isDepleted = usage.isDepleted;
+        const isDepleted = usage.isDepleted || requestsToday >= config.rpdLimit;
         
         // Calculate Wait Time
         const cooldownRemaining = Math.max(0, (usage.cooldownUntil || 0) - now);
@@ -224,7 +225,7 @@ export const Header: React.FC<HeaderProps> = (props) => {
                 ${isEnabled && !isDepleted ? 'hover:shadow-elevation-2 hover:-translate-y-px' : 'opacity-70'}`}>
                 <div className={`w-1 shrink-0 ${stateColor}`} />
                 <div className="flex items-center gap-2 px-2.5 py-1.5 w-full">
-                    {isDepleted ? <Ban className="w-3.5 h-3.5 text-rose-500 shrink-0" /> : (
+                    {hasNoFreeQuota ? <Ban className="w-3.5 h-3.5 text-rose-500 shrink-0" /> : (
                         <button
                             onClick={() => props.toggleModel(config.id)}
                             aria-label={isEnabled ? 'Tắt model' : 'Bật model'}
@@ -240,7 +241,7 @@ export const Header: React.FC<HeaderProps> = (props) => {
                                 {config.name.replace('Gemini ', '')}
                             </span>
                             {isDepleted ? (
-                                <span className="text-[8px] font-black text-rose-500 leading-tight shrink-0">HẾT</span>
+                                <span className="text-[8px] font-black text-rose-500 leading-tight shrink-0">{hasNoFreeQuota ? "CẦN TRẢ PHÍ" : "HẾT"}</span>
                             ) : (
                                 <button aria-label="Test tốc độ" onClick={() => props.handleTestModel(config.id)} disabled={!!props.testingModelId} className="p-0.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-400 hover:text-primary-600 transition-colors shrink-0">
                                     {props.testingModelId === config.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
@@ -257,7 +258,7 @@ export const Header: React.FC<HeaderProps> = (props) => {
                             <>
                                 <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
                                     <span className={isDepleted ? "text-rose-600 dark:text-rose-400 font-bold" : ""}>
-                                        {requestsToday}/{config.rpdLimit}
+                                        {formatNumber(requestsToday)}/{formatNumber(config.rpdLimit)}
                                     </span>
                                     <span className={`font-bold ${isDepleted ? "text-rose-400" : isRpmFull ? "text-amber-600 animate-pulse" : "text-primary-600"}`}>
                                         {currentRpmCount}/{config.rpmLimit} RPM

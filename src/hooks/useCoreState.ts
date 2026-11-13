@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { StoryInfo, FileItem, ModelQuota, BatchLimits, RatioLimits, CreativeState, SinoVietnameseState, FixErrorState } from '../types';
-import { DEFAULT_PROMPT, MODEL_CONFIGS, restoreEnabledModels } from '../constants';
+import { DEFAULT_PROMPT, MODEL_CONFIGS, DEFAULT_ENABLED_MODEL_IDS } from '../constants';
 import { DEFAULT_RATIO_LIMITS } from '../constants/ratioLimits';
 import { loadFromStorage, saveToStorage, clearDatabase, getStoredLastSaved } from '../utils/storage';
 import { quotaManager } from '../utils/quotaManager';
@@ -53,7 +53,7 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
     const [additionalDictionary, setAdditionalDictionary] = useState<string>('');
     const [coverImage, setCoverImage] = useState<File | null>(null);
     const [autoSaveInterval, setAutoSaveInterval] = useState<number>(2);
-    const [enabledModels, setEnabledModels] = useState<string[]>(MODEL_CONFIGS.map(m => m.id));
+    const [enabledModels, setEnabledModels] = useState<string[]>(DEFAULT_ENABLED_MODEL_IDS);
     const [modelConfigs, setModelConfigs] = useState<ModelQuota[]>(MODEL_CONFIGS);
     // NEW: Real-time Usage Stats
     const [modelUsages, setModelUsages] = useState(quotaManager.getUsageSnapshot());
@@ -175,13 +175,8 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
                 if (data.additionalDictionary) setAdditionalDictionarySafe(data.additionalDictionary);
                 if (data.autoSaveInterval) setAutoSaveIntervalSafe(data.autoSaveInterval);
                 if (data.concurrency) setConcurrencySafe(data.concurrency);
-                if (data.enabledModels) {
-                    const validModels = restoreEnabledModels(data.enabledModels);
-                    setEnabledModelsSafe(validModels);
-                    quotaManager.setEnabledModels(validModels);
-                } else {
-                    quotaManager.setEnabledModels(MODEL_CONFIGS.map(m => m.id));
-                }
+                setEnabledModelsSafe(DEFAULT_ENABLED_MODEL_IDS);
+                quotaManager.setEnabledModels(DEFAULT_ENABLED_MODEL_IDS);
 
                 if (data.batchLimits) {
                     const bl = { ...data.batchLimits };
@@ -433,7 +428,7 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
             setPromptTemplateSafe(DEFAULT_PROMPT);
             setAdditionalDictionarySafe('');
             setCoverImageSafe(null);
-            setEnabledModelsSafe(MODEL_CONFIGS.map(m => m.id));
+            setEnabledModelsSafe(DEFAULT_ENABLED_MODEL_IDS);
             setModelUsages(quotaManager.getUsageSnapshot()); // Reset usage UI
             setBatchLimitsSafe({
                 latin: { v36: 6, v35: 6, v3: 6, v31: 12, v25: 6, maxTotalChars: 90000 },

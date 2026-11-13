@@ -34,9 +34,8 @@ export const testContentSafety = async (content: string, enabledModels: string[]
                 const wait = quotaManager.getWaitTimeForModel(targetModel);
                 if (wait > 0 && wait !== Infinity) {
                     await new Promise(r => setTimeout(r, wait));
-                } else if (wait === Infinity) {
-                    continue; // Skip depleted models
                 }
+                if (!quotaManager.isModelAvailable(targetModel)) continue;
 
                 console.log("testContentSafety recording request for:", targetModel);
                 quotaManager.recordRequest(targetModel);
