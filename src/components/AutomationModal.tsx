@@ -39,7 +39,7 @@ export const AutomationModal: React.FC<AutomationModalProps> = ({
     /* ─── Steps ─── */
     const stepsList = [
         { id: 0, label: "Dọn dẹp Trùng Lặp", desc: "Tự động xóa chapter bị duplicate trước khi dịch." },
-        { id: 1, label: "Auto Phân Tích Nhanh", desc: "Quét metadata, tạo bìa, tóm tắt." },
+        { id: 1, label: "Auto Phân Tích Nhanh", desc: "Quét metadata, tóm tắt." },
         { id: 2, label: "Phân Tích Chuyên Sâu", desc: "Mở bảng phân tích để bạn kiểm tra & chạy Series Bible." },
         { id: 3, label: "Thiết Kế Prompt (Architect)", desc: "Mở bảng Prompt để bạn kiểm tra & tối ưu hóa." },
         { id: 4, label: "Dịch Thuật (Smart Start)", desc: "Chạy dịch toàn bộ file theo chế độ đã chọn." },
@@ -189,23 +189,22 @@ export const AutomationModal: React.FC<AutomationModalProps> = ({
                             <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
                                 <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Chế độ dịch Gemini (Bước 4)</label>
                                 <div className="flex flex-wrap gap-2">
-                                    {(['lite', 'flash', 'normal', 'pro', 'full', 'openrouter'] as TranslationTier[]).map(t => (
+                                    {(['lite', 'flash', 'normal', 'pro', 'full'] as TranslationTier[]).map(t => (
                                         <button
                                             key={t}
                                             onClick={() => setTier(t)}
                                             className={`py-1 px-3 rounded-lg text-xs font-bold capitalize transition-all ${tier === t ? 'bg-yellow-400 text-red-700 shadow-md scale-105' : 'bg-white dark:bg-slate-700 text-slate-500'}`}
                                         >
-                                            {t === 'openrouter' ? 'OpenRouter' : t}
+                                            {t}
                                         </button>
                                     ))}
                                 </div>
                                 <p className="text-[10px] text-slate-500 mt-2 italic">
-                                    {tier === 'lite'        && '* Chế độ Lite: Chỉ 3.1 Flash Lite, tốc độ cao.'}
-                                    {tier === 'flash'       && '* Chế độ Flash: ưu tiên 3.8 và 3.0 Turbo.'}
-                                    {tier === 'normal'      && '* Chế độ Normal: 2 luồng, chia đều Pro & Flash.'}
-                                    {tier === 'pro'         && '* Chế độ Pro: 1 luồng 3.1 Pro, chất lượng cao nhất.'}
+                                    {tier === 'lite'        && '* Chế độ Lite: Dùng Gemini 3 Flash để dịch nhanh.'}
+                                    {tier === 'flash'       && '* Chế độ Flash: ưu tiên Hydrogen và các model Flash.'}
+                                    {tier === 'normal'      && '* Chế độ Normal: 2 luồng, ưu tiên Hydrogen.'}
+                                    {tier === 'pro'         && '* Chế độ Pro: 2 luồng, ưu tiên 3.1 Pro.'}
                                     {tier === 'full'        && '* Chế độ Full: 3 luồng, ưu tiên Pro, tự chuyển Flash khi hết.'}
-                                    {tier === 'openrouter'  && '* OpenRouter: Cần API Key & model trong cài đặt.'}
                                 </p>
                             </div>
                         )}

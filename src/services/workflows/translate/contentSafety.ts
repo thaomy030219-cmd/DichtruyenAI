@@ -8,11 +8,11 @@ export const testContentSafety = async (content: string, enabledModels: string[]
         
         // Use quotaManager to find available flash models to avoid 429 errors
 
-        const priorityModels = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemma-4-31b-it', 'gemma-4-26b-a4b-it'];
+        const priorityModels = ['gemini-3.5-flash-lite', 'gemma-4-31b-it', 'gemma-4-26b-a4b-it'];
         const modelsToTry = priorityModels.filter(m => enabledModels.includes(m) || enabledModels.length === 0);
         
         if (modelsToTry.length === 0) {
-            const fallback = enabledModels.find(m => !m.startsWith('openrouter:'));
+            const fallback = enabledModels[0];
             if (fallback) modelsToTry.push(fallback);
             else modelsToTry.push('gemini-3.5-flash-lite');
         }

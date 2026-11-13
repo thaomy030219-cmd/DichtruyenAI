@@ -15,15 +15,16 @@ export const getModelBatchFileLimit = (
     batchLimits?: BatchLimits,
     languages: string[] = [],
 ): number => {
-    if (modelId.startsWith('openrouter:')) return 1;
     const limits = usesLatinBatchTable(languages)
         ? (batchLimits?.latin || DEFAULT_LATIN_LIMITS)
         : (batchLimits?.complex || DEFAULT_COMPLEX_LIMITS);
     const configured = modelId.includes('3.1-pro')
         ? limits.v31
-        : modelId.includes('flash-lite') || modelId.includes('gemma')
-            ? limits.v35
-            : limits.v36;
+        : modelId === 'gemini-3-flash-preview'
+            ? limits.v3
+            : modelId.includes('flash-lite') || modelId.includes('gemma')
+                ? limits.v35
+                : limits.v36;
     const parsed = Number.parseInt(String(configured), 10);
     return Math.max(1, Number.isFinite(parsed) ? parsed : 6);
 };

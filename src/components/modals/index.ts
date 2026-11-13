@@ -12,4 +12,3 @@ export * from './ToastContainer';
 export * from './SmartStartModal';
 export * from './NameAnalysisModal';
 export * from './RawDownloadModal';
-export * from './ApiSettingsModal';

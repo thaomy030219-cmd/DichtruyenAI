@@ -77,25 +77,12 @@ export const useSmartFixCore = (core: any, ui: any, sharedState: any) => {
         }
 
         try {
-            const hasOpenRouterFile = allBadLines.some(bl => {
-                const f = core.files.find((file: FileItem) => file.id === bl.fileId);
-                return f?.usedModel?.startsWith('openrouter:');
-            });
-            let modelsForFix = core.enabledModels;
-            if (hasOpenRouterFile && core.openRouterKey && core.openRouterModel) {
-                const safetyFallbackSet = new Set<string>();
-                safetyFallbackSet.add(`openrouter:${core.openRouterModel}`);
-                safetyFallbackSet.add('openrouter:google/gemma-4-26b-a4b-it:free');
-                modelsForFix = Array.from(safetyFallbackSet);
-            }
-
             const fixesMap = await performAggregatedRepair(
                 allBadLines, effectiveDictionary, translationTier, core.storyInfo.contextNotes, 
-                core.storyInfo, core.promptTemplate, (msg) => ui.addLog(msg, 'info'), modelsForFix,
+                core.storyInfo, core.promptTemplate, (msg) => ui.addLog(msg, 'info'), core.enabledModels,
                 undefined,
                 () => myRunId !== runIdRef.current,
-                taskType,
-                core.openRouterKey
+                taskType
             );
             
             if (myRunId !== runIdRef.current) { isRepairRunningRef.current = false; return; }

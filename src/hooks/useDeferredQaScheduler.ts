@@ -18,7 +18,7 @@ export const useDeferredQaScheduler = (core: any, shared: any, handleReview: (fo
       if (!isTranslationComplete(live.files)) return;
       const ready = hasReadyQualityModel(live.enabledModels)
         || live.files.some((file: FileItem) => file.qaStatus && file.qaStatus !== 'PASS'
-          && hasReadyQualityModel(live.enabledModels, live.openRouterKey, file.usedModel));
+          && hasReadyQualityModel(live.enabledModels));
       if (ready) handleReview(false);
       else shared.qaPausedRef.current = true;
     };

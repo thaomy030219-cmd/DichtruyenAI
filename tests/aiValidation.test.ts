@@ -10,7 +10,7 @@ const response = (verdict: unknown) => JSON.stringify({ reviews: { a: verdict } 
 
 describe('QA request and repair workflow', () => {
   it('isolates missing IDs in a mixed batch without rejecting the good chapter', async () => {
-    const report = await validateBatchWithAI([...files, { id: 'b', content: 'Nguồn b' }], new Map([['a', target], ['b', 'Dịch b']]), [], undefined, undefined, undefined, '', {
+    const report = await validateBatchWithAI([...files, { id: 'b', content: 'Nguồn b' }], new Map([['a', target], ['b', 'Dịch b']]), [], undefined, '', {
       request: async () => response(pass),
     });
     expect(report.get('a')?.status).toBe('PASS');
@@ -19,7 +19,7 @@ describe('QA request and repair workflow', () => {
   it('preserves output on malformed JSON and network failures', async () => {
     for (const request of [async () => 'bad json', async () => { throw new Error('429 quota'); }]) {
       const results = new Map([['a', target]]);
-      const report = await reviewAndRepairBatch(files, results, [], undefined, undefined, undefined, '', { request });
+      const report = await reviewAndRepairBatch(files, results, [], undefined, '', { request });
       expect(report.get('a')?.status).toBe('QA_DEFERRED');
       expect(results.get('a')).toBe(target);
     }
@@ -30,9 +30,9 @@ describe('QA request and repair workflow', () => {
       expect(JSON.parse(prompt)[0].source).toBe(source);
       return response(pass);
     });
-    await validateBatchWithAI([{ id: 'a', content: source }], new Map([['a', target]]), [], undefined, undefined, undefined, '', { request });
+    await validateBatchWithAI([{ id: 'a', content: source }], new Map([['a', target]]), [], undefined, '', { request });
     expect(request).toHaveBeenCalledTimes(1);
-    const report = await validateBatchWithAI([{ id: 'a', content: 'a'.repeat(120_001) }], new Map([['a', target]]), [], undefined, undefined, undefined, '', { request });
+    const report = await validateBatchWithAI([{ id: 'a', content: 'a'.repeat(120_001) }], new Map([['a', target]]), [], undefined, '', { request });
     expect(report.get('a')?.status).toBe('QA_DEFERRED');
     expect(request).toHaveBeenCalledTimes(1);
   });
@@ -41,7 +41,7 @@ describe('QA request and repair workflow', () => {
       .mockResolvedValueOnce(JSON.stringify({ edits: [{ original: 'Mày đi đi.', replacement: 'Em đi đi.' }] }))
       .mockResolvedValueOnce(response(pass));
     const results = new Map([['a', target]]);
-    const report = await reviewAndRepairBatch(files, results, [], undefined, undefined, undefined, '', { request });
+    const report = await reviewAndRepairBatch(files, results, [], undefined, '', { request });
     expect(request).toHaveBeenCalledTimes(3);
     expect(JSON.parse(request.mock.calls[2][1])[0].translation).toContain('Em đi đi.');
     expect(results.get('a')).toBe('Lâm Mặc nói: “Em đi đi.”');
@@ -52,7 +52,7 @@ describe('QA request and repair workflow', () => {
       .mockResolvedValueOnce(JSON.stringify({ edits: [{ original: 'Mày đi đi.', replacement: 'Em đi đi.' }] }))
       .mockResolvedValueOnce(response({ decision: 'CONTENT_MISMATCH', contentAlignment: 'FAIL', findings: [{ category: 'content', sourceQuote: '你走吧', targetQuote: 'Em đi đi.', detail: 'Sai' }] }));
     const results = new Map([['a', target]]);
-    const report = await reviewAndRepairBatch(files, results, [], undefined, undefined, undefined, '', { request });
+    const report = await reviewAndRepairBatch(files, results, [], undefined, '', { request });
     expect(results.get('a')).toBe(target);
     expect(report.get('a')?.status).toBe('SUSPECT');
   });
@@ -60,14 +60,14 @@ describe('QA request and repair workflow', () => {
     const request = vi.fn().mockResolvedValueOnce(response(repairable))
       .mockResolvedValueOnce(JSON.stringify({ edits: [{ original: target, replacement: 'Chương khác.' }] }));
     const results = new Map([['a', target]]);
-    expect((await reviewAndRepairBatch(files, results, [], undefined, undefined, undefined, '', { request })).get('a')?.status).toBe('SUSPECT');
+    expect((await reviewAndRepairBatch(files, results, [], undefined, '', { request })).get('a')?.status).toBe('SUSPECT');
     expect(results.get('a')).toBe(target);
     expect(request).toHaveBeenCalledTimes(2);
   });
   it('does not borrow the main model quota when all support models are disabled', async () => {
     const ready = vi.spyOn(quotaManager, 'isModelAvailable').mockReturnValue(true);
     const record = vi.spyOn(quotaManager, 'recordRequest');
-    await expect(requestQualityJson('instruction', 'prompt', ['gemini-3.1-pro-preview'], undefined, 'gemini-3.1-pro-preview')).rejects.toThrow('hậu kiểm');
+    await expect(requestQualityJson('instruction', 'prompt', ['gemini-3.1-pro-preview'])).rejects.toThrow('hậu kiểm');
     expect(ready).not.toHaveBeenCalled();
     expect(record).not.toHaveBeenCalled();
     vi.restoreAllMocks();
@@ -76,21 +76,21 @@ describe('QA request and repair workflow', () => {
     const mismatch = { decision: 'CONTENT_MISMATCH', contentAlignment: 'FAIL', findings: [{ category: 'content', sourceQuote: '你走吧', targetQuote: 'Mày đi đi.', detail: 'Nội dung khác' }], reason: 'Lệch nội dung' };
     const agreed = vi.fn().mockResolvedValue(response(mismatch));
     const results = new Map([['a', target]]);
-    expect((await reviewAndRepairBatch(files, results, [], undefined, undefined, undefined, '', { request: agreed })).get('a')?.status).toBe('CONFIRMED_FAILURE');
+    expect((await reviewAndRepairBatch(files, results, [], undefined, '', { request: agreed })).get('a')?.status).toBe('CONFIRMED_FAILURE');
     expect(agreed).toHaveBeenCalledTimes(2);
     expect(results.get('a')).toBe(target);
     const disagreed = vi.fn().mockResolvedValueOnce(response(mismatch)).mockResolvedValueOnce(response(pass));
-    expect((await reviewAndRepairBatch(files, results, [], undefined, undefined, undefined, '', { request: disagreed })).get('a')?.status).toBe('PASS');
+    expect((await reviewAndRepairBatch(files, results, [], undefined, '', { request: disagreed })).get('a')?.status).toBe('PASS');
   });
   it('defers a content suspicion if independent confirmation is unavailable', async () => {
     const mismatch = { decision: 'CONTENT_MISMATCH', contentAlignment: 'FAIL', findings: [{ category: 'content', sourceQuote: '你走吧', targetQuote: 'Mày đi đi.', detail: 'Nội dung khác' }] };
     const request = vi.fn().mockResolvedValueOnce(response(mismatch)).mockRejectedValueOnce(new Error('Hết quota model xác nhận'));
     const results = new Map([['a', target]]);
-    expect((await reviewAndRepairBatch(files, results, [], undefined, undefined, undefined, '', { request })).get('a')?.status).toBe('QA_DEFERRED');
+    expect((await reviewAndRepairBatch(files, results, [], undefined, '', { request })).get('a')?.status).toBe('QA_DEFERRED');
     expect(results.get('a')).toBe(target);
   });
   it('propagates cancellation rather than converting it into failure/deferred outcomes', async () => {
-    await expect(validateBatchWithAI(files, new Map([['a', target]]), [], undefined, undefined, undefined, '', {
+    await expect(validateBatchWithAI(files, new Map([['a', target]]), [], undefined, '', {
       shouldAbort: () => true, request: async () => response(pass),
     })).rejects.toThrow('ABORTED');
   });

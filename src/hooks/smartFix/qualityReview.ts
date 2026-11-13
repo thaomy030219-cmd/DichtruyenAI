@@ -61,11 +61,9 @@ export const createQualityReviewHandlers = (core: any, ui: any, shared: any) => 
           const files: FileItem[] = live.files;
           if (!force && !isTranslationComplete(files)) break;
           const dictionary = getDictionary();
-          const wave = selectDeferredQaWave(files, dictionary, story, visited, Date.now(), force, scope);
-          if (!wave.length) break;
-          const model = wave[0].usedModel?.startsWith('openrouter:') ? wave[0].usedModel : '';
-          const batch = wave.filter(file => (file.usedModel?.startsWith('openrouter:') ? file.usedModel : '') === model);
-          if (!hasReadyQualityModel(live.enabledModels, live.openRouterKey, model)) { pauseForQuota(); break; }
+          const batch = selectDeferredQaWave(files, dictionary, story, visited, Date.now(), force, scope);
+          if (!batch.length) break;
+          if (!hasReadyQualityModel(live.enabledModels)) { pauseForQuota(); break; }
           waves++;
           batch.forEach(file => { visited.add(file.id); activeIds.add(file.id); });
           ui.addLog(`🔎 Hậu kiểm đợt ${waves}: ${batch.length} chương; đã xét ${visited.size} chương trong lượt này.`, 'info');
@@ -85,7 +83,7 @@ export const createQualityReviewHandlers = (core: any, ui: any, shared: any) => 
           }
           const reviewable = reviewFiles.filter(file => !file.plan.conflicts.length);
           const reports = await reviewAndRepairBatch(reviewable, results, live.enabledModels,
-            (message) => ui.addLog(message, 'info'), live.openRouterKey, model, '', { shouldAbort: abort, onQuotaExhausted: pauseForQuota });
+            (message) => ui.addLog(message, 'info'), '', { shouldAbort: abort, onQuotaExhausted: pauseForQuota });
           for (const file of reviewFiles) {
             if (file.plan.conflicts.length) reports.set(file.id, { ...deferredReview('Xung đột thuật ngữ: ' + file.plan.conflicts.join(' ')), retryable: false });
             const report = reports.get(file.id);

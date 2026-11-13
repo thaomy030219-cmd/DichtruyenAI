@@ -85,11 +85,11 @@ export const useCreativePage = ({
             return;
         }
         setIsAnalyzing(true);
-        addLog?.('Bắt đầu phân tích ý tưởng (3.5 Flash)...', 'info');
+        addLog?.('Bắt đầu phân tích ý tưởng (3.6 Flash)...', 'info');
         try {
             const ai = getAiClient();
             const res = await smartExecution(
-                ['gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-3.0-flash'],
+                ['gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.0-flash'],
                 async (modelId) => {
                     const r = await ai.models.generateContent({
                         model: modelId,
@@ -150,7 +150,7 @@ Hãy phát triển và điền vào các mục sau. Trả về đúng định d�
         const file = e.target.files?.[0];
         if (!file) return;
         setIsAnalyzing(true);
-        addLog?.('Bắt đầu đọc và phân tích EPUB (3.5 Flash)...', 'info');
+        addLog?.('Bắt đầu đọc và phân tích EPUB (3.6 Flash)...', 'info');
         try {
             const parsed = await parseEpub(file);
             if (setFilesSafe && parsed.files.length > 0) {
@@ -169,7 +169,7 @@ Hãy phát triển và điền vào các mục sau. Trả về đúng định d�
 
             const ai = getAiClient();
             const response = await smartExecution(
-                ['gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-3.0-flash'],
+                ['gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-3.0-flash'],
                 async (modelId) => {
                     const r = await ai.models.generateContent({
                         model: modelId,

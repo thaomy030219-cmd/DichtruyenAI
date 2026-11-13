@@ -9,9 +9,9 @@ export const analyzeNameBatch = async (
     additionalRules: string = "", forcedCandidates?: string[], enabledModels?: string[]
 ): Promise<string> => {
     const ai = getAiClient();
-    let candidates = forcedCandidates || (useSearch ? ['gemini-3.1-pro-preview'] : ['gemini-3.1-pro-preview', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash']);
+    let candidates = forcedCandidates || (useSearch ? ['gemini-3.1-pro-preview'] : ['gemini-3.1-pro-preview', 'gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash']);
     candidates = candidates.filter(id => enabledModels?.includes(id) ?? true);
-    if (candidates.length === 0) candidates = forcedCandidates || ['gemini-3.1-pro-preview', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'];
+    if (candidates.length === 0) candidates = forcedCandidates || ['gemini-3.1-pro-preview', 'gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash'];
     const langs = storyInfo.languages.join(' ').toLowerCase();
     let sourceInstruction = "";
     
@@ -32,7 +32,7 @@ export const analyzeNameBatch = async (
     const metaHeader = `[METADATA]\nTên: ${storyInfo.title}\nNgôn ngữ truyện: ${storyInfo.languages.join(', ')}\nYêu cầu: ${mode === 'only_char' ? 'Chỉ nhân vật' : 'Toàn bộ tên riêng'}.\nCHẾ ĐỘ: ${sourceInstruction}${additionalRules ? `\nQUY TẮC BỔ SUNG: ${additionalRules}` : ''}${hintSection}`;
 
     return await smartExecution(candidates, async (modelId) => {
-             const config: any = { systemInstruction: NAME_ANALYSIS_PROMPT, temperature: 0.1, safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 };
+             const config: any = { systemInstruction: NAME_ANALYSIS_PROMPT, ...(!['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3.6-flash'].includes(modelId) && { temperature: 0.1 }), safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 };
              if (useSearch && (modelId.includes('gemini-3.1-pro') || modelId.includes('gemini-3-pro'))) config.tools = [{googleSearch: {}}];
              const res = await ai.models.generateContent({ model: modelId, contents: `${metaHeader}\n${contentChunk}`, config });
              

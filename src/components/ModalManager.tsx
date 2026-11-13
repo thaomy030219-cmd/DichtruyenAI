@@ -247,10 +247,7 @@ export const ModalManager: React.FC<ModalManagerProps> = (props) => {
                             <p className="text-xs text-slate-500 mb-2 font-bold uppercase tracking-wider">Chọn cấp độ dịch:</p>
                             <div className="space-y-2">
                                 <button onClick={() => { props.handleRetranslateConfirm(retranslateKeepOld, 'lite'); props.setShowRetranslateModal(false); }} className="w-full py-2 px-3 bg-yellow-50 border border-yellow-100 hover:bg-yellow-100 text-yellow-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-3">
-                                    <div className="p-1 bg-white rounded-lg shadow-sm"><Zap className="w-4 h-4" /></div> Lite Mode (3.1 Flash Lite)
-                                </button>
-                                <button onClick={() => { props.handleRetranslateConfirm(retranslateKeepOld, 'openrouter'); props.setShowRetranslateModal(false); }} className="w-full py-2 px-3 bg-orange-50 border border-orange-100 hover:bg-orange-100 text-orange-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-3">
-                                    <div className="p-1 bg-white rounded-lg shadow-sm"><Zap className="w-4 h-4" /></div> OR (API Model)
+                                    <div className="p-1 bg-white rounded-lg shadow-sm"><Zap className="w-4 h-4" /></div> Lite Mode (3 Flash)
                                 </button>
                                 <button onClick={() => { props.handleRetranslateConfirm(retranslateKeepOld, 'flash'); props.setShowRetranslateModal(false); }} className="w-full py-2 px-3 bg-primary-50 border border-primary-100 hover:bg-primary-100 text-primary-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-3">
                                     <div className="p-1 bg-white rounded-lg shadow-sm"><Zap className="w-4 h-4" /></div> Flash Mode (Nhanh)

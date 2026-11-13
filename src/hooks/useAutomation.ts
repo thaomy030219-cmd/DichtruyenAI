@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { AutomationConfig, FileStatus, FileItem } from '../types';
-import { optimizePrompt, autoAnalyzeStory } from '../geminiService';
+import { optimizePrompt, autoAnalyzeStory, getEffectiveModelsForTier } from '../geminiService';
 import { formatBookStyle, countForeignChars } from '../utils/text';
-import { DEFAULT_PROMPT, TIER_MODELS } from '../constants';
+import { DEFAULT_PROMPT } from '../constants';
 import { quotaManager } from '../utils/quotaManager';
 
 export const useAutomation = (core: any, ui: any, engine: any, fileHandler?: any) => {
@@ -128,7 +128,6 @@ export const useAutomation = (core: any, ui: any, engine: any, fileHandler?: any
                 ...result.info,
                 pronounMode: autoPronounMode || core.storyInfo.pronounMode
             });
-            if (result.cover) core.setCoverImage(result.cover);
             ui.addToast("Phân tích tự động hoàn tất", "success");
         } catch (e: any) {
             ui.addToast("Lỗi phân tích tự động: " + e.message, "error");
@@ -195,14 +194,8 @@ export const useAutomation = (core: any, ui: any, engine: any, fileHandler?: any
                 case 5: { // Smart Fix
                     ui.setShowAutomationModal(false); 
                     
-                    // CHECK QUOTA BEFORE STARTING
-                    let hasQuota = false;
-                    if (activeConfig?.tier === 'lite') {
-                        hasQuota = !quotaManager.isModelDepleted('gemini-3.1-flash-lite');
-                    } else {
-                        const proModels = TIER_MODELS.PRO_POOL.filter(id => core.enabledModels.includes(id));
-                        hasQuota = proModels.some(id => !quotaManager.isModelDepleted(id));
-                    }
+                    const hasQuota = getEffectiveModelsForTier('normal', 'smart_fix', core.enabledModels)
+                        .some(id => quotaManager.isModelEnabled(id) && !quotaManager.isModelDepleted(id));
                     const isQuotaExhausted = core.files.some((f: FileItem) => f.errorMessage === "Hết Quota tất cả model khả dụng");
                     
                     if (!hasQuota || isQuotaExhausted) {
@@ -313,16 +306,9 @@ export const useAutomation = (core: any, ui: any, engine: any, fileHandler?: any
             isFastTransition = true;
         }
 
-        // Skip cooldown before Smart Fix if we already know there's no Pro quota OR if translation exhausted all quota
         if (nextStep === 5) {
-            let hasQuota = false;
-            const currentConfig = automationState.config;
-            if (currentConfig?.tier === 'lite') {
-                hasQuota = !quotaManager.isModelDepleted('gemini-3.1-flash-lite');
-            } else {
-                const proModels = TIER_MODELS.PRO_POOL.filter(id => core.enabledModels.includes(id));
-                hasQuota = proModels.some(id => !quotaManager.isModelDepleted(id));
-            }
+            const hasQuota = getEffectiveModelsForTier('normal', 'smart_fix', core.enabledModels)
+                .some(id => quotaManager.isModelEnabled(id) && !quotaManager.isModelDepleted(id));
             if (!hasQuota || isQuotaExhausted) {
                 isFastTransition = true;
             }

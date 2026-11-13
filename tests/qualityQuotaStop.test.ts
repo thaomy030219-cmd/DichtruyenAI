@@ -7,7 +7,7 @@ describe('QA quota circuit breaker', () => {
     const results = new Map(files.map(f => [f.id, 'Bản dịch giữ nguyên']));
     const request = vi.fn().mockRejectedValue(new Error('429 RESOURCE_EXHAUSTED quota'));
     const onQuotaExhausted = vi.fn();
-    const reports = await review(files, results, [], undefined, undefined, undefined, '', { request, onQuotaExhausted });
+    const reports = await review(files, results, [], undefined, '', { request, onQuotaExhausted });
     expect(request).toHaveBeenCalledTimes(1);
     expect(onQuotaExhausted).toHaveBeenCalled();
     expect(reports.size).toBe(20);

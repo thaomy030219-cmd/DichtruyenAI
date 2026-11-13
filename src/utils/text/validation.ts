@@ -310,8 +310,8 @@ export const validateTranslationIntegrity = (source: string, target: string, lim
 
     if (source.length < 500) return { isValid: true, ratio };
     
-    // Bỏ qua kiểm tra tính toàn vẹn (tỷ lệ/rác) nếu dùng model thủ công hoặc OpenRouter (chế độ cứu hộ/vệ tinh)
-    if (usedModel === 'Thủ công' || (usedModel && usedModel.startsWith('openrouter:'))) {
+    // Bỏ qua kiểm tra tính toàn vẹn (tỷ lệ/rác) nếu dùng model thủ công
+    if (usedModel === 'Thủ công') {
         return { isValid: true, ratio };
     }
     

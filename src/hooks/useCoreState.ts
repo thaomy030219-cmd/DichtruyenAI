@@ -2,13 +2,12 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { StoryInfo, FileItem, ModelQuota, BatchLimits, RatioLimits, CreativeState, SinoVietnameseState, FixErrorState } from '../types';
-import { DEFAULT_PROMPT, MODEL_CONFIGS } from '../constants';
+import { DEFAULT_PROMPT, MODEL_CONFIGS, restoreEnabledModels } from '../constants';
 import { DEFAULT_RATIO_LIMITS } from '../constants/ratioLimits';
 import { loadFromStorage, saveToStorage, clearDatabase, getStoredLastSaved } from '../utils/storage';
 import { quotaManager } from '../utils/quotaManager';
 import { base64ToFile, fileToBase64 } from '../utils/fileHelpers';
 import { createSafeSetter } from './coreState/createSafeSetter';
-import { DEFAULT_OPENROUTER_MODEL, sanitizeOpenRouterModels } from '../constants/openrouterModels';
 import { clearTranslationMemory } from '../utils/text/translationMemory';
 import { recoverInterruptedQaFiles } from '../services/workflows/translate/deferredQaScheduler';
 
@@ -56,13 +55,6 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
     const [autoSaveInterval, setAutoSaveInterval] = useState<number>(2);
     const [enabledModels, setEnabledModels] = useState<string[]>(MODEL_CONFIGS.map(m => m.id));
     const [modelConfigs, setModelConfigs] = useState<ModelQuota[]>(MODEL_CONFIGS);
-    const [openRouterKey, setOpenRouterKey] = useState<string>(() => {
-        try { return localStorage.getItem('app_openrouter_key') || ''; } catch { return ''; }
-    });
-    const [openRouterModel, setOpenRouterModel] = useState<string>(() => {
-        try { return sanitizeOpenRouterModels(localStorage.getItem('app_openrouter_model') || undefined).join(','); } catch { return DEFAULT_OPENROUTER_MODEL; }
-    });
-    
     // NEW: Real-time Usage Stats
     const [modelUsages, setModelUsages] = useState(quotaManager.getUsageSnapshot());
 
@@ -106,7 +98,7 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
     // Ref for saving to avoid stale closures in timeouts.
     // (Được đưa lên sớm hơn vị trí cũ để các setter "an toàn" bên dưới có thể tham chiếu
     // tới stateRef ngay khi khai báo, thay vì phải định nghĩa 14 khối trùng lặp riêng lẻ.)
-    const stateRef = useRef({ files, promptTemplate, storyInfo, creativeState, sinoVietnameseState, fixErrorState, additionalDictionary, autoSaveInterval, enabledModels, modelConfigs, batchLimits, ratioLimits, coverImage, concurrency, openRouterKey, openRouterModel });
+    const stateRef = useRef({ files, promptTemplate, storyInfo, creativeState, sinoVietnameseState, fixErrorState, additionalDictionary, autoSaveInterval, enabledModels, modelConfigs, batchLimits, ratioLimits, coverImage, concurrency });
 
     // Custom setters to update stateRef immediately
     //
@@ -145,14 +137,6 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
 
     const setModelConfigsSafe = useCallback(createSafeSetter<ModelQuota[]>('modelConfigs', setModelConfigs, stateRef), []);
 
-    const setOpenRouterKeySafe = useCallback(createSafeSetter<string>('openRouterKey', setOpenRouterKey, stateRef, (next) => {
-        try { localStorage.setItem('app_openrouter_key', next); } catch {}
-    }), []);
-
-    const setOpenRouterModelSafe = useCallback(createSafeSetter<string>('openRouterModel', setOpenRouterModel, stateRef, (next) => {
-        try { localStorage.setItem('app_openrouter_model', next); } catch {}
-    }), []);
-
     /* eslint-enable react-hooks/refs, react-hooks/use-memo, react-hooks/exhaustive-deps */
 
     // We no longer use a useEffect to sync stateRef.current.
@@ -164,6 +148,10 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
             console.warn("Skipping loadData because local state has unsaved changes (sync failed).");
             return;
         }
+        try {
+            localStorage.removeItem('app_openrouter_key');
+            localStorage.removeItem('app_openrouter_model');
+        } catch { /* Browser storage may be unavailable. */ }
         try {
             const data = await loadFromStorage(STORAGE_KEY);
             if (data) {
@@ -187,32 +175,8 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
                 if (data.additionalDictionary) setAdditionalDictionarySafe(data.additionalDictionary);
                 if (data.autoSaveInterval) setAutoSaveIntervalSafe(data.autoSaveInterval);
                 if (data.concurrency) setConcurrencySafe(data.concurrency);
-                let lsKey: string | null = null;
-                let lsModel: string | null = null;
-                try {
-                    lsKey = localStorage.getItem('app_openrouter_key');
-                    lsModel = localStorage.getItem('app_openrouter_model');
-                } catch {}
-
-                if (lsKey !== null) {
-                    setOpenRouterKeySafe(lsKey);
-                } else if (data.openRouterKey) {
-                    setOpenRouterKeySafe(data.openRouterKey);
-                }
-
-                const actualModel = lsModel !== null ? lsModel : data.openRouterModel;
-                setOpenRouterModelSafe(sanitizeOpenRouterModels(actualModel).join(','));
-
                 if (data.enabledModels) {
-                    const validModels = data.enabledModels.filter((id: string) => MODEL_CONFIGS.some(m => m.id === id));
-                    if (!validModels.includes('gemini-3.8-flash')) validModels.push('gemini-3.8-flash');
-                    if (!validModels.includes('gemini-3.5-flash-lite')) validModels.push('gemini-3.5-flash-lite');
-                    if (!validModels.includes('gemini-3.1-flash-lite')) validModels.push('gemini-3.1-flash-lite');
-                    if (!validModels.includes('gemini-3.5-flash')) validModels.push('gemini-3.5-flash');
-                    if (!validModels.includes('gemini-3-flash-preview')) validModels.push('gemini-3-flash-preview');
-                    if (!validModels.includes('gemini-3.1-flash-lite-image')) validModels.push('gemini-3.1-flash-lite-image');
-                    if (!validModels.includes('gemma-4-26b-a4b-it')) validModels.push('gemma-4-26b-a4b-it');
-                    if (!validModels.includes('gemma-4-31b-it')) validModels.push('gemma-4-31b-it');
+                    const validModels = restoreEnabledModels(data.enabledModels);
                     setEnabledModelsSafe(validModels);
                     quotaManager.setEnabledModels(validModels);
                 } else {
@@ -277,7 +241,7 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
             setIsLoaded(true); // Still mark as loaded so UI can show error
             addToast("Lỗi kết nối bộ nhớ! Dữ liệu cũ có thể bị tạm khóa. Vui lòng tải lại trang hoặc đổi trình duyệt.", "error");
         }
-    }, [addToast, setAdditionalDictionarySafe, setAutoSaveIntervalSafe, setBatchLimitsSafe, setCoverImageSafe, setEnabledModelsSafe, setFilesSafe, setPromptTemplateSafe, setRatioLimitsSafe, setStoryInfoSafe, setCreativeStateSafe, setSinoVietnameseStateSafe, setFixErrorStateSafe, setConcurrencySafe, setOpenRouterKeySafe, setOpenRouterModelSafe]);
+    }, [addToast, setAdditionalDictionarySafe, setAutoSaveIntervalSafe, setBatchLimitsSafe, setCoverImageSafe, setEnabledModelsSafe, setFilesSafe, setPromptTemplateSafe, setRatioLimitsSafe, setStoryInfoSafe, setCreativeStateSafe, setSinoVietnameseStateSafe, setFixErrorStateSafe, setConcurrencySafe]);
 
     // Load from storage
     useEffect(() => {
@@ -412,7 +376,7 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
         if (isLoadedRef.current) {
             hasUnsavedChangesRef.current = true;
         }
-    }, [files, storyInfo, creativeState, sinoVietnameseState, fixErrorState, promptTemplate, additionalDictionary, enabledModels, batchLimits, ratioLimits, concurrency, autoSaveInterval, modelConfigs, coverImage, openRouterKey, openRouterModel]);
+    }, [files, storyInfo, creativeState, sinoVietnameseState, fixErrorState, promptTemplate, additionalDictionary, enabledModels, batchLimits, ratioLimits, concurrency, autoSaveInterval, modelConfigs, coverImage]);
 
     // --- PERIODIC AUTO SAVE ---
     useEffect(() => {
@@ -483,8 +447,6 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
                 cn: { ...DEFAULT_RATIO_LIMITS.cn },
             });
             setConcurrencySafe('auto');
-            setOpenRouterKeySafe('');
-            setOpenRouterModelSafe(DEFAULT_OPENROUTER_MODEL);
             addToast("Đã Reset toàn bộ dữ liệu!", "success");
         } catch {
             addToast("Lỗi khi reset, vui lòng tải lại trang.", "error");
@@ -506,8 +468,6 @@ export const useCoreState = (addToast: (msg: string, type: 'success'|'error'|'in
         autoSaveInterval, setAutoSaveInterval: setAutoSaveIntervalSafe,
         enabledModels, setEnabledModels: setEnabledModelsSafe,
         modelConfigs, setModelConfigs: setModelConfigsSafe,
-        openRouterKey, setOpenRouterKey: setOpenRouterKeySafe,
-        openRouterModel, setOpenRouterModel: setOpenRouterModelSafe,
         batchLimits, setBatchLimits: setBatchLimitsSafe,
         ratioLimits, setRatioLimits: setRatioLimitsSafe,
         concurrency, setConcurrency: setConcurrencySafe,

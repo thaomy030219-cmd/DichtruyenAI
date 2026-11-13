@@ -1,9 +1,8 @@
 
 import React, { useEffect, useState, useRef } from 'react';
-import { openRouterKeyManager } from './services/api/openrouter';
 import { MainUI } from './components/MainUI';
 import { ModalManager } from './components/ModalManager';
-import { ToastContainer, LoadingModal, RawDownloadModal, ApiSettingsModal } from './components/modals';
+import { ToastContainer, LoadingModal, RawDownloadModal } from './components/modals';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { IntroPage } from './components/IntroPage';
 
@@ -194,11 +193,6 @@ const App: React.FC = () => {
   /* eslint-enable react-hooks/exhaustive-deps */
   const handleAutomationStop = React.useCallback(() => { automation.stopAutomation(); engine.stopProcessing(); }, [automation, engine]);
   
-  // Keep openRouterKeyManager in sync with core state
-  useEffect(() => {
-      openRouterKeyManager.syncKeys(core.openRouterKey);
-  }, [core.openRouterKey]);
-
   // GIÁM SÁT HẠN SỬ DỤNG NGAY CẢ KHI APP ĐANG MỞ (không đóng tab):
   // Trước đây EXPIRY_TS chỉ được kiểm tra 1 LẦN lúc bấm "Vào Ứng Dụng" ở IntroPage. Nếu người
   // dùng đã vào app từ trước khi hết hạn và cứ để tab mở xuyên qua thời điểm hết hạn, họ vẫn dùng
@@ -292,7 +286,6 @@ const App: React.FC = () => {
       
       <RawDownloadModal isOpen={ui.showRawDownloadModal} onClose={() => ui.setShowRawDownloadModal(false)} onConfirm={(parts) => fileHandler.handleDownloadRaw(parts)} />
       
-      <ApiSettingsModal isOpen={ui.showSettings} onClose={() => ui.setShowSettings(false)} openRouterKey={core.openRouterKey} setOpenRouterKey={core.setOpenRouterKey} openRouterModel={core.openRouterModel} setOpenRouterModel={core.setOpenRouterModel} />
 
       <ModalManager 
         // State Props
@@ -416,8 +409,6 @@ const App: React.FC = () => {
         setFilesSafe={core.setFiles}
         setCoverImage={core.setCoverImage}
         
-        showSettings={ui.showSettings}
-        setShowSettings={ui.setShowSettings}
         showLogs={ui.showLogs}
         setShowLogs={ui.setShowLogs}
         systemLogs={ui.systemLogs}
@@ -436,9 +427,8 @@ const App: React.FC = () => {
         
         handleManualResetQuota={() => {
             quotaManager.clearUsage();
-            openRouterKeyManager.resetQuota();
             core.setModelUsages(quotaManager.getUsageSnapshot());
-            ui.addToast("Đã reset sử dụng API Quota và OpenRouter.", "success");
+            ui.addToast("Đã đặt lại thống kê sử dụng Gemini API.", "success");
         }}
         handleTestModel={appHandlers.handleTestModel} // Pass real implementation
         testingModelId={ui.testingModelId} // Pass state
@@ -601,8 +591,6 @@ const App: React.FC = () => {
         setSelectedTemplateKey={() => {}}
         addToast={ui.addToast}
         setConfirmModal={ui.setConfirmModal}
-        openRouterKey={core.openRouterKey}
-        setOpenRouterKey={core.setOpenRouterKey}
       />
     </div>
   );

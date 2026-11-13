@@ -10,7 +10,8 @@ describe('model batch capacity', () => {
     it('uses the actual fallback model family limit', () => {
         expect(getModelBatchFileLimit('gemini-3.1-pro-preview', limits, ['Convert'])).toBe(12);
         expect(getModelBatchFileLimit('gemini-3.8-flash', limits, ['Convert'])).toBe(6);
-        expect(getModelBatchFileLimit('gemini-3.1-flash-lite', limits, ['Chinese'])).toBe(3);
+        expect(getModelBatchFileLimit('gemini-4-hydrogen', limits, ['Convert'])).toBe(6);
+        expect(getModelBatchFileLimit('gemini-3.5-flash-lite', limits, ['Chinese'])).toBe(3);
     });
 
     it('rejects a Pro-sized batch before a Flash request is sent', () => {

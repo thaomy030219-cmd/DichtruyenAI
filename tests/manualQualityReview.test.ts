@@ -15,7 +15,7 @@ const file = (id: string): FileItem => ({ id, name: id, content: 'Nguyên văn '
   status: FileStatus.COMPLETED, retryCount: 2, originalCharCount: 12, remainingRawCharCount: 0 });
 const harness = (files: FileItem[], selectedFiles = new Set<string>()) => {
   const storyInfo: StoryInfo = { title: '', author: '', genres: [], languages: [], mcPersonality: [], worldSetting: [], sectFlow: [] };
-  const state = { files, storyInfo, enabledModels: [], openRouterKey: '', additionalDictionary: '' };
+  const state = { files, storyInfo, enabledModels: [], additionalDictionary: '' };
   const core = { stateRef: { current: state }, saveSession: vi.fn(),
     setFiles: (update: (prev: FileItem[]) => FileItem[]) => { state.files = update(state.files); },
     setStoryInfo: (update: (prev: StoryInfo) => StoryInfo) => { state.storyInfo = update(state.storyInfo); } };
@@ -54,7 +54,7 @@ describe('manual and deferred quality review', () => {
   it('stops on quota after one wave and does not automatically restart', async () => {
     const h = harness(Array.from({ length: 20 }, (_, i) => ({ ...file(String(i)), qaStatus: 'QA_DEFERRED' as const })));
     let calls = 0;
-    vi.mocked(reviewAndRepairBatch).mockImplementation(async (files, _results, _models, _log, _key, _model, _context, options) => {
+    vi.mocked(reviewAndRepairBatch).mockImplementation(async (files, _results, _models, _log, _context, options) => {
       calls++;
       options?.onQuotaExhausted?.();
       return new Map(files.map(f => [f.id, { ...pass, status: 'QA_DEFERRED', reason: '429 quota' }]));

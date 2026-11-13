@@ -13,8 +13,6 @@ export interface MainUIProps {
     setStoryInfo: React.Dispatch<React.SetStateAction<StoryInfo>>;
     
     // UI State Props
-    showSettings: boolean;
-    setShowSettings: (v: boolean) => void;
     showLogs: boolean;
     setShowLogs: (v: boolean) => void;
     systemLogs: any[];
@@ -189,8 +187,6 @@ export interface MainUIProps {
     fixErrorState: any;
     setFixErrorState: any;
     
-    openRouterKey?: string;
-    setOpenRouterKey?: (key: string) => void;
 }
 
 // Extracted from MainUI.tsx (step 4 refactor): local UI state, derived counts, and
@@ -199,8 +195,6 @@ export interface MainUIProps {
 export const useMainUI = (props: MainUIProps) => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isBottomBarOpen, setIsBottomBarOpen] = useState(true);
-    const [showOpenRouterPrompt, setShowOpenRouterPrompt] = useState(false);
-    const [tempOpenRouterKey, setTempOpenRouterKey] = useState("");
     const [showSplitConfig, setShowSplitConfig] = useState(false);
     const [splitThreshold, setSplitThreshold] = useState("8000");
     const [splitParts, setSplitParts] = useState(""); // để trống = tự động tính số phần
@@ -274,20 +268,13 @@ export const useMainUI = (props: MainUIProps) => {
             props.setShowAutomationModal(true);
         };
 
-        const hasOpenRouter = !!props.openRouterKey && props.openRouterKey.trim() !== '';
-        if (!hasOpenRouter) {
-            setShowOpenRouterPrompt(true);
-        } else {
-            proceedWithAuto();
-        }
+        proceedWithAuto();
     };
 
 
     return {
         isSidebarOpen, setIsSidebarOpen,
         isBottomBarOpen, setIsBottomBarOpen,
-        showOpenRouterPrompt, setShowOpenRouterPrompt,
-        tempOpenRouterKey, setTempOpenRouterKey,
         showSplitConfig, setShowSplitConfig,
         splitThreshold, setSplitThreshold,
         splitParts, setSplitParts,

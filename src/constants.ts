@@ -22,44 +22,27 @@ export const ACCESS_CONFIG = {
   EDITION: '1 Năm'
 };
 
-// UPDATED v11.3.6: Adjusted RPD Limits to hard limits based on user feedback
 export const MODEL_CONFIGS: ModelQuota[] = [
-  // PRO TIER: High Intelligence
-  // Gemini 3.1 Pro: Giới hạn 100 RPD
-  { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro (Siêu cấp)', rpmLimit: 2, rpdLimit: 100, priority: 1 },
-  
-  // FLASH TIER: High Speed
-  // Gemini 3.7 đã được Google chuyển tiếp sang 3.8; không tính thành quota riêng.
-  { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash (Mới nhất)', rpmLimit: 10, rpdLimit: 500, priority: 2.8 },
-  // Gemini 3.5 Flash: Giới hạn 500 RPD
-  { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash (Kế Tiếp)', rpmLimit: 10, rpdLimit: 500, priority: 4 },
-  // Gemini 3.0 Flash: Giới hạn 500 RPD
+  { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro (Siêu cấp)', rpmLimit: 2, rpdLimit: 100, priority: 2 },
+  { id: 'gemini-4-hydrogen', name: 'Gemini 4 Hydrogen', rpmLimit: 10, rpdLimit: 500, priority: 1 },
+  { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', rpmLimit: 10, rpdLimit: 500, priority: 2.8 },
+  { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', rpmLimit: 10, rpdLimit: 500, priority: 4 },
   { id: 'gemini-3-flash-preview', name: 'Gemini 3.0 Flash (Turbo)', rpmLimit: 10, rpdLimit: 500, priority: 3.5 },
-  // Gemini 3.1 Flash Lite: Giới hạn 500 RPD
   { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash Lite', rpmLimit: 10, rpdLimit: 500, priority: 4.65 },
-  { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite', rpmLimit: 10, rpdLimit: 500, priority: 4.9 },
-  
-  // LITE TIER: Small models
-  // UPDATED: thứ tự ưu tiên (priority càng thấp càng được chọn trước, xem quotaManager.getBestModelForTask)
-  // giữa 4 model lite/gemma này được chỉnh lại thành 31B > 3.5 Flash Lite > 3.1 Flash Lite > 26B —
-  // áp dụng cho MỌI nơi dùng chung MODEL_CONFIGS.priority (cả dịch Flash/Auto-Fix lẫn hậu kiểm Tier 2).
   { id: 'gemma-4-31b-it', name: 'Gemma 4 31B IT', rpmLimit: 10, rpdLimit: 500, priority: 4.55 },
   { id: 'gemma-4-26b-a4b-it', name: 'Gemma 4 26B A4B IT', rpmLimit: 10, rpdLimit: 500, priority: 4.95 },
-
-  // IMAGE TIER
-  { id: 'gemini-3.1-flash-lite-image', name: 'Nano Banana 2 Lite', rpmLimit: 5, rpdLimit: 500, priority: 7 },
 ];
 
 export const TIER_MODELS = {
-    PRO_POOL: ['gemini-3.1-pro-preview'], // Reverted: Keep Pro Pool strict
-    FLASH_POOL: ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemma-4-26b-a4b-it', 'gemma-4-31b-it'],
+  PRO_POOL: ['gemini-3.1-pro-preview'],
+  FLASH_POOL: MODEL_CONFIGS.filter(model => model.id !== 'gemini-3.1-pro-preview').map(model => model.id),
 };
 
-// Chỉ các model này được phép tham gia luồng dịch Gemini trực tiếp.
-export const TRANSLATION_MODEL_IDS = ['gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.1-pro-preview'] as const;
+export const TRANSLATION_MODEL_IDS = ['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.1-pro-preview'] as const;
+export const SUPPORT_MODEL_IDS = ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemma-4-31b-it', 'gemma-4-26b-a4b-it'] as const;
 
-// Các model còn lại dành cho phân tích, hậu kiểm, sửa lỗi và dò raw.
-export const SUPPORT_MODEL_IDS = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemma-4-31b-it', 'gemma-4-26b-a4b-it'] as const;
+export const restoreEnabledModels = (saved: string[]): string[] =>
+  MODEL_CONFIGS.filter(model => model.id !== 'gemini-3.1-pro-preview' || saved.includes(model.id)).map(model => model.id);
 
 export const CONCURRENCY_CONFIG = { 
     FLASH: 3, // Reduced to 3 per user request

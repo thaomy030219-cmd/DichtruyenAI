@@ -158,7 +158,7 @@ ${inputLines}
 CHỈ TRẢ VỀ CÁC DÒNG ĐÃ SỬA, KHÔNG GIẢI THÍCH.`;
 
                     const result = await smartExecution(
-                        ['gemini-3.5-flash', 'gemini-3-flash-preview'],
+                        ['gemini-3.6-flash', 'gemini-3-flash-preview'],
                         async (modelId) => {
                             const r = await ai.models.generateContent({
                                 model: modelId, contents: prompt,

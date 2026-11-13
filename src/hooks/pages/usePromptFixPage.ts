@@ -98,7 +98,7 @@ CHỈ TRẢ VỀ CÁC DÒNG QUY TẮC GỌN GÀNG, KHÔNG GIẢI THÍCH DÀI DÒ
             });
 
             const res = await smartExecution(
-                ['gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-3.1-flash-lite'],
+                ['gemini-3.6-flash', 'gemini-3-flash-preview'],
                 async (modelId) => {
                     const r = await ai.models.generateContent({
                         model: modelId,
@@ -184,7 +184,7 @@ Chỉ liệt kê lỗi tìm thấy, dạng gạch đầu dòng, KHÔNG giải th
                     ];
 
                     return smartExecution(
-                        ['gemini-3.5-flash', 'gemini-3-flash-preview'],
+                        ['gemini-3.6-flash', 'gemini-3-flash-preview'],
                         async (modelId) => {
                             const res = await ai.models.generateContent({
                                 model: modelId,

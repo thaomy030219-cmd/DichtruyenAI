@@ -1,10 +1,12 @@
 export const DEEP_ANALYSIS_CHUNK_MODELS = [
+    'gemini-4-hydrogen',
     'gemini-3.8-flash',
-    'gemini-3.5-flash',
+    'gemini-3.6-flash',
     'gemini-3-flash-preview',
 ] as const;
 
 export const DEEP_ANALYSIS_SYNTHESIS_MODELS = [
+    'gemini-4-hydrogen',
     'gemini-3.8-flash',
     'gemini-3.1-pro-preview',
 ] as const;

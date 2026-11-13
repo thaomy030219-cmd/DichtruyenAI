@@ -6,9 +6,9 @@ import {
 } from '../src/services/workflows/analyze/modelRouting';
 
 describe('deep analysis model routing', () => {
-    it('uses 3.8 for chunk analysis and synthesis', () => {
-        expect(DEEP_ANALYSIS_CHUNK_MODELS[0]).toBe('gemini-3.8-flash');
-        expect(DEEP_ANALYSIS_SYNTHESIS_MODELS[0]).toBe('gemini-3.8-flash');
+    it('prefers Hydrogen for chunk analysis and synthesis', () => {
+        expect(DEEP_ANALYSIS_CHUNK_MODELS[0]).toBe('gemini-4-hydrogen');
+        expect(DEEP_ANALYSIS_SYNTHESIS_MODELS[0]).toBe('gemini-4-hydrogen');
     });
 
     it('keeps 3.1 Pro as the final difficult-case fallback', () => {

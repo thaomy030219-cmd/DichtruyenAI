@@ -1,18 +1,15 @@
-// HÀM LÕI QUAN TRỌNG NHẤT của app: dịch 1 batch file bằng streaming (gọi Gemini/OpenRouter,
+// HÀM LÕI QUAN TRỌNG NHẤT của app: dịch 1 batch file bằng streaming (gọi Gemini,
 // nhận response dạng stream, validate, tự sửa lỗi nếu cần...). ~840 dòng, nhiều bước xử lý
 // tuần tự phụ thuộc thứ tự lẫn nhau — cố tình KHÔNG tách nhỏ nội dung hàm ra ở bước refactor
 // này (rủi ro cao nếu không có bộ test hồi quy đầy đủ). Việc tách RIÊNG hàm này ra 1 file
 // chỉ nhằm mục đích: khi cần sửa lỗi luồng dịch, chỉ cần mở đúng 1 file này thay vì phải
 // tìm trong 1 file 1500 dòng gộp chung 8 hàm khác nhau.
 import { getAiClient, smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
-import { fetchOpenRouterStream, getOpenRouterModelInfo } from '../../api/openrouter';
 import { StoryInfo, TranslationTier, RatioLimits, FileItem, BatchLimits, QualityReview } from '../../../types';
 import { optimizeDictionary, optimizeContext, dedupeContextAgainstDictionary, formatBookStyle, fixMergedTitle, createBatchFingerprints, validateBatch, registerCompletedChapterFingerprint, proofreadVietnamese, applyInlineEnglishFix } from '../../../utils/text';
 import { VietnameseProofreadResult } from '../../../utils/text/vietnameseProofreader';
-import { getEffectiveModelsForTier } from './modelSelection';
+import { getEffectiveModelsForTier, getTranslationPriorities } from './modelSelection';
 import { reviewAndRepairBatch } from './aiValidation';
-import { getRescueTarget } from './rescueTarget';
-import { DEFAULT_OPENROUTER_MODEL, sanitizeOpenRouterModels } from '../../../constants/openrouterModels';
 import { assertModelBatchCapacity } from '../../../utils/modelBatchLimits';
 import { buildChapterReviewContext } from './reviewContext';
 import { buildConsistencyContract, stripConsistencyBlocks, resolveDictionaryOverrides } from './consistencyRules';
@@ -29,7 +26,7 @@ export interface TranslationBatchResult {
 }
 
 export const translateBatchStream = async (
-    files: { id: string, content: string, name?: string, chapterIndex?: number, fileRetryCount?: number, errorMessage?: string, forceRetranslate?: boolean }[],
+    files: { id: string, content: string, name?: string, chapterIndex?: number, forceRetranslate?: boolean }[],
     userPrompt: string,
     dictionary: string,
     globalContext: string,
@@ -43,8 +40,6 @@ export const translateBatchStream = async (
     preferredModelId?: string,
     shouldAbort?: () => boolean,
     ratioLimits?: RatioLimits,
-    openRouterKey?: string,
-    openRouterModel?: string,
     batchLimits?: BatchLimits,
     runtime: { customDictionary?: string; memoryDriver?: TranslationMemoryDriver; disableMemory?: boolean } = {},
 ): Promise<TranslationBatchResult> => {
@@ -102,88 +97,9 @@ export const translateBatchStream = async (
         relCtx = globalContext || "";
     }
     
-    let effectiveModels = preferredModelId 
+    const effectiveModels = preferredModelId
         ? [preferredModelId] 
         : getEffectiveModelsForTier(tier, 'translate', enabledModels.length > 0 ? enabledModels : allowedModelIds);
-
-    if (tier === 'openrouter') {
-        const selected = sanitizeOpenRouterModels(openRouterModel);
-        const freeIds = selected.filter(m => m.includes(':free') || m === 'openrouter/free');
-        const paidIds = selected.filter(m => !m.includes(':free') && m !== 'openrouter/free');
-        // Free luôn đứng đầu (nếu người dùng có tick) — OpenRouter tự động chuyển sang model kế
-        // tiếp trong danh sách khi model đầu lỗi/hết quota, nên thứ tự này tự nhiên tạo ra đúng
-        // hành vi "thử free 1 lần trước, thất bại mới dùng paid". Nếu người dùng KHÔNG tick free
-        // (chỉ chọn paid), freeIds sẽ rỗng và danh sách gửi đi chỉ có paid — không tốn lượt thử free.
-        const ordered = [...freeIds, ...paidIds];
-        effectiveModels = [`openrouter:${ordered.join(',')}`];
-    }
-
-    const hasStrictSafetyError = files.some(f => f.errorMessage && !f.errorMessage.includes('vạ lây') && !f.errorMessage.toLowerCase().includes('quota') && (f.errorMessage.toLowerCase().includes("an toàn") || f.errorMessage.toLowerCase().includes("safety") || f.errorMessage.includes("BLOCKLIST") || f.errorMessage.includes("PROHIBITED_CONTENT")));
-    const hasValidationError = files.some(f => f.errorMessage && !f.errorMessage.includes('vạ lây') && (f.errorMessage.toLowerCase().includes("nghi vấn lỗi nội dung") || f.errorMessage.toLowerCase().includes("lỗi kiểm định ai")));
-
-    // Ưu tiên đọc thẳng "Bàn giao OpenRouter" đã được useTranslator.ts gắn sẵn vào errorMessage
-    // (tính theo retryCount qua getRescueTarget) - nếu không thấy tag rõ ràng (ví dụ lỗi phát
-    // sinh ngay lần đầu, chưa qua useTranslator gắn tag), suy luận lại từ fileRetryCount + key
-    // đang có, dùng đúng 1 helper getRescueTarget dùng chung cả 2 nơi.
-    const hasOpenRouterKeyAvail = !!(openRouterKey && openRouterKey.trim().length > 0);
-    const taggedRescueTarget: 'openrouter' | null = files.some(f => f.errorMessage?.includes('Bàn giao OpenRouter')) ? 'openrouter'
-        : null;
-    const maxRetryFile = Math.max(0, ...files.map(f => f.fileRetryCount || 0));
-    const inferredRescueTarget = taggedRescueTarget || getRescueTarget(maxRetryFile, hasOpenRouterKeyAvail, 2);
-
-    // FIX: trước đây needsRescueFallback CHỈ dựa vào hasStrictSafetyError/hasValidationError (dò
-    // vài cụm từ cố định trong errorMessage). Nếu file đã được useTranslator.ts gắn tag rõ ràng
-    // "Bàn giao OpenRouter" (taggedRescueTarget khác null — nghĩa là hệ thống ĐÃ quyết định đây
-    // là ca cần cứu hộ ở lượt trước) nhưng chuỗi errorMessage đó lại không chứa đúng các cụm "an
-    // toàn"/"safety"/"nghi vấn lỗi nội dung"/"lỗi kiểm định ai" (ví dụ do lỗi gốc là "Thiếu kết
-    // quả từ API"/"Lỗi ngắt kết nối API" — vẫn được scheduler ở useTranslator.ts xếp vào diện
-    // cứu hộ nhưng không khớp bộ từ khoá hẹp hơn ở đây), thì needsRescueFallback = false, khiến
-    // khối override effectiveModels bên dưới bị BỎ QUA hoàn toàn dù inferredRescueTarget đã tính
-    // đúng là 'openrouter'. Hậu quả thực tế: batch rơi lại về tier/model mặc định trước đó, và vì
-    // nhánh `tier === 'openrouter'` phía trên KHÔNG kiểm tra openRouterKey có tồn tại hay không,
-    // nó vẫn cắm thẳng model OpenRouter dù key rỗng — dẫn đến lỗi "Tất cả model đã thử đều gặp
-    // lỗi hoặc hết Quota". Sửa: coi taggedRescueTarget khác null cũng là điều kiện đủ để kích
-    // hoạt needsRescueFallback, không chỉ dựa vào dò từ khoá nữa.
-    const needsRescueFallback = hasStrictSafetyError || hasValidationError || taggedRescueTarget !== null;
-
-    let relPrevCtx = previousBatchContext;
-    if (needsRescueFallback) {
-        relPrevCtx = "";
-    }
-
-    if(onLog) onLog(`[DEBUG] hasStrictSafetyError=${hasStrictSafetyError}, hasValidationError=${hasValidationError}, rescueTarget=${inferredRescueTarget || 'none'}, openRouterKey.length=${openRouterKey ? openRouterKey.length : 0}`);
-
-    if (needsRescueFallback) {
-        if (inferredRescueTarget === 'openrouter' && hasOpenRouterKeyAvail) {
-        // UPDATED v1.0.3: Ưu tiên model Ox Alpha (qua OpenRouter) làm
-        // vệ tinh cứu hộ chính. Vẫn giữ openRouterModel do người dùng chọn (nếu có) lên đầu,
-        // sau đó tới GPT-OSS 20B/120B free, cuối cùng mới tới Gemma free làm lưới an toàn
-        // cuối nếu cả 2 model GPT-OSS cùng lỗi/hết quota trong lượt gọi đó.
-        const fallBackModel = sanitizeOpenRouterModels(openRouterModel).join(',') || DEFAULT_OPENROUTER_MODEL;
-
-        const safetyFallbackSet = new Set<string>();
-        safetyFallbackSet.add(`openrouter:${fallBackModel}`);
-        safetyFallbackSet.add('openrouter:stealth/ox-alpha');
-        safetyFallbackSet.add('openrouter:google/gemma-4-26b-a4b-it:free');
-        safetyFallbackSet.add('openrouter:google/gemma-4-31b-it:free');
-        effectiveModels = Array.from(safetyFallbackSet);
-        if (onLog) onLog(`⚠️ Phát hiện lỗi phức tạp (${hasStrictSafetyError ? 'Safety' : (hasValidationError ? 'Validation' : 'Đã gắn tag Bàn giao')}). Tự động dùng danh sách dự phòng OpenRouter (Ox Alpha ưu tiên): ${effectiveModels.join(', ')}...`);
-        } else {
-            if (hasStrictSafetyError) {
-                throw new Error("BLOCKLIST: File bị chặn bởi Safety Filter và không có OpenRouter API Key để vượt nghiệm.");
-            } else {
-                // FIX: Không throw cứng HALLUCINATION_PERSIST nữa. Lý do: chuỗi lỗi cũ chứa
-                // đúng cụm "lỗi kiểm định ai" mà hasValidationError ở trên dùng để dò lỗi từ
-                // errorMessage cũ của lần retry trước — nên nếu throw lại y hệt, lần retry kế
-                // sẽ tự nhận lại lỗi của chính nó và throw ngay lập tức mà KHÔNG hề gọi lại API
-                // dịch (vòng lặp vô hạn giả). Vì Tier 2 hoàn toàn có thể báo nhầm (false
-                // positive), ở đây ta chỉ log cảnh báo và để effectiveModels giữ nguyên danh
-                // sách model Gemini gốc đã tính ở trên (dòng 436-438), cho file một cơ hội dịch
-                // lại thật sự thay vì bị bác bỏ oan.
-                if (onLog) onLog(`⚠️ Hậu kiểm Tier 2 nghi vấn lỗi nội dung nhưng không có OpenRouter API Key dự phòng. Bỏ qua chuyển hướng, thử dịch lại bằng model gốc (${effectiveModels.join(', ')}) — có thể Tier 2 chỉ báo nhầm.`);
-            }
-        }
-    }
 
     if(onLog) {
         const dictLines = relDict.split('\n').filter(l => l.trim()).length;
@@ -274,74 +190,8 @@ CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startT
         const startTagMock = formatType === 'xml' ? '<...>' : '[[[...]]]';
         const endTagMock = formatType === 'xml' ? '</...>' : '[[[/...]]]';
         
-        let localRelCtx = relCtx;
-        let localRelPrevCtx = relPrevCtx;
-        let localRelDict = relDict;
 
-        // Giảm tải context cho OpenRouter (nếu vượt quá giới hạn token của model)
-        if (mid.startsWith('openrouter:')) {
-            const actualModelName = mid.replace('openrouter:', '');
-            const modelInfo = await getOpenRouterModelInfo(actualModelName);
-            
-            // Tính toán ước lượng token hiện tại (chưa kể context/dictionary)
-            const baseEstTokens = Math.ceil(currentInput.length / 2.5) + Math.ceil((instruction.length + consistencyContract.length) / 2.5) + 3000; // buffer an toàn cho output tokens và prompt cố định
-            
-            if (modelInfo && modelInfo.context_length) {
-                const maxAllowedContext = modelInfo.context_length;
-                
-                const dictTokens = Math.ceil(localRelDict.length / 2.5);
-                const prevCtxTokens = Math.ceil(localRelPrevCtx.length / 2.5);
-                const ctxTokens = Math.ceil(localRelCtx.length / 2.5);
-                
-                let remainingTokens = maxAllowedContext - baseEstTokens;
-                
-                // Nếu vượt quá giới hạn, ưu tiên cắt giảm theo thứ tự: Context cũ, Context mới, Từ điển
-                if (remainingTokens < dictTokens + prevCtxTokens + ctxTokens) {
-                    if (onLog) onLog(`⚠️ [OpenRouter] Input có thể vượt giới hạn token của model (${maxAllowedContext}). Tự động thu gọn ngữ cảnh...`);
-                    
-                    // 1. Thử cắt bỏ Context cũ trước
-                    if (remainingTokens < dictTokens + ctxTokens) {
-                        localRelPrevCtx = "";
-                    } else {
-                        remainingTokens -= prevCtxTokens;
-                    }
-                    
-                    // 2. Nếu vẫn thiếu, cắt bỏ luôn Context mới
-                    if (localRelPrevCtx === "") {
-                        if (remainingTokens < dictTokens) {
-                            localRelCtx = "";
-                        } else {
-                            remainingTokens -= ctxTokens;
-                        }
-                    }
-                    
-                    // 3. Nếu cắt sạch Context mà vẫn thiếu, bắt buộc cắt Từ điển
-                    if (localRelCtx === "" && localRelPrevCtx === "") {
-                        if (remainingTokens <= 0) {
-                            throw new Error(`⚠️ LỖI QUÁ TẢI NGỮ CẢNH: File truyện quá dài (${Math.ceil(currentInput.length / 2.5)} tokens), vượt quá giới hạn tối đa của model OpenRouter này (${maxAllowedContext} tokens) kể cả khi đã lược bỏ toàn bộ từ điển và bối cảnh phụ. Vui lòng chọn Model có ngữ cảnh lớn hơn (ví dụ: các bản Pro, Claude, hoặc Gemini Flash) hoặc dùng tính năng TÁCH TRUYỆN để chia nhỏ file này trước khi dịch.`);
-                        }
-                        if (remainingTokens < dictTokens) {
-                            const dictLines = localRelDict.split('\n');
-                            // Ước lượng số lượng dòng có thể giữ dựa trên token còn lại
-                            const safeLinesCount = Math.max(20, Math.floor(remainingTokens / 15)); 
-                            if (dictLines.length > safeLinesCount) {
-                                localRelDict = dictLines.slice(0, safeLinesCount).join('\n') + '\n... (đã rút gọn do giới hạn OpenRouter context)';
-                            }
-                        }
-                    }
-                }
-            } else {
-                // Fallback nếu không fetch được modelInfo hoặc context quá thấp: Cứ cắt như cũ để an toàn cho model free
-                localRelCtx = ""; 
-                localRelPrevCtx = "";
-                const dictLines = localRelDict.split('\n');
-                if (dictLines.length > 50) {
-                    localRelDict = dictLines.slice(0, 50).join('\n') + '\n... (đã rút gọn do giới hạn OpenRouter context)';
-                }
-            }
-        }
-
-        const fullPrompt = `[DICT]\n${localRelDict}\n[CTX]\n${localRelCtx}\n[PREV]\n${localRelPrevCtx}\n${consistencyContract}\n[INSTRUCT]\n${instruction}\n[DATA]\n${currentInput}\n\n=========================================\n[FINAL REMINDER / LỜI NHẮC CUỐI]:\n1. You MUST output exactly ${files.length} parts.\n2. Each part MUST start with ${startTagMock} and end with ${endTagMock}.\n3. DO NOT FORGET OR TRANSLATE THE TAGS.\n4. CRITICAL: NO CROSS-CONTAMINATION. Make sure the translated content strictly matches its original source tag. Do not mix chapters together.\n5. Giữ đúng tên và thuật ngữ trong [DICT], xưng hô và giai đoạn quan hệ trong [CTX]; [PREV] chỉ giúp nối mạch, không ghi đè quy tắc đã chốt.\n6. Không để sót câu raw hoặc tự chuyển sang tiếng Anh/ngôn ngữ khác trong bản dịch tiếng Việt (trừ tên riêng và thuật ngữ được giữ nguyên).`;
+        const fullPrompt = `[DICT]\n${relDict}\n[CTX]\n${relCtx}\n[PREV]\n${previousBatchContext}\n${consistencyContract}\n[INSTRUCT]\n${instruction}\n[DATA]\n${currentInput}\n\n=========================================\n[FINAL REMINDER / LỜI NHẮC CUỐI]:\n1. You MUST output exactly ${files.length} parts.\n2. Each part MUST start with ${startTagMock} and end with ${endTagMock}.\n3. DO NOT FORGET OR TRANSLATE THE TAGS.\n4. CRITICAL: NO CROSS-CONTAMINATION. Make sure the translated content strictly matches its original source tag. Do not mix chapters together.\n5. Giữ đúng tên và thuật ngữ trong [DICT], xưng hô và giai đoạn quan hệ trong [CTX]; [PREV] chỉ giúp nối mạch, không ghi đè quy tắc đã chốt.\n6. Không để sót câu raw hoặc tự chuyển sang tiếng Anh/ngôn ngữ khác trong bản dịch tiếng Việt (trừ tên riêng và thuật ngữ được giữ nguyên).`;
         
         // Add timeout for the initial connection
         let connectionTimeoutId: NodeJS.Timeout | undefined;
@@ -379,102 +229,15 @@ CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startT
             const START_TAG_REGEX = /(?:\[\[\[\s*|\[\s*|<\s*)(part_[0-9]+)(?:\s*\]\]\]|\s*\]|\s*>)/gi;
 
             try {
-            if (mid.startsWith('openrouter:')) {
-                const openRouterModel = mid.replace('openrouter:', '');
-                if (connectionTimeoutId) clearTimeout(connectionTimeoutId);
-                
-                let lastUpdateTime = 0;
-                
-                let multiplier = 5;
-                if (ratioLimits && ratioLimits.cn) {
-                    multiplier = Math.max(5, (Number.isFinite(ratioLimits.cn.max) ? ratioLimits.cn.max : 6.2) + 1);
-                }
-                const maxTotalLen = Math.max(combined.length * multiplier, 10000);
-
-                fullTextAccumulator = await fetchOpenRouterStream(
-                    openRouterKey || "",
-                    openRouterModel,
-                    finalPrompt,
-                    fullPrompt,
-                    (chunkAcc) => {
-                        if (shouldAbort && shouldAbort()) throw new Error('ABORTED');
-                        fullTextAccumulator = chunkAcc;
-                        
-                        if (fullTextAccumulator.length > maxTotalLen) {
-                            throw new Error(`⚠️ Lỗi AI lặp từ hoặc mất thẻ (Vượt giới hạn toàn batch). Đang tự ngắt kết nối...`);
-                        }
-
-                        const now = Date.now();
-                        if (now - lastUpdateTime > 1000) {
-                            lastUpdateTime = now;
-                            const matches = [...fullTextAccumulator.matchAll(START_TAG_REGEX)];
-                            if (matches.length > 0) {
-                                const lastMatch = matches[matches.length - 1];
-                            const fileKey = lastMatch[1].toLowerCase();
-                            // ƯU TIÊN TUYỆT ĐỐI: dùng đúng SỐ THỰC ghi trong tag (vd "part_3" -> file
-                            // thứ 3), KHÔNG dùng vị trí xuất hiện tuần tự của tag trong response. Nếu
-                            // dùng vị trí, một tag bị bỏ sót/lặp lại sẽ làm MỌI tag phía sau bị dồn lệch
-                            // sang sai file — đây chính là nguyên nhân "trả kết quả nhầm file" trong batch.
-                            let realId: string | undefined;
-                            const numericMatch = fileKey.match(/(\d+)/);
-                            if (numericMatch) {
-                                const idx = parseInt(numericMatch[1], 10) - 1;
-                                if (idx >= 0 && idx < files.length) { realId = files[idx].id; }
-                            }
-                            if (!realId) {
-                                realId = idMap.get(fileKey) || idMap.get(`file_${fileKey}`);
-                            }
-                            if (!realId) {
-                                // Phương án cuối cùng khi tag hỏng nặng không đọc được số: dùng vị trí xuất hiện.
-                                const expectedIdx = matches.length - 1;
-                                if (expectedIdx >= 0 && expectedIdx < files.length) {
-                                    realId = files[expectedIdx].id;
-                                }
-                            }
-                                if (realId) {
-                                    const contentStart = lastMatch.index! + lastMatch[0].length;
-                                    const nextTagIndex = fullTextAccumulator.substring(contentStart).search(START_TAG_REGEX);
-                                    const contentEnd = nextTagIndex !== -1 ? contentStart + nextTagIndex : fullTextAccumulator.length;
-                                    let content = fullTextAccumulator.substring(contentStart, contentEnd);
-                                    content = content.replace(/(?:\[\[\[\s*\/|\[\s*\/|<\s*\/)(part_[0-9]+)(?:\s*\]\]\]|\s*\]|\s*>)/gi, '');
-                                    
-                                    const matchedFile = files.find(f => f.id === realId);
-                                    if (matchedFile) {
-                                        let multiplier = 5;
-                                        if (ratioLimits && ratioLimits.cn) {
-                                            multiplier = Math.max(5, (Number.isFinite(ratioLimits.cn.max) ? ratioLimits.cn.max : 6.2) + 1);
-                                        }
-                                        const maxLen = Math.max(matchedFile.content.length * multiplier, 4000);
-                                        if (content.length > maxLen) {
-                                            throw new Error(`⚠️ Lỗi AI lặp từ hoặc mất thẻ (Tỷ lệ > ${multiplier}x). Đang tự ngắt kết nối...`);
-                                        }
-                                    }
-
-                                    onUpdate(realId, content.trim());
-                                }
-                            }
-                        }
-                    },
-                    (actualModel) => {
-                        mid = `openrouter:${actualModel}`;
-                        if (onLog) onLog(`🤖 OpenRouter: Model dịch (${actualModel})`);
-                    },
-                    onLog
-                );
-                // fetchOpenRouterStream only RETURNS (instead of throwing) after finish_reason
-                // is no longer 'length' — so reaching this line means the model itself decided
-                // to stop, i.e. a genuine natural end of stream.
-                streamEndedNaturally = true;
-            } else {
                 const responseStreamPromise = ai.models.generateContentStream({ 
-                    model: mid, 
-                    contents: fullPrompt, 
-                    config: { 
-                        systemInstruction: finalPrompt, 
-                        ...(mid === 'gemini-3.8-flash' ? {} : { temperature: 0.2 }),
+                    model: mid,
+                    contents: fullPrompt,
+                    config: {
+                        systemInstruction: finalPrompt,
+                        ...(['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3.6-flash'].includes(mid) ? {} : { temperature: 0.2 }),
                         safetySettings: SAFETY_SETTINGS,
                         maxOutputTokens: 65536
-                    } 
+                    }
                 });
 
                 const responseStream = await Promise.race([responseStreamPromise, connectionTimeout]) as any;
@@ -541,7 +304,6 @@ CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startT
                             const lastMatch = matches[matches.length - 1];
                             const fileKey = lastMatch[1].toLowerCase();
                             // ƯU TIÊN TUYỆT ĐỐI: dùng số thực ghi trong tag, không dùng vị trí xuất
-                            // hiện tuần tự (xem giải thích chi tiết ở nhánh OpenRouter phía trên).
                             let realId: string | undefined;
                             const numericMatch = fileKey.match(/(\d+)/);
                             if (numericMatch) {
@@ -600,7 +362,6 @@ CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startT
                     }
                 }
             }
-            } // end else for openrouter
             } catch (e: any) {
                 if (e.message && (e.message.includes('Tất cả model khả dụng đã hết Quota') || e.message.includes('Tất cả model đã thử đều gặp lỗi hoặc hết Quota'))) {
                     throw e;
@@ -819,7 +580,7 @@ CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startT
                 return { ...file, consistencyContext: reviewContexts.get(file.id), localFindings, localHints: formatLocalFindings(localFindings, plan) };
             });
         const aiValidationResults = await reviewAndRepairBatch(
-            reviewFiles, results, enabledModels, onLog, openRouterKey, mid, '', { shouldAbort }
+            reviewFiles, results, enabledModels, onLog, '', { shouldAbort }
         );
         for (const file of reviewFiles) {
             const review = aiValidationResults.get(file.id);
@@ -923,7 +684,7 @@ CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startT
         const memoryKeys = await saveVerifiedTranslationMemory(files, results, aiValidationResults, memoryContext, mid, runtime.memoryDriver);
         return { 
             results, 
-            model: mid, 
+            model: mid,
             stats: { dictLines: relDict.split('\n').length, contextLines: relCtx.split('\n').length },
             errors: specificErrors,
             streamError: streamErrorToReturn,
@@ -936,7 +697,7 @@ CRITICAL: DO NOT TRANSLATE THE TAGS. ALWAYS OUTPUT THE EXACT TAGS (e.g. ${startT
         } finally {
             if (connectionTimeoutId) clearTimeout(connectionTimeoutId);
         }
-    }, "Dịch Streaming", onLog, preferredModelId).catch((error: Error) => {
+    }, "Dịch Streaming", onLog, preferredModelId, getTranslationPriorities(tier)).catch((error: Error) => {
         if (shouldAbort?.() || error.message === 'ABORTED' || (!cachedResults.size && !blockedErrors.size)) throw error;
         // A failed uncached request must not discard chapters already restored from
         // verified memory or turn preflight conflicts into API retry candidates.

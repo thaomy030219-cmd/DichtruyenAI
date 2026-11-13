@@ -7,7 +7,7 @@ export enum FileStatus {
   ERROR = 'ERROR',
 }
 
-export type TranslationTier = 'flash' | 'normal' | 'pro' | 'full' | 'lite' | 'openrouter';
+export type TranslationTier = 'flash' | 'normal' | 'pro' | 'full' | 'lite';
 
 export type QAStatus = 'PASS' | 'SUSPECT' | 'QA_DEFERRED' | 'CONFIRMED_FAILURE';
 export type QualityCategory = 'content' | 'pronoun' | 'terminology' | 'foreign' | 'format';
@@ -129,7 +129,6 @@ export interface StoryInfo {
   sectFlow: string[];      // Lưu phái (Phàm nhân lưu, Vô địch lưu...)
   contextNotes?: string; 
   summary?: string; // Tóm tắt cốt truyện (New v9.0)
-  imagePrompt?: string; // Lưu prompt tạo ảnh để tái sử dụng hoặc tham khảo
   additionalRules?: string; // Quy tắc bổ sung từ người dùng (New v10.1)
   // Được lưu cùng phiên và file backup để không phải phân tích lại khi dịch lần sau.
   deepAnalysisSignature?: string;

@@ -26,7 +26,7 @@ export const testCurrentKey = async (): Promise<{ success: boolean; message: str
     const ai = getAiClient();
     try {
         await ai.models.generateContent({
-            model: 'gemini-3.5-flash',
+            model: 'gemini-3.6-flash',
             contents: "Hi",
             config: { safetySettings: SAFETY_SETTINGS }
         });
@@ -63,13 +63,6 @@ export const testModelConnection = async (modelId: string): Promise<{ success: b
 };
 
 /**
- * "Vệ tinh" = các model không thuộc hệ Gemini nội bộ, không dùng quotaManager của Gemini,
- * mà tự quản lý key/rate limit riêng (OpenRouter). Smart Execution chọn tuần tự theo danh
- * sách, lỗi thì loại khỏi danh sách thử (blacklist) thay vì đánh dấu "hết quota" theo kiểu Gemini.
- */
-const isSatelliteModel = (id: string) => id.startsWith('openrouter:');
-
-/**
  * SMART EXECUTION ENGINE v3.1 (Retry Strategy)
  * - 2 Consecutive Errors -> Depleted.
  * - 1 Error -> Wait 1 minute -> Retry.
@@ -84,7 +77,7 @@ export const smartExecution = async <T>(
     priorityOverrides?: Record<string, number>
 ): Promise<T> => {
     logger.log(`[smartExecution] task: ${taskName}, candidateModels:`, candidateModels);
-    const validCandidates = candidateModels.filter(id => isSatelliteModel(id) || MODEL_CONFIGS.some(c => c.id === id));
+    const validCandidates = candidateModels.filter(id => MODEL_CONFIGS.some(c => c.id === id));
     logger.log(`[smartExecution] task: ${taskName}, validCandidates:`, validCandidates);
     const temporaryBlacklist: string[] = []; // Models that completely failed in this execution
     
@@ -97,23 +90,12 @@ export const smartExecution = async <T>(
 
     while (iterations++ < MAX_ITERATIONS) {
         // 1. Get Best Model
-        let selectedId: string | null = null;
-        const satelliteCandidates = validCandidates.filter(id => isSatelliteModel(id));
-        
-        if (satelliteCandidates.length > 0) {
-            selectedId = satelliteCandidates.find(id => !temporaryBlacklist.includes(id)) || null;
-        } else {
-            selectedId = quotaManager.getBestModelForTask(validCandidates, temporaryBlacklist, preferredModelId, priorityOverrides);
-            if (!selectedId && validCandidates.includes('gemini-3.1-flash-lite-image') && !temporaryBlacklist.includes('gemini-3.1-flash-lite-image')) {
-                selectedId = 'gemini-3.1-flash-lite-image';
-            }
-        }
+        const selectedId = quotaManager.getBestModelForTask(validCandidates, temporaryBlacklist, preferredModelId, priorityOverrides);
 
         if (!selectedId) {
             // All exhausted or temporary blacklisted
             const allDepletedOrBlacklisted = validCandidates.every(id => 
-                isSatelliteModel(id) ? temporaryBlacklist.includes(id) :
-                ( (id !== 'gemini-3.1-flash-lite-image' && quotaManager.isModelDepleted(id)) || (id !== 'gemini-3.1-flash-lite-image' && !quotaManager.isModelEnabled(id)) || temporaryBlacklist.includes(id))
+                quotaManager.isModelDepleted(id) || !quotaManager.isModelEnabled(id) || temporaryBlacklist.includes(id)
             );
 
             logger.log(`[smartExecution] task: ${taskName}, allDepletedOrBlacklisted:`, allDepletedOrBlacklisted, validCandidates.map(id => ({
@@ -136,7 +118,7 @@ export const smartExecution = async <T>(
             }
 
             // Waiting logic (Cooldown)
-            const activeCandidates = validCandidates.filter(id => !isSatelliteModel(id) && !temporaryBlacklist.includes(id));
+            const activeCandidates = validCandidates.filter(id => !temporaryBlacklist.includes(id));
             const waitTimes = activeCandidates.map(id => quotaManager.getWaitTimeForModel(id));
             const minWaitTime = Math.min(...waitTimes);
             
@@ -149,21 +131,15 @@ export const smartExecution = async <T>(
         }
 
         // --- MODEL SELECTED ---
-        if (!isSatelliteModel(selectedId)) {
-            quotaManager.recordRequest(selectedId);
-        }
+        quotaManager.recordRequest(selectedId);
 
         try {
             if (onLog) onLog(`🚀 [${taskName}] Đang chạy trên model: ${selectedId}...`);
-            if (!isSatelliteModel(selectedId)) {
-                await new Promise(r => setTimeout(r, 600)); // Nhỏ giọt chống 429
-            }
+            await new Promise(r => setTimeout(r, 600)); // Giãn cách request
             const result = await operation(selectedId);
             
             // SUCCESS: Reset consecutive errors
-            if (!isSatelliteModel(selectedId)) {
-                quotaManager.recordSuccess(selectedId);
-            }
+            quotaManager.recordSuccess(selectedId);
             return result;
         } catch (error: any) {
             let msg = (error.message || error.toString()).toLowerCase();
@@ -285,13 +261,6 @@ export const smartExecution = async <T>(
             // in rõ nguyên nhân thật + hướng khắc phục ra log để người dùng tự sửa đúng chỗ.
             if (error.status === 403 || msg.includes('403') || msg.includes('permission_denied')) {
                 if (onLog) onLog(`⛔ LỖI QUYỀN TRUY CẬP (403) trên model ${selectedId} — KHÔNG PHẢI hết Quota. API Key hiện tại bị từ chối truy cập. Nguyên nhân thường gặp: Key bị giới hạn theo domain (HTTP referrer restriction) trong Google Cloud Console/AI Studio API Key settings chưa cho phép domain của bản Publish này. Vào Google AI Studio > API Keys, kiểm tra lại giới hạn của Key đang dùng.`);
-                temporaryBlacklist.push(selectedId);
-                continue;
-            }
-
-            // For satellite models (OpenRouter), we handle failures directly, không đụng quotaManager Gemini
-            if (isSatelliteModel(selectedId)) {
-                if (onLog) onLog(`⛔ CẢNH BÁO: Model ${selectedId} lỗi (${msg.substring(0, 150)}). Loại bỏ khỏi danh sách thử.`);
                 temporaryBlacklist.push(selectedId);
                 continue;
             }

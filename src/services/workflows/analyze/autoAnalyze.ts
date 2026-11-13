@@ -11,7 +11,7 @@ export const autoAnalyzeStory = async (
     currentStoryInfo: StoryInfo,
     onProgress: (msg: string) => void,
     enabledModels?: string[]
-): Promise<{ info: any, cover: File | null, imagePrompt: string }> => {
+): Promise<{ info: any }> => {
     const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
     let sample = sorted;
     
@@ -58,11 +58,9 @@ export const autoAnalyzeStory = async (
 
         const batch = chunks.slice(i, i + CONCURRENCY);
         const batchPromises = batch.map((chunk) => {
-            // Use Flash models: 3.5 Flash and 3.0 Flash
-            const flashModels = ['gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
-            if (flashModels.length === 0) flashModels.push('gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
+            const flashModels = ['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash'].filter(id => enabledModels?.includes(id) ?? true);
+            if (flashModels.length === 0) flashModels.push('gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash');
             
-            // Ưu tiên sử dụng 3.7 Flash làm model chính
             const performAnalysis = async (mid: string) => {
                 try {
                     const res = await getAiClient().models.generateContent({ 
@@ -128,8 +126,8 @@ LƯU Ý QUAN TRỌNG:
 
     let synthesis: any;
     {
-        const fallbackModels = ['gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
-        if (fallbackModels.length === 0) fallbackModels.push('gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
+        const fallbackModels = ['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash'].filter(id => enabledModels?.includes(id) ?? true);
+        if (fallbackModels.length === 0) fallbackModels.push('gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash');
         synthesis = await smartExecution(fallbackModels, async mid => {
             const res = await getAiClient().models.generateContent({ 
                 model: mid, 
@@ -145,7 +143,7 @@ LƯU Ý QUAN TRỌNG:
             if (!parsed) {
                 console.warn("safeJsonParse failed for synthesis, attempting AI JSON repair...");
                 const repairRes = await getAiClient().models.generateContent({
-                    model: 'gemini-3.8-flash',
+                    model: mid,
                     contents: "Fix this invalid JSON and return ONLY valid JSON without markdown blocks:\n\n" + (res.text || ""),
                     config: { responseMimeType: 'application/json', safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }
                 });
@@ -215,10 +213,8 @@ LƯU Ý QUAN TRỌNG:
         // trước đó — đây là 2 field bị "chồng chéo" nghiêm trọng nhất giữa Smart Start và luồng
         // Auto/Phân tích sâu trước khi có fix này.
         contextNotes: currentStoryInfo.contextNotes || synthesis?.contextNotes || "",
-        additionalRules: currentStoryInfo.additionalRules || synthesis?.suggested_rules || synthesis?.additionalRules || "",
-        image_prompt: "", // Giữ key cũ để không phá vỡ chỗ khác đang đọc field này (nếu có)
-        imagePrompt: currentStoryInfo.imagePrompt || "" // Tên field đúng theo StoryInfo — trước đây bị đặt sai tên (image_prompt) nên không bao giờ map được, mặc định về rỗng mỗi lần chạy
+        additionalRules: currentStoryInfo.additionalRules || synthesis?.suggested_rules || synthesis?.additionalRules || ""
     };
 
-    return { info: finalInfo, cover: null, imagePrompt: "" };
+    return { info: finalInfo };
 };

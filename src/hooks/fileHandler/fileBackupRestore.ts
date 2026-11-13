@@ -1,3 +1,4 @@
+import { restoreEnabledModels } from '../../constants';
 // Nhóm hàm: BACKUP/KHÔI PHỤC toàn bộ dữ liệu app ra/from 1 file JSON.
 import { FileItem } from '../../types';
 import { downloadJsonFile, fileToBase64, base64ToFile } from '../../utils/fileHelpers';
@@ -14,7 +15,6 @@ export const useFileBackupRestore = (core: any, ui: any) => {
         const dataToSave = { ...core.stateRef.current, coverImageBase64: coverBase64, lastSaved: new Date().toISOString(), batchLimits: core.batchLimits, ratioLimits: core.ratioLimits };
         const safeData = { ...dataToSave };
         delete safeData.coverImage;
-        delete safeData.openRouterKey; // Do not backup API key
         downloadJsonFile(`Backup_${core.storyInfo.title || 'Data'}_${new Date().toISOString().split('T')[0]}.json`, safeData);
         ui.addToast("Đã xuất file Backup (.json) kèm Ảnh bìa", "success");
     };
@@ -71,33 +71,7 @@ export const useFileBackupRestore = (core: any, ui: any) => {
                 }
 
                 if (data.enabledModels) {
-                    // Filter valid models and explicitly ensure 3.1 flash lite is enabled
-                    const validModels = data.enabledModels.filter((id: string) => core.modelConfigs?.some((m: any) => m.id === id));
-                    if (!validModels.includes('gemini-3.8-flash')) {
-                        validModels.push('gemini-3.8-flash');
-                    }
-                    if (!validModels.includes('gemini-3.5-flash-lite')) {
-                        validModels.push('gemini-3.5-flash-lite');
-                    }
-                    if (!validModels.includes('gemini-3.1-flash-lite')) {
-                        validModels.push('gemini-3.1-flash-lite');
-                    }
-                    if (!validModels.includes('gemini-3.5-flash')) {
-                        validModels.push('gemini-3.5-flash');
-                    }
-                    if (!validModels.includes('gemini-3-flash-preview')) {
-                        validModels.push('gemini-3-flash-preview');
-                    }
-                    if (!validModels.includes('gemini-3.1-flash-lite-image')) {
-                        validModels.push('gemini-3.1-flash-lite-image');
-                    }
-                    if (!validModels.includes('gemma-4-26b-a4b-it')) {
-                        validModels.push('gemma-4-26b-a4b-it');
-                    }
-                    if (!validModels.includes('gemma-4-31b-it')) {
-                        validModels.push('gemma-4-31b-it');
-                    }
-                    core.setEnabledModels(validModels);
+                    core.setEnabledModels(restoreEnabledModels(data.enabledModels));
                 } else {
                     // If no enabledModels in backup, enable all by default
                     if (core.modelConfigs) {

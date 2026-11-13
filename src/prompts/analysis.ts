@@ -57,7 +57,6 @@ TRẢ VỀ JSON:
     "strengths": "Điểm mạnh của truyện",
     "conclusion": "Nhận xét & Kết luận"
   },
-  "image_prompt": "Prompt tiếng Anh để vẽ bìa truyện. Visuals only. NO TEXT. NO TYPOGRAPHY. Detailed art style.",
 }
 
 CRITICAL: YOU MUST RETURN VALID JSON. ALL NEWLINES INSIDE STRINGS MUST BE ESCAPED AS \\n. DO NOT USE ACTUAL NEWLINES INSIDE JSON STRING VALUES.

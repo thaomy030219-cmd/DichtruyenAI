@@ -151,8 +151,7 @@ const FileCard: React.FC<FileCardProps> = ({
 
                     {file.usedModel && (
                         <span className="text-[9px] font-mono text-slate-500 dark:text-slate-400 px-1 py-0.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded truncate max-w-[120px]" title={file.usedModel}>
-                            {file.usedModel.startsWith('openrouter:') ? file.usedModel.replace('openrouter:', 'OR: ').replace('google/', '').replace('-a4b-it', '').replace('-it', '').replace(':free', '').toUpperCase() :
-                             file.usedModel.replace('gemini-', '').replace('-preview', '')}
+                            {file.usedModel.replace('gemini-', '').replace('-preview', '')}
                         </span>
                     )}
 

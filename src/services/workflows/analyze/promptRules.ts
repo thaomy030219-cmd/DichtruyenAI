@@ -91,17 +91,17 @@ ${filledTemplate}`;
         const response = await ai.models.generateContent({
           model: modelId,
           contents: "Thực hiện kiến trúc lại Prompt dựa trên Series Bible.",
-          config: { systemInstruction: instruction, temperature: 0.7, safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 },
+          config: { systemInstruction: instruction, ...(!['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3.6-flash'].includes(modelId) && { temperature: 0.7 }), safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 },
         });
         return response.text?.trim() || filledTemplate;
       };
 
       try {
-          return await smartExecution(candidates, performTask, "Optimize Prompt (3.8 kiểm định)", undefined, candidates[0]);
+          return await smartExecution(candidates, performTask, "Optimize Prompt", undefined, candidates[0]);
       } catch (e) {
           console.warn("Pro model failed for optimizePrompt, falling back to Flash.", e);
-          const fallbackModels = ['gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
-          if (fallbackModels.length === 0) fallbackModels.push('gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
+          const fallbackModels = ['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash'].filter(id => enabledModels?.includes(id) ?? true);
+          if (fallbackModels.length === 0) fallbackModels.push('gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash');
           return await smartExecution(fallbackModels, performTask, "Optimize Prompt (Flash)", undefined, fallbackModels[0]);
       }
   } catch {
@@ -164,7 +164,7 @@ CHỈ TRẢ VỀ NỘI DUNG QUY TẮC BỔ SUNG theo đúng format trên, không
         const response = await getAiClient().models.generateContent({
             model: modelId,
             contents: prompt,
-            config: { temperature: 0.3, safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }
+            config: { ...(!['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3.6-flash'].includes(modelId) && { temperature: 0.3 }), safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }
         });
         let text = response.text || additionalRules;
         text = text.replace(/^\s*```(?:markdown)?\n/i, '').replace(/\n```\s*$/i, '').trim();
@@ -175,8 +175,8 @@ CHỈ TRẢ VỀ NỘI DUNG QUY TẮC BỔ SUNG theo đúng format trên, không
         return await smartExecution(proModels, performTask, "Quy Tắc Bổ Sung", undefined, proModels[0]);
     } catch (e) {
         console.warn("Pro model failed for refineAdditionalRules, falling back to Flash.", e);
-        const fallbackModels = ['gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
-        if (fallbackModels.length === 0) fallbackModels.push('gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
+        const fallbackModels = ['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash'].filter(id => enabledModels?.includes(id) ?? true);
+        if (fallbackModels.length === 0) fallbackModels.push('gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash');
         return await smartExecution(fallbackModels, performTask, "Quy Tắc Bổ Sung (Flash)", undefined, fallbackModels[0]);
     }
 };
@@ -206,7 +206,7 @@ ${mergedContext}`;
         const response = await getAiClient().models.generateContent({
             model: modelId,
             contents: prompt,
-            config: { temperature: 0.3, safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }
+            config: { ...(!['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3.6-flash'].includes(modelId) && { temperature: 0.3 }), safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }
         });
         let text = response.text || storyInfo.summary || "";
         text = text.replace(/^\s*```(?:markdown)?\n/i, '').replace(/\n```\s*$/i, '').trim();
@@ -224,8 +224,8 @@ ${mergedContext}`;
         return await smartExecution(proModels, performTask, "Tinh Chỉnh Tóm Tắt Truyện", undefined, proModels[0]);
     } catch (e) {
         console.warn("Pro model failed for refineSummary, falling back to Flash.", e);
-        const fallbackModels = ['gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
-        if (fallbackModels.length === 0) fallbackModels.push('gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
+        const fallbackModels = ['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash'].filter(id => enabledModels?.includes(id) ?? true);
+        if (fallbackModels.length === 0) fallbackModels.push('gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash');
         return await smartExecution(fallbackModels, performTask, "Tinh Chỉnh Tóm Tắt (Flash)", undefined, fallbackModels[0]);
     }
 };

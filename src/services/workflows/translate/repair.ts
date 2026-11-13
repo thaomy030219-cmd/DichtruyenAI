@@ -2,7 +2,6 @@
 // performAggregatedRepair (gom nhiều lỗi từ nhiều file thành ít batch hơn để sửa),
 // repairTranslations (dùng cho luồng Sửa Lỗi Thông Minh - Smart Fix).
 import { getAiClient, smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
-import { fetchOpenRouter } from '../../api/openrouter';
 import { REPAIR_CONFIG, TIER_MODELS } from '../../../constants';
 import { StoryInfo, TranslationTier } from '../../../types';
 import { optimizeContext, optimizeDictionary, dedupeContextAgainstDictionary, LineContext } from '../../../utils/text';
@@ -11,7 +10,7 @@ import { getEffectiveModelsForTier } from './modelSelection';
 
 export interface GlobalRepairEntry { fileId: string; lineIndex: number; originalLine: string; }
 
-export const repairBatch = async (entries: GlobalRepairEntry[], dictionary: string, tier: TranslationTier, context?: string, storyInfo?: StoryInfo, promptTemplate?: string, onLog?: (msg: string) => void, enabledModels?: string[], shouldAbort?: () => boolean, taskType: 'auto_fix' | 'smart_fix' = 'auto_fix', openRouterKey?: string): Promise<Map<string, Map<number, string>>> => {
+export const repairBatch = async (entries: GlobalRepairEntry[], dictionary: string, tier: TranslationTier, context?: string, storyInfo?: StoryInfo, promptTemplate?: string, onLog?: (msg: string) => void, enabledModels?: string[], shouldAbort?: () => boolean, taskType: 'auto_fix' | 'smart_fix' = 'auto_fix'): Promise<Map<string, Map<number, string>>> => {
     if (!entries.length) return new Map();
     const instruction = `Senior Editor: Fix errors (typos, wrong pronouns, foreign chars). Return ONLY the corrected text for each ID. Format: ID_X: Corrected text. DO NOT include meta tags like [Fixed]. Story: ${storyInfo?.title}.
 CRITICAL: Nếu dòng có chứa tiếng Anh/CJK (như Trung, Nhật, Hàn, etc.) chưa được dịch, bạn BẮT BUỘC PHẢI dịch toàn bộ dòng đó sang tiếng Việt, không chỉ sửa lỗi chính tả hay giữ nguyên.
@@ -45,17 +44,10 @@ CRITICAL: You MUST return EXACTLY ONE LINE per ID. Do not use multiple lines for
         });
         try {
             if (shouldAbort && shouldAbort()) throw new Error('ABORTED');
-            let text = "";
-            if (mid.startsWith('openrouter:')) {
-                const openRouterModel = mid.replace('openrouter:', '');
-                const resPromise = fetchOpenRouter(openRouterKey || "", openRouterModel, instruction, prompt, false, (actualModel) => { mid = `openrouter:${actualModel}`; });
-                text = await Promise.race([resPromise, connectionTimeout]) as string;
-            } else {
-                const ai = getAiClient();
-                const resPromise = ai.models.generateContent({ model: mid, contents: prompt, config: { systemInstruction: instruction, temperature: 0.1, maxOutputTokens: 65536, safetySettings: SAFETY_SETTINGS } });
-                const res = await Promise.race([resPromise, connectionTimeout]) as any;
-                text = res.text;
-            }
+            const ai = getAiClient();
+            const resPromise = ai.models.generateContent({ model: mid, contents: prompt, config: { systemInstruction: instruction, temperature: 0.1, maxOutputTokens: 65536, safetySettings: SAFETY_SETTINGS } });
+            const res = await Promise.race([resPromise, connectionTimeout]);
+            const text = res.text;
             if (timeoutId) clearTimeout(timeoutId);
             
             const map = new Map<string, Map<number, string>>();
@@ -90,8 +82,7 @@ export const performAggregatedRepair = async (
     enabledModels?: string[],
     onBatchComplete?: (batchFixes: Map<string, Map<number, string>>) => void,
     shouldAbort?: () => boolean,
-    taskType: 'auto_fix' | 'smart_fix' = 'auto_fix',
-    openRouterKey?: string
+    taskType: 'auto_fix' | 'smart_fix' = 'auto_fix'
 ): Promise<Map<string, Map<number, string>>> => {
     const combined = new Map<string, Map<number, string>>();
     const total = allBadLines.length;
@@ -113,7 +104,7 @@ export const performAggregatedRepair = async (
         const chunkDict = optimizeDictionary(dictionary, chunkContent);
         
         try {
-            const res = await repairBatch(chunk, chunkDict, tier, context, storyInfo, promptTemplate, onLog, enabledModels, shouldAbort, taskType, openRouterKey);
+            const res = await repairBatch(chunk, chunkDict, tier, context, storyInfo, promptTemplate, onLog, enabledModels, shouldAbort, taskType);
             
             res.forEach((m, id) => {
                 if (!combined.has(id)) combined.set(id, new Map());
@@ -124,36 +115,14 @@ export const performAggregatedRepair = async (
             const durationStr = ((batchEndTime - batchStartTime) / 1000).toFixed(1);
             if (onLog) onLog(`✅ Hoàn tất sửa lỗi Batch ${batchNum}/${totalBatches} trong ${durationStr}s`);
         } catch (e: any) {
-            const isSafetyError = e.message.includes('an toàn') || e.message.includes('safety') || e.message.includes('BLOCKLIST') || e.message.includes('PROHIBITED_CONTENT');
-            const hasOR = !!(openRouterKey && openRouterKey.trim().length > 0);
-            if (isSafetyError && hasOR) {
-                // Cứu hộ qua OpenRouter (vệ tinh cứu hộ duy nhất kể từ khi DeepSeek bị gỡ bỏ).
-                if (onLog) onLog(`⚠️ Lỗi Safety Filter ở Batch ${batchNum}. Đang chuyển hướng vệ tinh qua OpenRouter để thử lại...`);
-                try {
-                    const res = await repairBatch(chunk, chunkDict, tier, context, storyInfo, promptTemplate, onLog, ['openrouter:google/gemma-4-26b-a4b-it:free'], shouldAbort, taskType, openRouterKey);
-                    
-                    res.forEach((m, id) => {
-                        if (!combined.has(id)) combined.set(id, new Map());
-                        m.forEach((t, idx) => combined.get(id)?.set(idx, t));
-                    });
-                    if (onBatchComplete) onBatchComplete(res);
-                    const batchEndTime = Date.now();
-                    const durationStr = ((batchEndTime - batchStartTime) / 1000).toFixed(1);
-                    if (onLog) onLog(`✅ Hoàn tất sửa lỗi Batch ${batchNum}/${totalBatches} bằng OpenRouter trong ${durationStr}s`);
-                } catch (fallbackError: any) {
-                    if (onLog) onLog(`❌ Lỗi OpenRouter tại Batch ${batchNum}: ${fallbackError.message}`);
-                    if (onLog) onLog(`❌ Đã thử hết các vệ tinh cứu hộ nhưng Batch ${batchNum} vẫn lỗi.`);
-                }
-            } else {
-                if (onLog) onLog(`❌ Lỗi Batch ${batchNum}: ${e.message}`);
-                if (e.message.includes('Quota') || e.message.includes('429')) break;
-            }
+            if (onLog) onLog("Lỗi Batch " + batchNum + ": " + e.message);
+            if (e.message.includes("Quota") || e.message.includes("429")) break;
         }
     }
     return combined;
 };
 
-export const repairTranslations = async (badLines: LineContext[], dictionary: string, tier: TranslationTier = 'normal', context?: string, storyInfo?: StoryInfo, promptTemplate?: string, onLog?: (msg: string) => void, enabledModels?: string[], openRouterKey?: string): Promise<{ index: number; text: string }[]> => {
-    const map = await repairBatch(badLines.map(bl => ({ fileId: 'temp', lineIndex: bl.index, originalLine: bl.originalLine })), dictionary, tier, context, storyInfo, promptTemplate, onLog, enabledModels, undefined, 'smart_fix', openRouterKey);
+export const repairTranslations = async (badLines: LineContext[], dictionary: string, tier: TranslationTier = 'normal', context?: string, storyInfo?: StoryInfo, promptTemplate?: string, onLog?: (msg: string) => void, enabledModels?: string[]): Promise<{ index: number; text: string }[]> => {
+    const map = await repairBatch(badLines.map(bl => ({ fileId: 'temp', lineIndex: bl.index, originalLine: bl.originalLine })), dictionary, tier, context, storyInfo, promptTemplate, onLog, enabledModels, undefined, 'smart_fix');
     return Array.from(map.get('temp')?.entries() || []).map(([idx, txt]) => ({ index: idx, text: txt }));
 };

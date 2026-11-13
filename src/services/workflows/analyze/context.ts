@@ -14,9 +14,9 @@ export const analyzeContextBatch = async (
     forcedCandidates?: string[], additionalRules: string = "", enabledModels?: string[]
 ): Promise<string> => {
     const ai = getAiClient();
-    let candidates = forcedCandidates || ['gemini-3.1-pro-preview', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'];
+    let candidates = forcedCandidates || ['gemini-3.1-pro-preview', 'gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash'];
     candidates = candidates.filter(id => enabledModels?.includes(id) ?? true);
-    if (candidates.length === 0) candidates = forcedCandidates || ['gemini-3.1-pro-preview', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'];
+    if (candidates.length === 0) candidates = forcedCandidates || ['gemini-3.1-pro-preview', 'gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash'];
     const langs = storyInfo.languages.join(' ').toLowerCase();
     let sourceInstruction = "";
     
@@ -37,7 +37,7 @@ export const analyzeContextBatch = async (
     const metaHeader = `[METADATA]\n- Tên: ${storyInfo.title}\n- Thể loại: ${storyInfo.genres.join(', ')}\n- Ngôn ngữ truyện: ${storyInfo.languages.join(', ')}\n- CHẾ ĐỘ: ${sourceInstruction}${additionalRules ? `\n- QUY TẮC BỔ SUNG: ${additionalRules}` : ''}${hintSection}`;
 
     return await smartExecution(candidates, async (modelId) => {
-            const config: any = { systemInstruction: GLOSSARY_ANALYSIS_PROMPT + CONSISTENCY_EXTRACTION_INSTRUCTION, temperature: 0.2, safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 };
+            const config: any = { systemInstruction: GLOSSARY_ANALYSIS_PROMPT + CONSISTENCY_EXTRACTION_INSTRUCTION, ...(!['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3.6-flash'].includes(modelId) && { temperature: 0.2 }), safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 };
             if (useSearch && (modelId.includes('gemini-3.1-pro') || modelId.includes('gemini-3-pro'))) config.tools = [{googleSearch: {}}];
             const response = await ai.models.generateContent({ model: modelId, contents: `${metaHeader}\n${contentChunk}`, config });
             
@@ -64,7 +64,6 @@ export const mergeContexts = async (
         return mergeContexts([left, right], storyInfo, enabledModels, forcedCandidates, pronounOverride);
     }
 
-    // 3.8 tổng hợp/kiểm định; 3.7 dự phòng nhanh; 3.1 Pro chỉ dùng khi hai model chính thất bại.
     const synthesisModels = selectAnalysisModels(forcedCandidates || DEEP_ANALYSIS_SYNTHESIS_MODELS, enabledModels);
     
     try {
@@ -72,7 +71,7 @@ export const mergeContexts = async (
                 const response = await getAiClient().models.generateContent({
                     model: modelId,
                     contents: `[DỮ LIỆU ĐẦU VÀO - GỒM ${contexts.length} PHẦN]\n${contexts.join("\n\n=== HẾT PHẦN ===\n\n")}${pronounOverride ? `\n\n${pronounOverride}` : ''}`,
-                    config: { systemInstruction: MERGE_CONTEXT_PROMPT + CONSISTENCY_EXTRACTION_INSTRUCTION, temperature: 0.2, safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }
+                    config: { systemInstruction: MERGE_CONTEXT_PROMPT + CONSISTENCY_EXTRACTION_INSTRUCTION, ...(!['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3.6-flash'].includes(modelId) && { temperature: 0.2 }), safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }
                 });
                    
                 if (response.candidates?.[0]?.finishReason === 'SAFETY' || response.candidates?.[0]?.finishReason === 'BLOCKLIST' || response.candidates?.[0]?.finishReason === 'PROHIBITED_CONTENT' || response.candidates?.[0]?.finishReason === 'OTHER' || response.candidates?.[0]?.finishReason === 'RECITATION' || response.candidates?.[0]?.finishReason === 'SPII') {
@@ -80,20 +79,20 @@ export const mergeContexts = async (
                 }
                    
                 return cleanRepetitiveContent(response.text || contexts[0]);
-            }, "Hợp Nhất Ngữ Cảnh (3.8 tổng hợp)", undefined, synthesisModels[0]
+            }, "Hợp Nhất Ngữ Cảnh", undefined, synthesisModels[0]
         );
     } catch (e: any) {
         // FALLBACK: Try Flash models for a "Rough Merge" before giving up
         try {
             console.warn("Primary synthesis chain failed. Trying support models for rough merge.", e);
-            const fallbackModels = ['gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
-            if (fallbackModels.length === 0) fallbackModels.push('gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
+            const fallbackModels = ['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash'].filter(id => enabledModels?.includes(id) ?? true);
+            if (fallbackModels.length === 0) fallbackModels.push('gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash');
             
             return await smartExecution(fallbackModels, async (modelId) => {
                 const response = await getAiClient().models.generateContent({
                     model: modelId,
                     contents: `[DỮ LIỆU ĐẦU VÀO - GỒM ${contexts.length} PHẦN]\n${contexts.join("\n\n=== HẾT PHẦN ===\n\n")}\n\nNHIỆM VỤ: TỔNG HỢP THÔ DỮ LIỆU TRÊN. GIỮ NGUYÊN CÁC MỤC QUAN TRỌNG.${pronounOverride ? `\n\n${pronounOverride}` : ''}`,
-                    config: { systemInstruction: MERGE_CONTEXT_PROMPT + CONSISTENCY_EXTRACTION_INSTRUCTION, temperature: 0.2, safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }
+                    config: { systemInstruction: MERGE_CONTEXT_PROMPT + CONSISTENCY_EXTRACTION_INSTRUCTION, ...(!['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3.6-flash'].includes(modelId) && { temperature: 0.2 }), safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 }
                 });
                    
                 if (response.candidates?.[0]?.finishReason === 'SAFETY' || response.candidates?.[0]?.finishReason === 'BLOCKLIST' || response.candidates?.[0]?.finishReason === 'PROHIBITED_CONTENT' || response.candidates?.[0]?.finishReason === 'OTHER' || response.candidates?.[0]?.finishReason === 'RECITATION' || response.candidates?.[0]?.finishReason === 'SPII') {
@@ -131,8 +130,8 @@ export const analyzeStoryContext = async (files: FileItem[], storyInfo: StoryInf
     }
 
     const results: string[] = [];
-    const targetModels = ['gemini-3.1-pro-preview', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
-    if (targetModels.length === 0) targetModels.push('gemini-3.1-pro-preview', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
+    const targetModels = ['gemini-3.1-pro-preview', 'gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash'].filter(id => enabledModels?.includes(id) ?? true);
+    if (targetModels.length === 0) targetModels.push('gemini-3.1-pro-preview', 'gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash');
     
     const CONCURRENCY = 2;
     let completedChunks = 0;
@@ -146,10 +145,10 @@ export const analyzeStoryContext = async (files: FileItem[], storyInfo: StoryInf
                 let models: string[] = [];
                 if (batchNum <= 3) {
                     models = idx % 2 === 0 
-                             ? ['gemini-3.1-pro-preview', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash']
-                             : ['gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'];
+                             ? ['gemini-3.1-pro-preview', 'gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash']
+                             : ['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash'];
                 } else {
-                    models = ['gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'];
+                    models = ['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash'];
                 }
                 
                 try {
@@ -157,7 +156,7 @@ export const analyzeStoryContext = async (files: FileItem[], storyInfo: StoryInf
                 } catch (e: any) {
                     console.warn(`Primary models failed for chunk ${i + idx}, falling back to Flash for raw analysis.`, e);
                     try {
-                        const flashRes = await analyzeContextBatch(chunk, storyInfo, dictionary, useSearch, ['gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'], additionalRules + "\nLƯU Ý: ĐÂY LÀ BẢN PHÂN TÍCH THÔ DO HẾT QUOTA. CHỈ TRÍCH XUẤT NHANH CÁC DANH TỪ RIÊNG.", enabledModels);
+                        const flashRes = await analyzeContextBatch(chunk, storyInfo, dictionary, useSearch, ['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash'], additionalRules + "\nLƯU Ý: ĐÂY LÀ BẢN PHÂN TÍCH THÔ DO HẾT QUOTA. CHỈ TRÍCH XUẤT NHANH CÁC DANH TỪ RIÊNG.", enabledModels);
                         progressNote = "\n\n[CẢNH BÁO: Quá trình phân tích bị gián đoạn do hết Quota/Lỗi mạng. Một số phần được lưu dưới dạng phân tích thô bằng Flash.]";
                         return flashRes + "\n[GHI CHÚ: BẢN PHÂN TÍCH THÔ BẰNG FLASH DO HẾT QUOTA]";
                     } catch (flashError) {

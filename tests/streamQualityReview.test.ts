@@ -8,7 +8,7 @@ import { TranslationMemoryDriver, TranslationMemoryEntry } from '../src/utils/te
 const { stream } = vi.hoisted(() => ({ stream: vi.fn() }));
 vi.mock('../src/services/api/gemini', () => ({
   SAFETY_SETTINGS: [], getAiClient: () => ({ models: { generateContentStream: stream } }),
-  smartExecution: async (_models: string[], task: (id: string) => Promise<unknown>) => task('gemini-3.8-flash'),
+  smartExecution: async (models: string[], task: (id: string) => Promise<unknown>) => task(models[0]),
 }));
 vi.mock('../src/services/workflows/translate/aiValidation', () => ({ reviewAndRepairBatch: vi.fn() }));
 vi.mock('../src/utils/text', async importOriginal => ({
@@ -29,6 +29,14 @@ describe('translation stream QA integration', () => {
     stream.mockImplementation(async () => (async function* () {
       yield { text: files.map((_, index) => `[[[part_${index + 1}]]]\n${target}\n[[[/part_${index + 1}]]]`).join('\n') };
     })());
+  });
+  it('streams direct translation with Hydrogen when enabled', async () => {
+    vi.mocked(reviewAndRepairBatch).mockResolvedValue(new Map(files.map(file => [file.id, verdict('PASS')])));
+    const enabled = ['gemini-4-hydrogen', 'gemini-3.8-flash'];
+    const result = await translateBatchStream(files, 'Dịch', '林墨=Lâm Mặc', '', enabled, '', vi.fn(), undefined, 'normal', enabled, story);
+    expect(result.model).toBe('gemini-4-hydrogen');
+    expect(stream).toHaveBeenCalledWith(expect.objectContaining({ model: 'gemini-4-hydrogen' }));
+    expect(stream.mock.calls[0][0].config).not.toHaveProperty('temperature');
   });
   it('keeps deferred and suspect chapters out of translation retry and verified memory', async () => {
     vi.mocked(reviewAndRepairBatch).mockResolvedValue(new Map([['a', verdict('PASS')], ['b', verdict('QA_DEFERRED')], ['c', verdict('SUSPECT')]]));
@@ -53,7 +61,7 @@ describe('translation stream QA integration', () => {
       put: async entries => { entries.forEach(entry => rows.set(entry.key, entry)); },
       delete: async keys => { keys.forEach(key => rows.delete(key)); }, clear: async () => { rows.clear(); } };
     const cachedRun = () => translateBatchStream(files, 'Dịch', '林墨=Lâm Mặc', '', ['gemini-3.8-flash'], '', vi.fn(),
-      undefined, 'normal', ['gemini-3.8-flash'], story, undefined, undefined, undefined, undefined, undefined, undefined, { memoryDriver: driver });
+      undefined, 'normal', ['gemini-3.8-flash'], story, undefined, undefined, undefined, undefined, { memoryDriver: driver });
     vi.mocked(reviewAndRepairBatch).mockResolvedValue(new Map(files.map(f => [f.id, verdict('PASS')])));
     const first = await cachedRun();
     expect(first.memoryKeys?.size).toBe(3);
@@ -76,7 +84,7 @@ describe('translation stream QA integration', () => {
       put: async entries => { entries.forEach(entry => rows.set(entry.key, entry)); },
       delete: async keys => { keys.forEach(key => rows.delete(key)); }, clear: async () => { rows.clear(); } };
     const cachedRun = () => translateBatchStream(files, 'Dịch', '林墨=Lâm Mặc', '', ['gemini-3.8-flash'], '', vi.fn(),
-      undefined, 'normal', ['gemini-3.8-flash'], story, undefined, undefined, undefined, undefined, undefined, undefined, { memoryDriver: driver });
+      undefined, 'normal', ['gemini-3.8-flash'], story, undefined, undefined, undefined, undefined, { memoryDriver: driver });
     vi.mocked(reviewAndRepairBatch).mockResolvedValue(new Map([['a', verdict('PASS')], ['b', verdict('QA_DEFERRED')], ['c', verdict('SUSPECT')]]));
     const first = await cachedRun();
     expect(first.memoryKeys?.size).toBe(1);

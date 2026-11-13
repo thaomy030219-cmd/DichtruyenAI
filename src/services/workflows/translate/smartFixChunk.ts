@@ -1,6 +1,5 @@
 // Sửa nhanh 1 đoạn text ngắn theo yêu cầu tuỳ chỉnh (dùng trong luồng Smart Fix / sửa nhanh).
 import { getAiClient, smartExecution, SAFETY_SETTINGS } from '../../api/gemini';
-import { fetchOpenRouter } from '../../api/openrouter';
 import { TranslationTier } from '../../../types';
 import { getEffectiveModelsForTier } from './modelSelection';
 
@@ -12,7 +11,6 @@ export const smartFixChunk = async (
     enabledModels?: string[],
     shouldAbort?: () => boolean,
     imageBase64?: string,
-    openRouterKey?: string
 ): Promise<{ find: string, replace: string }[]> => {
     // RULE: Use Pro models for smart_fix to ensure highest quality as user requested, except in Lite mode
     const modelsToUse = getEffectiveModelsForTier(tier, 'smart_fix', enabledModels);
@@ -66,32 +64,19 @@ ${inputs}`;
         modelsToUse,
         async (modelId) => {
             if (shouldAbort && shouldAbort()) throw new Error('ABORTED');
-            let result = "";
-            if (modelId.startsWith('openrouter:')) {
-                const openRouterModel = modelId.replace('openrouter:', '');
-                // Note: OpenRouter vision isn't fully standardized for inlineData in this generic fetch yet,
-                // so we just pass the textPrompt for now if it's OpenRouter, or try to pass the URL.
-                // Standard fetchOpenRouter takes string prompt.
-                let finalPrompt = textPrompt;
-                if (imageBase64) {
-                    finalPrompt = `[User provided an Image, but image is omitted in text mode]\n${textPrompt}`;
+            const ai = getAiClient();
+            const response = await ai.models.generateContent({
+                model: modelId,
+                contents,
+                config: {
+                    systemInstruction,
+                    temperature: 0.1,
+                    responseMimeType: "application/json",
+                    maxOutputTokens: 65536,
+                    safetySettings: SAFETY_SETTINGS
                 }
-                result = await fetchOpenRouter(openRouterKey || "", openRouterModel, systemInstruction, finalPrompt, true);
-            } else {
-                const ai = getAiClient();
-                const response = await ai.models.generateContent({
-                    model: modelId,
-                    contents: contents,
-                    config: {
-                        systemInstruction,
-                        temperature: 0.1,
-                        responseMimeType: "application/json",
-                        maxOutputTokens: 65536,
-                        safetySettings: SAFETY_SETTINGS
-                    }
-                });
-                result = response.text || "";
-            }
+            });
+            const result = response.text || "";
             if (!result.trim()) throw new Error("API trả về kết quả rỗng.");
             if (onLog) onLog(`[Smart Fix] AI Response Length: ${result.length}`);
             try {

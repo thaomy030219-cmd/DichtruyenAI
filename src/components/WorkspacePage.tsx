@@ -10,6 +10,22 @@ import FileCard from './FileCard';
 import { DEFAULT_DICTIONARY } from '../constants';
 import { currentQaStatus } from '../services/workflows/translate/qaState';
 
+const primaryModelBadge = 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-800';
+const flashModelBadge = 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800';
+const WORKSPACE_MODEL_FILTERS = [
+    { id: 'gemini-4-hydrogen', label: '4 Hydrogen', color: primaryModelBadge },
+    { id: 'gemini-3.1-pro-preview', label: '3.1 Pro', color: primaryModelBadge },
+    { id: 'gemini-3.8-flash', label: '3.8 Flash', color: primaryModelBadge },
+    { id: 'gemini-3.6-flash', label: '3.6 Flash', color: flashModelBadge },
+    { id: 'gemini-3-flash-preview', label: '3.0 Flash', color: flashModelBadge },
+    { id: 'gemini-3.5-flash-lite', label: '3.5 Flash Lite', color: flashModelBadge },
+    { id: 'Thủ công', label: 'Thủ công', color: 'bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800' },
+    { id: 'other', label: 'Khác', color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700' },
+];
+
+const workspaceModelFilter = (model?: string): string =>
+    WORKSPACE_MODEL_FILTERS.find(option => option.id === model)?.id || 'other';
+
 interface WorkspacePageProps {
     files: FileItem[];
     visibleFiles: FileItem[];
@@ -119,16 +135,11 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
             
             suspicious: props.files.filter(f => f.errorMessage && (f.errorMessage.includes('phân loại riêng') || f.errorMessage.toLowerCase().includes('an toàn') || f.errorMessage.includes('Nghi vấn lỗi nội dung') || f.errorMessage.includes('BLOCKLIST') || f.errorMessage.includes('PROHIBITED_CONTENT'))).length,
             
-            m31pro: props.files.filter(f => f.usedModel?.includes('gemini-3.1-pro')).length,
-            m38flash: props.files.filter(f => f.usedModel?.includes('gemini-3.8-flash')).length,
-            m37flash: props.files.filter(f => f.usedModel?.includes('gemini-3.7-flash')).length,
-            m35flash: props.files.filter(f => f.usedModel?.includes('gemini-3.5-flash') && !f.usedModel?.includes('lite')).length,
-            m3flash: props.files.filter(f => f.usedModel?.includes('gemini-3-flash')).length,
-            m35flashlite: props.files.filter(f => f.usedModel?.includes('gemini-3.5-flash-lite')).length,
-            m31flashlite: props.files.filter(f => f.usedModel?.includes('gemini-3.1-flash-lite') || f.usedModel?.includes('gemini-3.1-flash')).length,
-            mOpenRouter: props.files.filter(f => f.usedModel?.includes('openrouter:')).length,
-            mManual: props.files.filter(f => f.usedModel?.includes('Thủ công')).length,
-            mOther: props.files.filter(f => f.status === FileStatus.COMPLETED && (!f.usedModel || (!f.usedModel.includes('gemini-3.1-pro') && !f.usedModel.includes('gemini-3.7-flash') && !f.usedModel.includes('gemini-3.5-flash') && !f.usedModel.includes('gemini-3.1-flash') && !f.usedModel.includes('gemini-3-flash') && !f.usedModel.includes('openrouter:') && !f.usedModel.includes('Thủ công')))).length,
+            byModel: props.files.reduce<Record<string, number>>((counts, file) => {
+                const model = workspaceModelFilter(file.usedModel);
+                if (model !== "other" || file.status === FileStatus.COMPLETED) counts[model] = (counts[model] || 0) + 1;
+                return counts;
+            }, {}),
         };
     }, [props.files, props.selectedFiles, props.ratioLimits, props.storyInfo.languages, qaStatuses]);
 
@@ -211,20 +222,8 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
                 
                 let modelMatch = true;
                 if (props.filterModels.size > 0) { 
-                    const m = f.usedModel || ""; 
-                    modelMatch = ( 
-                        (props.filterModels.has('31pro') && m.includes('gemini-3.1-pro')) || 
-                        (props.filterModels.has('38flash') && m.includes('gemini-3.8-flash')) ||
-                        (props.filterModels.has('37flash') && m.includes('gemini-3.7-flash')) || 
-                        (props.filterModels.has('35flash') && m.includes('gemini-3.5-flash') && !m.includes('lite')) || 
-                        (props.filterModels.has('3flash') && m.includes('gemini-3-flash')) || 
-                        (props.filterModels.has('35flashlite') && m.includes('gemini-3.5-flash-lite')) || 
-                        (props.filterModels.has('31flashlite') && (m.includes('gemini-3.1-flash-lite') || m.includes('gemini-3.1-flash'))) ||
-                        (props.filterModels.has('openrouter') && m.includes('openrouter:')) ||
-                        (props.filterModels.has('manual') && m.includes('Thủ công')) ||
-
-                        (props.filterModels.has('other') && f.status === FileStatus.COMPLETED && (!m || (!m.includes('gemini-3.1-pro') && !m.includes('gemini-3.8-flash') && !m.includes('gemini-3.7-flash') && !m.includes('gemini-3.5-flash') && !m.includes('gemini-3.1-flash') && !m.includes('gemini-3-flash') && !m.includes('openrouter:') && !m.includes('Thủ công'))))
-                    ); 
+                    const model = workspaceModelFilter(f.usedModel);
+                    modelMatch = props.filterModels.has(model) && (model !== "other" || f.status === FileStatus.COMPLETED);
                 }
                 return statusMatch && modelMatch;
             });
@@ -373,16 +372,9 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = (props) => {
                         <div className="flex items-start gap-4 border-t border-slate-200 dark:border-slate-700 pt-3">
                             <div className="w-24 text-xs font-bold text-slate-400 uppercase mt-2">Model:</div>
                             <div className="flex flex-wrap gap-2 flex-1">
-                                {renderFilterBadge("3.1 Pro", counts.m31pro, props.filterModels.has('31pro'), () => props.toggleFilterModel('31pro'), 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-800')}
-                                {renderFilterBadge("3.8 Flash", counts.m38flash, props.filterModels.has('38flash'), () => props.toggleFilterModel('38flash'), 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-800')}
-                                {renderFilterBadge("3.7 Flash", counts.m37flash, props.filterModels.has('37flash'), () => props.toggleFilterModel('37flash'), 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-800')}
-                                {renderFilterBadge("3.5 Flash", counts.m35flash, props.filterModels.has('35flash'), () => props.toggleFilterModel('35flash'), 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800')}
-                                {renderFilterBadge("3.0 Flash", counts.m3flash, props.filterModels.has('3flash'), () => props.toggleFilterModel('3flash'), 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800')}
-                                {renderFilterBadge("3.5 Flash Lite", counts.m35flashlite, props.filterModels.has('35flashlite'), () => props.toggleFilterModel('35flashlite'), 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800')}
-                                {renderFilterBadge("3.1 Flash Lite", counts.m31flashlite, props.filterModels.has('31flashlite'), () => props.toggleFilterModel('31flashlite'), 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800')}
-                                {renderFilterBadge("OpenRouter", counts.mOpenRouter, props.filterModels.has('openrouter'), () => props.toggleFilterModel('openrouter'), 'bg-fuchsia-100 dark:bg-fuchsia-900/50 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-200 dark:border-fuchsia-800')}
-                                {renderFilterBadge("Thủ công", counts.mManual, props.filterModels.has('manual'), () => props.toggleFilterModel('manual'), 'bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800')}
-                                {renderFilterBadge("Khác", counts.mOther, props.filterModels.has('other'), () => props.toggleFilterModel('other'), 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700')}
+                                {WORKSPACE_MODEL_FILTERS.map(({ id, label, color }) => (
+                                    <React.Fragment key={id}>{renderFilterBadge(label, counts.byModel[id] || 0, props.filterModels.has(id), () => props.toggleFilterModel(id), color)}</React.Fragment>
+                                ))}
                             </div>
                             <button onClick={props.clearFilters} className="px-3 py-1.5 text-xs font-bold text-danger-500 hover:bg-danger-50 dark:hover:bg-danger-900/20 rounded-lg transition-colors duration-200 ease-smooth ml-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1">
                                 Xóa bộ lọc

@@ -111,25 +111,15 @@ export const useCustomErrorFix = (core: any, ui: any, sharedState: any) => {
 
             const textToFix = chunk.map(f => f.translatedContent).join('\n\n');
             
-            const hasOpenRouterFile = chunk.some(f => f.usedModel?.startsWith('openrouter:'));
-            let modelsForFix = core.enabledModels;
-            if (hasOpenRouterFile && core.openRouterKey && core.openRouterModel) {
-                const safetyFallbackSet = new Set<string>();
-                safetyFallbackSet.add(`openrouter:${core.openRouterModel}`);
-                safetyFallbackSet.add('openrouter:google/gemma-4-26b-a4b-it:free');
-                modelsForFix = Array.from(safetyFallbackSet);
-            }
-
             try {
                 const rules = await smartFixChunk(
                     textToFix, 
                     userPrompt, 
                     translationTier,
                     (msg) => console.log(msg), 
-                    modelsForFix,
+                    core.enabledModels,
                     () => !isCustomFixingRef.current,
-                    imageBase64,
-                    core.openRouterKey
+                    imageBase64
                 );
                 
                 if (!rules || rules.length === 0) {

@@ -142,11 +142,8 @@ export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) 
                 return filtered.length > 0 ? filtered : list;
             };
 
-            // Chế độ Nhanh: ưu tiên 3.8 Flash > 3.5 Flash > 3.0 Flash preview.
-            const QUICK_CHAIN = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'];
-            // Phân tích sâu: 3.8 đọc từng cụm; các model phụ cứu hộ trích xuất.
+            const QUICK_CHAIN = [...DEEP_ANALYSIS_CHUNK_MODELS];
             const DEEP_CHUNK_CHAIN = [...DEEP_ANALYSIS_CHUNK_MODELS];
-            // Tổng hợp/kiểm định: 3.8 trước; 3.1 Pro là dự phòng khó cuối cùng.
             const DEEP_SYNTHESIS_CHAIN = filterEnabled([...DEEP_ANALYSIS_SYNTHESIS_MODELS]);
 
             const totalBatches = Math.ceil(chunks.length / CONCURRENCY);
@@ -166,7 +163,6 @@ export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) 
                     if (isDeep) {
                         models = filterEnabled(DEEP_CHUNK_CHAIN);
                     } else {
-                        // Chế độ Nhanh: 3.8 Flash > 3.5 Flash > 3.0 Flash preview.
                         models = filterEnabled(QUICK_CHAIN);
                     }
                     
@@ -178,7 +174,7 @@ export const useContextAnalysisHandlers = (core: any, ui: any, automation: any) 
                         }
                     } catch (e: any) {
                         console.warn(`Primary models failed for chunk ${i + idx}, falling back to Flash chain for raw analysis.`, e);
-                        const rescueModels = filterEnabled(['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview']);
+                        const rescueModels = filterEnabled(QUICK_CHAIN);
                         try {
                             if (config.mode === 'deep_context') {
                                 const flashRes = await analyzeContextBatch(chunk, config.updatedStoryInfo, core.additionalDictionary, config.useSearch, rescueModels, effectiveAdditionalRules + "\nLƯU Ý: ĐÂY LÀ BẢN PHÂN TÍCH THÔ DO HẾT QUOTA. CHỈ TRÍCH XUẤT NHANH CÁC DANH TỪ RIÊNG.", core.enabledModels);

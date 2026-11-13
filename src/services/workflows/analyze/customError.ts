@@ -8,8 +8,8 @@ export const analyzeCustomError = async (
     imageBase64?: string
 ): Promise<string> => {
     const ai = getAiClient();
-    const candidates = ['gemini-3.1-pro-preview', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash'].filter(id => enabledModels?.includes(id) ?? true);
-    if (candidates.length === 0) candidates.push('gemini-3.1-pro-preview', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash');
+    const candidates = ['gemini-3.1-pro-preview', 'gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash'].filter(id => enabledModels?.includes(id) ?? true);
+    if (candidates.length === 0) candidates.push('gemini-3.1-pro-preview', 'gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-3.6-flash');
 
     const systemInstruction = `Bạn là một Chuyên gia Biên tập và Sửa lỗi văn học.
 Nhiệm vụ của bạn là PHÂN TÍCH yêu cầu sửa lỗi của người dùng và đề xuất HƯỚNG GIẢI QUYẾT rõ ràng.
@@ -61,7 +61,7 @@ ${sampleText.substring(0, 80000)}`;
             const response = await ai.models.generateContent({
                 model: modelId,
                 contents: contents,
-                config: { systemInstruction, temperature: 0.2, safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 },
+                config: { systemInstruction, ...(!['gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3.6-flash'].includes(modelId) && { temperature: 0.2 }), safetySettings: SAFETY_SETTINGS, maxOutputTokens: 65536 },
             });
             return response.text?.trim() || "Không thể phân tích, AI trả về kết quả rỗng.";
         }, "Phân tích yêu cầu sửa lỗi");

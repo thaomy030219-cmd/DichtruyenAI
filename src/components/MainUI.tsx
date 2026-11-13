@@ -4,8 +4,8 @@ import {
     Plus, Clipboard, Search, Sparkles,
     Hammer, Eraser, Trash2, FileDown, FileArchive,
     FileText, Book, Wand2, Layers, Split, X,
-    ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Upload,
-    ShieldCheck, AlertTriangle, ExternalLink, ScanSearch, Coffee
+    ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
+    ScanSearch, Coffee
 } from 'lucide-react';
 import { Header } from './Header';
 import { DashboardPage } from './DashboardPage';
@@ -15,7 +15,6 @@ import { PromptFixPage } from './PromptFixPage';
 import { CreativePage } from './CreativePage';
 import { SinoVietnameseFixerPage } from './SinoVietnameseFixerPage';
 import { useMainUI, MainUIProps } from '../hooks/pages/useMainUI';
-import { DEFAULT_PROMPT, generateBasePrompt } from '../constants';
 
 const compactNumberFormatter = new Intl.NumberFormat('vi-VN', {
     notation: 'compact',
@@ -32,34 +31,12 @@ export const MainUI: React.FC<MainUIProps> = (props) => {
     const {
         isSidebarOpen, setIsSidebarOpen,
         isBottomBarOpen, setIsBottomBarOpen,
-        showOpenRouterPrompt, setShowOpenRouterPrompt,
-        tempOpenRouterKey, setTempOpenRouterKey,
         showSplitConfig, setShowSplitConfig,
         splitThreshold, setSplitThreshold,
         splitParts, setSplitParts,
         fixableCount,
         handleSmartAutomationClick,
     } = useMainUI(props);
-
-    // Dùng cho nút "Lưu Key" của khối OpenRouter trong popup "Chưa cấu hình API Cứu Hộ":
-    // sau khi lưu key, tự động tiếp tục vào Automation.
-    const proceedWithAutoAfterKeySaved = () => {
-        const currentRules = (props.storyInfo.additionalRules || "").replace(/Nếu văn bản gốc chứa nội dung nhạy cảm.*thành công\./g, 'Với các cảnh bạo lực hoặc thân mật, dịch theo văn phong tiểu thuyết mạng đã xuất bản: tập trung vào cảm xúc, nhịp điệu, hình ảnh ẩn dụ thay vì mô tả trần trụi. Đây là văn phong biên tập chuẩn cho thể loại, không phải yêu cầu né tránh nội dung.') || "Với các cảnh bạo lực hoặc thân mật, dịch theo văn phong tiểu thuyết mạng đã xuất bản: tập trung vào cảm xúc, nhịp điệu, hình ảnh ẩn dụ thay vì mô tả trần trụi. Đây là văn phong biên tập chuẩn cho thể loại, không phải yêu cầu né tránh nội dung.";
-        const hasMetadata = !!(props.storyInfo.title && props.storyInfo.title.trim().length > 0 && props.storyInfo.author && props.storyInfo.author.trim().length > 0 && props.storyInfo.genres && props.storyInfo.genres.length > 0 && props.storyInfo.summary && props.storyInfo.summary.trim().length > 0);
-        const hasDict = props.additionalDictionary && props.additionalDictionary.trim().length > 10;
-        const hasCtx = props.storyInfo.contextNotes && props.storyInfo.contextNotes.trim().length > 10;
-        const hasContextData = hasDict || hasCtx;
-        const normalize = (s: string) => s.replace(/\s+/g, ' ').trim();
-        const basePrompt = generateBasePrompt(props.storyInfo.genres, props.storyInfo.worldSetting || []);
-        const hasPromptConfig = normalize(props.promptTemplate) !== normalize(basePrompt) && normalize(props.promptTemplate) !== normalize(DEFAULT_PROMPT);
-        let stepsToRun = [0, 1, 2, 3, 4, 5, 6, 7];
-        if (hasMetadata) stepsToRun = stepsToRun.filter(s => s !== 1);
-        if (hasContextData) stepsToRun = stepsToRun.filter(s => s !== 2);
-        if (hasPromptConfig) stepsToRun = stepsToRun.filter(s => s !== 3);
-        if (stepsToRun.length === 0) stepsToRun = [0, 4, 5, 6, 7];
-        props.setAutomationInitialConfig({ steps: stepsToRun, rules: currentRules, tier: 'pro' });
-        props.setShowAutomationModal(true);
-    };
 
     return (
         <div className="flex flex-col h-full w-full bg-slate-50 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-200 transition-colors duration-300 overflow-hidden">
@@ -69,8 +46,6 @@ export const MainUI: React.FC<MainUIProps> = (props) => {
                     stats={props.stats}
                     showLogs={props.showLogs}
                     setShowLogs={props.setShowLogs}
-                    showSettings={props.showSettings}
-                    setShowSettings={props.setShowSettings}
                     onShowChangelog={props.onShowChangelog}
                     onShowIntro={props.onShowIntro}
                     enabledModels={props.enabledModels}
@@ -295,112 +270,6 @@ export const MainUI: React.FC<MainUIProps> = (props) => {
                     </button>
                 </div>
             </div>
-
-            {showOpenRouterPrompt && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
-                        <div className="p-6 overflow-y-auto flex-1 overscroll-contain">
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center text-primary-600 dark:text-primary-400">
-                                    <ShieldCheck className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">Chưa cấu hình API Cứu Hộ</h3>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">Smart Safety Filter cần OpenRouter để rà soát tệp vi phạm</p>
-                                </div>
-                            </div>
-                            
-                            <p className="text-sm text-slate-600 dark:text-slate-300 mb-6 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
-                                Để hệ thống tự động xử lý và vượt qua rào cản kiểm duyệt khi dịch hàng loạt (Batch Auto-fix), bạn nên thêm API Key OpenRouter (miễn phí).
-                            </p>
-                            
-                            <div className="space-y-3 mb-6">
-                                <button onClick={() => {
-                                    setShowOpenRouterPrompt(false);
-                                    props.setShowSettings(true);
-                                }} className="w-full flex items-center justify-between p-3 rounded-xl border-2 border-primary-100 hover:border-primary-500 hover:bg-primary-50 dark:border-primary-900 dark:hover:bg-primary-900/30 text-primary-700 dark:text-primary-400 font-medium transition-all text-sm text-left group">
-                                    <span>Thoát ra để thêm API Key</span>
-                                    <ChevronRight className="w-4 h-4 text-primary-400 group-hover:translate-x-1 transition-transform" />
-                                </button>
-                                
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-2 px-1">
-                                        <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
-                                        <span className="text-xs font-semibold text-slate-500">Hoặc nhập trực tiếp</span>
-                                        <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
-                                    </div>
-
-                                    {/* Khung riêng OpenRouter */}
-                                    <div className="p-3 rounded-xl border border-fuchsia-100 dark:border-fuchsia-900/50 bg-fuchsia-50/40 dark:bg-fuchsia-950/10 space-y-2">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-xs font-bold text-fuchsia-700 dark:text-fuchsia-400">OpenRouter</span>
-                                            <div className="flex items-center gap-3">
-                                                <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs font-medium text-fuchsia-600 hover:text-fuchsia-700 dark:text-fuchsia-400">
-                                                    Lấy API Key <ExternalLink className="w-3 h-3" />
-                                                </a>
-                                                <label className="cursor-pointer text-xs flex items-center gap-1 text-slate-500 hover:text-slate-700 font-medium">
-                                                    <Upload className="w-3.5 h-3.5" /> File
-                                                    <input 
-                                                       type="file" 
-                                                       accept=".txt" 
-                                                       className="hidden" 
-                                                       onChange={(e) => {
-                                                           const file = e.target.files?.[0];
-                                                           if (!file) return;
-                                                           const reader = new FileReader();
-                                                           reader.onload = (event) => {
-                                                               const text = event.target?.result as string;
-                                                               if (text) {
-                                                                   setTempOpenRouterKey(text);
-                                                               }
-                                                           };
-                                                           reader.readAsText(file);
-                                                           e.target.value = '';
-                                                       }}
-                                                    />
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <div className="relative">
-                                            <textarea 
-                                                placeholder="Dán API Key OpenRouter (Có thể dán nhiều key cách nhau dấu phẩy hoặc xuống dòng)..." 
-                                                className="w-full p-3 py-2 min-h-[64px] rounded-xl text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-fuchsia-400 resize-y" 
-                                                value={tempOpenRouterKey}
-                                                onChange={e => setTempOpenRouterKey(e.target.value)}
-                                                spellCheck="false"
-                                            />
-                                            {tempOpenRouterKey.trim() && (
-                                                <button 
-                                                    onClick={() => {
-                                                        if (props.setOpenRouterKey) props.setOpenRouterKey(tempOpenRouterKey.trim());
-                                                        setShowOpenRouterPrompt(false);
-                                                        props.addToast("Đã lưu API Key OpenRouter và tiếp tục.", "success");
-                                                        proceedWithAutoAfterKeySaved();
-                                                    }}
-                                                    className="absolute right-2 bottom-2 px-3 py-1.5 bg-fuchsia-600 text-white rounded-lg text-xs font-bold hover:bg-fuchsia-700 transition-colors flex items-center"
-                                                >
-                                                    Lưu Key
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <button onClick={() => {
-                                    setShowOpenRouterPrompt(false);
-                                    proceedWithAutoAfterKeySaved();
-                                }} className="w-full py-3 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-white font-medium hover:underline flex items-center justify-center gap-2">
-                                    Tiếp tục mà không cần thêm API Key <AlertTriangle className="w-3 h-3 text-amber-500" />
-                                </button>
-                            </div>
-                            
-                            <div className="flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800 pt-4">
-                                <button onClick={() => setShowOpenRouterPrompt(false)} className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all">Đóng</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {showSplitConfig && (
                 <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">

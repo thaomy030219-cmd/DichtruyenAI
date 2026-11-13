@@ -2,8 +2,9 @@ import { useEffect, useCallback, useRef } from 'react';
 import { FileItem, FileStatus, TranslationTier } from '../types';
 import { translateBatchStream, getEffectiveModelsForTier } from '../geminiService';
 import { BATCH_MISSING_TAG_WARNING, countForeignChars, formatBookStyle, validateTranslationIntegrity, fixMergedTitle, applyInlineEnglishFix, proofreadVietnamese, buildRollingChapterContext } from '../utils/text';
+import { getTranslationPriorities } from '../services/workflows/translate/modelSelection';
+import { getModelBatchFileLimit } from '../utils/modelBatchLimits';
 import { quotaManager } from '../utils/quotaManager';
-import { getRescueTarget, getRescueBudget, getRescueLabel } from '../services/workflows/translate/rescueTarget';
 import { stripTitleAnchor } from '../utils/fileHelpers';
 import { qualityFingerprint, mergeConsistencyRules } from '../services/workflows/translate/consistencyRules';
 import { currentQaStatus } from '../services/workflows/translate/qaState';
@@ -11,13 +12,7 @@ import { scheduleQaOutcome } from '../services/workflows/translate/deferredQaSch
 import { invalidateTranslationMemory } from '../utils/text/translationMemory';
 import { planTranslationResume, prepareResumeFiles } from '../services/workflows/translate/resumePlan';
 
-// FIX (starvation hàng chờ): trước đây MỌI tệp lỗi (kể cả tệp vừa bị "cách ly để kiểm tra
-// riêng" hoặc đã xác nhận cần "Bàn giao OpenRouter") đều bị xếp chung xuống TẬN CUỐI
-// hàng chờ giống như các tệp lỗi thường/"vạ lây". Với hàng chờ dài (hàng trăm tệp), điều này
-// khiến các tệp cần cứu hộ có thể không bao giờ được thử lại riêng lẻ (batch 1 tệp qua
-// OpenRouter) trước khi hết Quota hoặc hết phiên làm việc - dù đã add đủ API Key.
-// Hàm này đưa các tệp "ưu tiên" (priorityIds) lên ĐẦU hàng chờ, các tệp lỗi thường còn lại vẫn
-// giữ nguyên hành vi cũ (xuống cuối), để chúng được xử lý ngay ở lượt gom batch kế tiếp.
+// Đưa các tệp cần thử riêng lên đầu hàng chờ.
 const reorderQueueWithPriority = (prev: string[], retryingIds: string[], priorityIds: Set<string>): string[] => {
     if (retryingIds.length === 0) return prev;
     const priority = retryingIds.filter(id => priorityIds.has(id));
@@ -75,7 +70,7 @@ export const useTranslator = (
              ui.addLog(`🚀 Bắt đầu dịch Batch gồm ${batchFiles.length} tệp (từ ${firstFileName} đến ${lastFileName})`, 'info');
         }
 
-        const inputs = batchFiles.map(f => ({ id: f.id, content: f.content, name: f.name, chapterIndex: filesRef.current.findIndex((file: FileItem) => file.id === f.id) + 1, fileRetryCount: f.retryCount || 0, errorMessage: f.errorMessage, forceRetranslate: f.forceRetranslate }));
+        const inputs = batchFiles.map(f => ({ id: f.id, content: f.content, name: f.name, chapterIndex: filesRef.current.findIndex((file: FileItem) => file.id === f.id) + 1, forceRetranslate: f.forceRetranslate }));
         
         core.setFiles((prev: FileItem[]) => prev.map((f: FileItem) => 
             batchIds.includes(f.id) ? { ...f, status: FileStatus.PROCESSING, usedModel: undefined } : f
@@ -129,8 +124,6 @@ export const useTranslator = (
                 undefined, // preferredModelId
                 () => myRunId !== runIdRef?.current, // shouldAbort
                 core.stateRef.current.ratioLimits,
-                core.openRouterKey,
-                core.openRouterModel,
                 core.stateRef.current.batchLimits,
                 { customDictionary: core.stateRef.current.additionalDictionary || '' }
             );
@@ -148,21 +141,10 @@ export const useTranslator = (
             let successCount = 0;
             const ratioErrorFiles: string[] = [];
             const missingResultFiles: string[] = [];
-            // Tệp cần được xử lý ƯU TIÊN ở lượt gom batch kế tiếp (xem reorderQueueWithPriority
-            // ở đầu file) - gồm tệp vừa bị "cách ly để kiểm tra riêng" và tệp vừa được xác nhận
-            // "Bàn giao OpenRouter", để chúng không bị chôn ở cuối hàng chờ dài.
+            // Ưu tiên thử riêng tệp đầu tiên mất kết quả trong batch.
             const priorityRetryIds = new Set<string>();
 
-            // FIX (cách ly quá gắt khi cắt ngang giữa batch): trước đây nếu batch bị cắt ngang bởi
-            // bộ lọc an toàn ở 1 tệp giữa chừng (ví dụ tệp 51/60), TOÀN BỘ các tệp phía sau (chưa
-            // kịp dịch vì stream đã dừng) chỉ bị gắn nhãn chung "vạ lây" và đưa lại hàng chờ mà
-            // không hề được kiểm tra riêng nội dung của chính chúng - khiến các tệp thực sự có vấn
-            // đề (nếu có) không bao giờ kích hoạt được cơ chế cứu hộ (OpenRouter), cứ dịch
-            // lại với Gemini vô thời hạn. Ở đây ta quét TRƯỚC (bằng testContentSafety, giống hệt cơ
-            // chế đã có sẵn cho trường hợp cả batch rỗng hoàn toàn) cho từng tệp "vạ lây" này, để
-            // phân biệt: tệp nào tự nó nghi vấn vi phạm -> bàn giao thẳng cho vệ tinh cứu hộ; tệp
-            // nào an toàn -> giữ nguyên hành vi cũ (trả lại hàng chờ dịch bình thường, không tính
-            // thêm retryCount).
+            // Kiểm tra các tệp mất kết quả khi luồng dịch bị bộ lọc an toàn cắt ngang.
             const tailSafetyScan = new Map<string, { isUnsafe: boolean; modelUsed: string }>();
             {
                 const missingIdsInOrder = batchIds.filter(id => !resultsMap.results.has(id));
@@ -382,24 +364,9 @@ export const useTranslator = (
                                     specificErr = isSafetyError ? "Nghi vấn lỗi nội dung nhạy cảm - Đang cách ly để kiểm tra riêng" : "Nghi vấn lỗi nội dung hoặc format - Đang cách ly để kiểm tra riêng";
                                     priorityRetryIds.add(id);
                                 } else {
-                                    // Đã quét trước (tailSafetyScan) cho tệp "ăn theo" này chưa, và nếu có,
-                                    // chính nội dung của nó có thực sự nghi vấn hay không (xem khối quét
-                                    // trước core.setFiles ở trên). Nếu nghi vấn thật -> xử lý y hệt 1 tệp
-                                    // đã xác nhận unsafe: bàn giao thẳng cho vệ tinh cứu hộ thay vì tiếp
-                                    // tục "vạ lây" chờ dịch lại với Gemini vô thời hạn.
                                     const tailScan = tailSafetyScan.get(id);
                                     if (tailScan?.isUnsafe) {
-                                        const hasOR = !!(core.openRouterKey && core.openRouterKey.trim().length > 0);
-                                        const target = getRescueTarget(f.retryCount || 0, hasOR, maxRetries);
-                                        if (target) {
-                                            const rescueBudget = getRescueBudget(hasOR, maxRetries);
-                                            const errMsg = `Nghi vấn lỗi nội dung nhạy cảm (quét trước) - Bàn giao ${getRescueLabel(target)} (${(f.retryCount || 0) + 1}/${rescueBudget})`;
-                                            newFiles[fIndex] = { ...f, status: FileStatus.IDLE, translatedContent: f.translatedContent, errorMessage: errMsg, retryCount: (f.retryCount || 0) + 1 } as any;
-                                            priorityRetryIds.add(id);
-                                        } else {
-                                            const reason = hasOR ? "Đã hết lượt cứu hộ OpenRouter" : "Không có OpenRouter dự phòng";
-                                            newFiles[fIndex] = { ...f, status: FileStatus.ERROR, translatedContent: f.translatedContent, errorMessage: `Bị chặn bởi Safety Filter (quét trước) (${reason})` };
-                                        }
+                                        newFiles[fIndex] = { ...f, status: FileStatus.ERROR, errorMessage: "Bị chặn bởi bộ lọc an toàn Gemini (quét trước)" };
                                         hasChanges = true;
                                         return;
                                     }
@@ -564,14 +531,7 @@ export const useTranslator = (
                             
                             if (isUnsafe) {
                                 unsafeIds.add(f.id);
-                                const maxRetries = isFixPhaseRef?.current ? 1 : 2;
-                                const hasOR = !!(core.openRouterKey && core.openRouterKey.trim().length > 0);
-                                const target = getRescueTarget(f.retryCount || 0, hasOR, maxRetries);
-                                if (target) {
-                                    ui.addLog(`🚨 Tệp ${f.name} nghi vấn vi phạm/lỗi! Bàn giao cho vệ tinh ${getRescueLabel(target)}...`, "warning");
-                                } else {
-                                    ui.addLog(`🚨 Tệp ${f.name} bị Gemini chặn nội dung! Đánh dấu lỗi. (Mẹo: Thêm API Key OpenRouter trong Cài đặt để dự phòng cho các tệp lỗi)`, "error");
-                                }
+                                ui.addLog("Tệp " + f.name + " bị bộ lọc an toàn Gemini chặn.", "error");
                             } else {
                                 ui.addLog(`✅ Tệp ${f.name} an toàn.`, "success");
                             }
@@ -608,32 +568,10 @@ export const useTranslator = (
                     return; // Thoát sớm sau khi đã cập nhật trạng thái của tệp
                 }
                 
-                const rescueMaxRetries = isFixPhaseRef?.current ? 1 : 2;
-                const rescueHasOR = !!(core.openRouterKey && core.openRouterKey.trim().length > 0);
-                // Tệp nào trong unsafeIds thực sự có vệ tinh cứu hộ tiếp nhận (còn lượt) sẽ được ưu
-                // tiên lên đầu hàng chờ (xem reorderQueueWithPriority) thay vì chờ tới lượt cuối cùng.
-                const priorityIdsForRescue = new Set<string>();
                 if (unsafeIds.size > 0) {
-                    for (const uid of unsafeIds) {
-                        const uf = batchFiles.find((x: FileItem) => x.id === uid);
-                        const target = getRescueTarget(uf?.retryCount || 0, rescueHasOR, rescueMaxRetries);
-                        if (target) priorityIdsForRescue.add(uid);
-                    }
-                }
-
-                if (unsafeIds.size > 0) {
-                    const maxRetries = rescueMaxRetries;
-                    const hasOR = rescueHasOR;
                     core.setFiles((prev: FileItem[]) => prev.map((item: FileItem) => {
                         if (unsafeIds.has(item.id)) {
-                            const target = getRescueTarget(item.retryCount || 0, hasOR, maxRetries);
-                            if (target) {
-                                const rescueBudget = getRescueBudget(hasOR, maxRetries);
-                                return { ...item, status: FileStatus.IDLE, retryCount: (item.retryCount || 0) + 1, errorMessage: `Lỗi bộ lọc an toàn - Bàn giao ${getRescueLabel(target)} (${(item.retryCount || 0) + 1}/${rescueBudget})` };
-                            } else {
-                                const reason = hasOR ? "Đã hết lượt cứu hộ OpenRouter" : "Không có OpenRouter dự phòng";
-                                return { ...item, status: FileStatus.ERROR, errorMessage: `Bị chặn bởi Safety Filter (${reason})` };
-                            }
+                            return { ...item, status: FileStatus.ERROR, errorMessage: "Bị chặn bởi bộ lọc an toàn Gemini" };
                         } else if (batchIds.includes(item.id)) {
                             // Safe files get reset without increasing retryCount so they can be re-batched
                             return { ...item, status: FileStatus.IDLE, errorMessage: "Chờ thử lại do vạ lây từ file lỗi trong batch", isSafeRebatch: true } as any;
@@ -651,7 +589,10 @@ export const useTranslator = (
                 }
                 
                 if (myRunId === runIdRef?.current) {
-                    setProcessingQueue(prev => reorderQueueWithPriority(prev, batchIds, priorityIdsForRescue));
+                    setProcessingQueue(prev => {
+                        const waiting = prev.filter(id => !unsafeIds.has(id));
+                        return reorderQueueWithPriority(waiting, batchIds.filter(id => !unsafeIds.has(id)), new Set());
+                    });
                     setRetryTrigger(prev => prev + 1);
                 }
                 return;
@@ -679,26 +620,6 @@ export const useTranslator = (
                         }
                     }
                     
-                    // Lỗi Safety Filter được tách khỏi cổng `maxRetries` chung, dùng ngân sách cứu hộ
-                    // riêng (rescueBudget = tổng lượt của OpenRouter) để có đủ lượt cứu hộ.
-                    if (isSafetyError) {
-                        const batchIndex = batchIds.indexOf(f.id);
-                        if (batchIndex === 0) {
-                            const hasOR = !!(core.openRouterKey && core.openRouterKey.trim().length > 0);
-                            const target = getRescueTarget(f.retryCount || 0, hasOR, maxRetries);
-                            if (target) {
-                                const rescueBudget = getRescueBudget(hasOR, maxRetries);
-                                const errMsg = `Nghi vấn lỗi nội dung nhạy cảm - Bàn giao ${getRescueLabel(target)} (${(f.retryCount || 0) + 1}/${rescueBudget})`;
-                                return { ...f, status: FileStatus.IDLE, retryCount: (f.retryCount || 0) + 1, errorMessage: errMsg };
-                            } else {
-                                const reason = hasOR ? 'đã hết lượt xử lý' : 'không có OpenRouter dự phòng';
-                                return { ...f, status: FileStatus.ERROR, errorMessage: `Bị chặn do lỗi bộ lọc an toàn (${reason})` };
-                            }
-                        } else {
-                            const errMsg = `Chờ thử lại do vạ lây từ batch có file safety`;
-                            return { ...f, status: FileStatus.IDLE, retryCount: (f.retryCount || 0), errorMessage: errMsg, isSafeRebatch: true } as any;
-                        }
-                    }
                     if ((f.retryCount || 0) < maxRetries) {
                         return { ...f, status: FileStatus.IDLE, retryCount: (f.retryCount || 0) + 1, errorMessage: `Lỗi: ${error.message} - Đang thử lại (${(f.retryCount || 0) + 1}/${maxRetries})` };
                     }
@@ -829,8 +750,6 @@ export const useTranslator = (
                 maxConcurrentBatches = 3;
             } else if (translationTier === 'lite') {
                 maxConcurrentBatches = 3;
-            } else if (translationTier === 'openrouter') {
-                maxConcurrentBatches = 1; // 1 luồng, 1 tệp theo yêu cầu
             }
         } else {
             maxConcurrentBatches = typeof core.concurrency === 'number' ? core.concurrency : parseInt(core.concurrency) || 3;
@@ -842,29 +761,9 @@ export const useTranslator = (
             const limits = isLatin ? (core.batchLimits?.latin || { v36: 6, v35: 6, v3: 6, v31: 12, v25: 6, maxTotalChars: 90000 }) : (core.batchLimits?.complex || { v36: 6, v35: 6, v3: 6, v31: 12, v25: 6, maxTotalChars: 45000 });
             const currentTier = isFixPhaseRef?.current ? (translationTier === 'lite' ? 'lite' : 'pro') : translationTier;
             const effectiveModels = getEffectiveModelsForTier(currentTier, 'translate', core.enabledModels);
-            const bestModel = quotaManager.getBestModelForTask(effectiveModels) || effectiveModels[0];
+            const bestModel = quotaManager.getBestModelForTask(effectiveModels, [], undefined, getTranslationPriorities(currentTier)) || effectiveModels[0];
             
-            let batchSize = 15;
-            if (bestModel.startsWith('openrouter:')) {
-                batchSize = 1;
-            } else if (bestModel.includes('pro')) {
-                batchSize = parseInt(String(limits.v31)) || 12;
-            } else if (bestModel.includes('3.6')) {
-                batchSize = parseInt(String(limits.v36)) || 6;
-            } else if (bestModel.includes('3.5')) {
-                batchSize = parseInt(String(limits.v35)) || 6;
-            } else if (bestModel.includes('3-') || bestModel.includes('3.0')) {
-                batchSize = parseInt(String(limits.v3)) || 6;
-            } else if (bestModel.includes('3.1')) {
-                // If it's 3.1 but not pro, it's flash-lite
-                batchSize = parseInt(String(limits.v36)) || 6;
-            } else if (bestModel.includes('2.5')) {
-                batchSize = parseInt(String(limits.v25)) || 6;
-            } else {
-                batchSize = parseInt(String(limits.v36)) || 6;
-            }
-            
-            batchSize = Math.max(1, isNaN(batchSize) ? 15 : batchSize);
+            let batchSize = getModelBatchFileLimit(bestModel, core.batchLimits, core.storyInfo.languages);
             
             const isFirstSafeRebatch = pendingFiles.length > 0 && !!(pendingFiles[0] as any).isSafeRebatch;
             if (pendingFiles.length > 0 && pendingFiles[0].errorMessage && 
@@ -882,13 +781,9 @@ export const useTranslator = (
             }
             
             let maxChars = limits.maxTotalChars || (isLatin ? 100000 : 50000);
-            if (bestModel.startsWith('openrouter:')) {
-                maxChars = 15000;
-            }
-            
             // Co giãn theo tỷ lệ (nếu cấu hình batch lớn hơn chuẩn 15 thì tăng maxChars tương ứng).
             // Với batch nhỏ (ví dụ 6 của 2.5 Pro), giữ nguyên maxChars gốc để "đảm bảo tối đa 6 tệp nếu chưa chạm 55k".
-            if (batchSize > 15 && !bestModel.startsWith('openrouter:')) {
+            if (batchSize > 15) {
                 maxChars = Math.floor(maxChars * (batchSize / 15));
             }
             

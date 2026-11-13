@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
     RefreshCw, Zap, Clock, Timer, CheckCircle, HelpCircle,
-    Terminal, FileText, Loader2, AlertCircle, Settings,
+    Terminal, FileText, Loader2, AlertCircle,
     Activity, Moon, Sun, ChevronUp, ChevronDown, 
     Scale, HardDrive, Maximize, Minimize,
     Ban, Hourglass, Languages
@@ -126,8 +126,6 @@ interface HeaderProps {
     stats: any;
     showLogs: boolean;
     setShowLogs: (v: boolean) => void;
-    showSettings: boolean;
-    setShowSettings: (v: boolean) => void;
     onShowChangelog: () => void;
     onShowIntro: () => void;
     enabledModels: string[];
@@ -307,10 +305,6 @@ export const Header: React.FC<HeaderProps> = (props) => {
 
                     <button aria-label="Toàn màn hình" onClick={toggleFullScreen} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-primary-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1">
                         {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
-                    </button>
-
-                    <button aria-label="Cài đặt API" onClick={() => props.setShowSettings(true)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-primary-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1">
-                        <Settings className="w-3.5 h-3.5" />
                     </button>
 
                     <button aria-label="Xem Nhật ký (Logs)" onClick={() => props.setShowLogs(true)} className={`relative p-1.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 ${props.showLogs ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600' : 'hover:bg-slate-100 text-slate-400'}`}>

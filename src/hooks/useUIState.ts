@@ -17,7 +17,6 @@ export const useUIState = () => {
         if (storedTheme) return storedTheme === 'dark';
         return false;
     });
-    const [showSettings, setShowSettings] = useState<boolean>(false);
     const [showLogs, setShowLogs] = useState<boolean>(false);
     const [toasts, setToasts] = useState<Toast[]>([]);
     // Khôi phục log từ localStorage lúc khởi tạo — để lịch sử log (kể cả log dẫn tới 1 lần
@@ -118,7 +117,6 @@ export const useUIState = () => {
     return {
         activeTab, setActiveTab,
         isDarkMode, toggleDarkMode,
-        showSettings, setShowSettings,
         showLogs, setShowLogs,
         toasts, addToast, removeToast,
         systemLogs, addLog, clearLogs, hasLogErrors,
