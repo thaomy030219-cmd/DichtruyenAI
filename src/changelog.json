@@ -1,8 +1,30 @@
 [
     {
+        "version": "1.2.0",
+        "title": "Nhập nhiều Gemini API key",
+        "isLatest": true,
+        "changes": [
+            {
+                "icon": "Key",
+                "bold": "Dán nhiều key cùng lúc",
+                "text": "Nhập mỗi dòng một key hoặc ngăn cách bằng dấu phẩy. Có thể thêm Project ID để app nhận biết các key dùng chung hạn mức."
+            },
+            {
+                "icon": "Save",
+                "bold": "Lưu key trong trình duyệt",
+                "text": "Key đã lưu vẫn dùng được khi mở lại app. App tự thử key tương thích tiếp theo khi hết quota."
+            },
+            {
+                "icon": "Zap",
+                "bold": "Cập nhật model Gemini",
+                "text": "Thêm Gemini 4 Hydrogen cho phân tích và dịch trực tiếp, dùng Gemini 3.6 Flash thay cho 3.5 Flash. Gỡ OpenRouter và tính năng tạo ảnh AI."
+            }
+        ]
+    },
+    {
         "version": "1.1.0",
         "title": "Một Nút Tiếp Tục Dịch Và Hậu Kiểm",
-        "isLatest": true,
+        "isLatest": false,
         "changes": [
             {
                 "icon": "Play",

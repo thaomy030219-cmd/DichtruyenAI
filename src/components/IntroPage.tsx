@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Coffee, ArrowRight, Languages, Heart } from 'lucide-react';
 import { ACCESS_CONFIG } from '../constants';
+import { APP_VERSION } from '../changelog';
 
 // UPDATED v1.0.2: Thiết kế lại HOÀN TOÀN trang chào mừng — trước là nền tối xanh dương/cyan,
 // bố cục badge lặp lại kiểu "pill". Giờ chuyển sang tông SÁNG/thân thiện lấy cảm hứng từ trang
@@ -54,7 +55,7 @@ export const IntroPage: React.FC<{ onEnter: () => void }> = ({ onEnter }) => {
 
           <h1 className="font-heading font-bold text-3xl sm:text-4xl tracking-tight text-teal-950">
             Dịch truyện AI
-            <span className="align-super text-sm sm:text-base font-sans font-bold text-teal-500 ml-2">v1.1.0</span>
+            <span className="align-super text-sm sm:text-base font-sans font-bold text-teal-500 ml-2">v{APP_VERSION}</span>
           </h1>
 
           <p className="text-teal-900/60 max-w-md mx-auto text-sm">
