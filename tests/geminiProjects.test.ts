@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { smartExecution } from '../src/services/api/gemini';
+import { importGeminiProjects } from '../src/services/api/geminiProjectImport';
 import { getGeminiProjects, getGeminiProjectSettings, isGeminiDailyQuota, listCompatibleGeminiModels, setGeminiProjectSettings } from '../src/services/api/geminiProjects';
 import { quotaManager } from '../src/utils/quotaManager';
 
@@ -102,6 +103,33 @@ describe('Gemini Free Tier projects', () => {
             { name: 'models/gemini-3.1-pro-preview', supportedActions: ['generateContent'] }
         ]);
         await expect(listCompatibleGeminiModels('key')).resolves.toEqual([modelId]);
+    });
+
+    it('accepts multiple bare keys and optional project IDs, retaining valid entries when one fails', async () => {
+        const catalog = [{ name: 'models/' + modelId, supportedActions: ['generateContent'] }];
+        list.mockReset().mockResolvedValueOnce(catalog).mockRejectedValueOnce(new Error('API_KEY_INVALID'))
+            .mockResolvedValue(catalog);
+        const signal = new AbortController().signal;
+        const result = await importGeminiProjects('first,broken\r\n\r\nmy-project second\nthird;first', [], signal);
+
+        expect(result.accepted).toBe(3);
+        expect(result.projects.map(({ key }) => key)).toEqual(['first', 'second', 'third']);
+        expect(result.projects.map(({ id }) => id)).toEqual([expect.stringMatching(/^key:/), 'my-project', expect.stringMatching(/^key:/)]);
+        expect(result.errors.map(({ line, column }) => [line, column])).toEqual([[1, 2], [4, 2]]);
+        setGeminiProjectSettings(result.projects);
+        expect(quotaManager.getConfigs().find(model => model.id === modelId)).toMatchObject({ rpdLimit: 20, quotaUnverified: true });
+        const repeated = await importGeminiProjects('first\nsecond\nmy-project replacement', result.projects, signal);
+        expect(repeated.projects.map(({ id }) => id)).toEqual(result.projects.map(({ id }) => id));
+        expect(repeated.errors).toHaveLength(1);
+    });
+
+    it('associates an existing bare key with a project without storing a duplicate', async () => {
+        list.mockReset().mockResolvedValue([{ name: 'models/' + modelId, supportedActions: ['generateContent'] }]);
+        const result = await importGeminiProjects('my-project first', [
+            { id: 'key:existing', key: 'first', modelIds: [modelId] }
+        ], new AbortController().signal);
+
+        expect(result.projects).toEqual([{ id: 'my-project', key: 'first', modelIds: [modelId] }]);
     });
 
     it('distinguishes daily exhaustion from temporary minute limits', () => {

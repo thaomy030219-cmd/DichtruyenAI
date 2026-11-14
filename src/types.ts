@@ -156,6 +156,7 @@ export interface ModelQuota {
   rpmLimit: number; // Requests Per Minute
   rpdLimit: number; // Requests Per Day
   priority: number; // 1 is highest
+  quotaUnverified?: boolean; // Some keys have no declared project, so their quotas may overlap.
 }
 
 export interface ModelUsage {

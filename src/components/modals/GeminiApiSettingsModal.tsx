@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { KeyRound, Loader2, Trash2, X } from 'lucide-react';
 import { MODEL_CONFIGS } from '../../constants';
-import { getGeminiProjectSettings, listCompatibleGeminiModels, setGeminiProjectSettings } from '../../services/api/geminiProjects';
+import { getGeminiProjectSettings, setGeminiProjectSettings } from '../../services/api/geminiProjects';
+import { importGeminiProjects } from '../../services/api/geminiProjectImport';
+import { isUnassignedGeminiKey } from '../../utils/quotaManager';
 
 interface Props {
     onClose: () => void;
@@ -11,8 +13,9 @@ interface Props {
 export const GeminiApiSettingsModal = ({ onClose, onSave }: Props) => {
     const [originalProjects] = useState(getGeminiProjectSettings);
     const [projects, setProjects] = useState(originalProjects);
-    const [projectId, setProjectId] = useState('');
-    const [key, setKey] = useState('');
+    const [input, setInput] = useState('');
+    const [showKeys, setShowKeys] = useState(false);
+    const [issues, setIssues] = useState<{ line: number; column: number; error: string }[]>([]);
     const [checking, setChecking] = useState(false);
     const [message, setMessage] = useState('');
     const checkRef = useRef<AbortController | null>(null);
@@ -23,48 +26,26 @@ export const GeminiApiSettingsModal = ({ onClose, onSave }: Props) => {
         return () => checkRef.current?.abort();
     }, []);
 
-    const checkKey = async (event: React.FormEvent<HTMLFormElement>) => {
+    const checkKeys = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if (checking) return;
-        const id = projectId.trim().toLowerCase();
-        const apiKey = key.trim();
-        if (!/^[a-z0-9][a-z0-9-]{2,62}$/.test(id) || /\s/.test(apiKey) || !apiKey) {
-            setMessage('Nhập Project ID và một Gemini API key hợp lệ.');
-            return;
-        }
-        if (projects.some(project => project.key === apiKey && project.id !== id)) {
-            setMessage('Key này đã được thêm cho một project khác.');
-            return;
-        }
+        if (checking || !input.trim()) return;
 
         const controller = new AbortController();
         checkRef.current = controller;
-        const timeout = setTimeout(() => controller.abort(), 15_000);
         setChecking(true);
         setMessage('');
+        setIssues([]);
         try {
-            const modelIds = await listCompatibleGeminiModels(apiKey, controller.signal);
-            if (controller.signal.aborted) return;
-            if (!modelIds.length) {
-                setMessage('Google chưa liệt kê model Free Tier nào của app cho key này.');
-                return;
-            }
-            setProjects(previous => {
-                const project = { id, key: apiKey, modelIds };
-                return previous.some(item => item.id === id)
-                    ? previous.map(item => item.id === id ? project : item)
-                    : [...previous, project];
-            });
-            setKey('');
-            setProjectId('');
-            setMessage(`Google liệt kê ${modelIds.length} model tương thích cho project này.`);
+            const result = await importGeminiProjects(input, projects, controller.signal);
+            setProjects(result.projects);
+            setInput(result.errors.map(issue => issue.input).join('\n'));
+            setIssues(result.errors);
+            const status = `Đã kiểm tra và thêm ${result.accepted} key.`;
+            setMessage(result.errors.length ? `${status} Có ${result.errors.length} mục chưa thêm. Vị trí bên dưới tính theo danh sách vừa dán.` : status);
         } catch {
-            setMessage(controller.signal.aborted
-                ? 'Kiểm tra quá thời gian. Vui lòng thử lại.'
-                : 'Không thể kiểm tra key. Kiểm tra key và quyền truy cập Gemini API của project.');
+            if (!controller.signal.aborted) setMessage('Không thể kiểm tra danh sách. Vui lòng thử lại.');
         } finally {
-            clearTimeout(timeout);
-            setChecking(false);
+            if (!controller.signal.aborted) setChecking(false);
         }
     };
 
@@ -77,43 +58,53 @@ export const GeminiApiSettingsModal = ({ onClose, onSave }: Props) => {
                 <button type="button" aria-label="Đóng" onClick={onClose} className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-800"><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-4 p-5 text-sm">
-                <p>Thêm một key Free Tier cho mỗi project. App thử các project theo thứ tự bên dưới và chuyển sang project còn lượt. Thêm key mới cho cùng Project ID sẽ thay key cũ.</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Trình duyệt giữ key đến khi bạn xóa key ở đây hoặc xóa dữ liệu trang. Google trả danh sách model khi kiểm tra key và áp dụng quota thực tế khi app gọi API.</p>
+                <p>Dán nhiều key Free Tier, mỗi dòng một key hoặc ngăn cách bằng dấu phẩy. Có thể ghi Project ID trước key, cách nhau bằng dấu cách.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Các key cùng project dùng chung quota. Project ID giúp app gộp các key dùng chung hạn mức. Key được lưu trong trình duyệt sau khi bạn bấm Lưu API.</p>
                 <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noreferrer" className="inline-block text-primary-600 dark:text-primary-400 underline">Xem API key và Project ID trong AI Studio</a>
-                <form onSubmit={checkKey} className="space-y-3">
+                <form onSubmit={checkKeys} className="space-y-3">
                     <label className="block">
-                        <span className="mb-1 block font-medium">Google Cloud Project ID</span>
-                        <input value={projectId} onChange={event => setProjectId(event.target.value)} required spellCheck={false} autoComplete="off"
-                            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2" placeholder="gen-lang-client-…" />
+                        <span className="mb-1 block font-medium">Danh sách Gemini API key</span>
+                        <textarea value={input} onChange={event => { setInput(event.target.value); setIssues([]); setMessage(''); }}
+                            disabled={checking} rows={5} spellCheck={false} autoComplete="off" autoCapitalize="none"
+                            className={`w-full resize-y rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 font-mono text-xs ${!showKeys && input ? '[-webkit-text-security:disc]' : ''}`}
+                            placeholder={'API_KEY_1\nAPI_KEY_2\ngen-lang-client-123 API_KEY_3'} />
                     </label>
-                    <label className="block">
-                        <span className="mb-1 block font-medium">Gemini API key</span>
-                        <input type="password" value={key} onChange={event => setKey(event.target.value)} required autoComplete="off"
-                            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2" />
-                    </label>
-                    <button type="submit" disabled={checking} className="inline-flex items-center gap-2 rounded-lg border border-primary-500 px-3 py-2 font-medium text-primary-600 dark:text-primary-400 disabled:opacity-50">
-                        {checking && <Loader2 className="w-4 h-4 animate-spin" />} Kiểm tra và thêm key
+                    <button type="submit" disabled={checking || !input.trim()} className="inline-flex items-center gap-2 rounded-lg border border-primary-500 px-3 py-2 font-medium text-primary-600 dark:text-primary-400 disabled:opacity-50">
+                        {checking && <Loader2 className="w-4 h-4 animate-spin" />} {checking ? 'Đang kiểm tra…' : 'Kiểm tra và thêm danh sách'}
+                    </button>
+                    <button type="button" onClick={() => setShowKeys(previous => !previous)} className="ml-2 rounded-lg px-2 py-2 text-xs text-slate-600 dark:text-slate-300">
+                        {showKeys ? 'Ẩn key' : 'Hiện key'}
                     </button>
                 </form>
                 {message && <p role="status" className="text-xs text-slate-600 dark:text-slate-300">{message}</p>}
+                {issues.length > 0 && (
+                    <ul className="max-h-36 list-disc space-y-1 overflow-y-auto pl-5 text-xs text-rose-700 dark:text-rose-300">
+                        {issues.map(issue => (
+                            <li key={`${issue.line}-${issue.column}`}>Dòng {issue.line}{issue.column > 1 ? `, mục ${issue.column}` : ''} · {issue.error}</li>
+                        ))}
+                    </ul>
+                )}
                 {projects.length === 0 ? <p className="text-slate-500 dark:text-slate-400">App sẽ dùng key mặc định nếu bản triển khai đã cấu hình.</p> : (
                     <ul className="space-y-2">
-                        {projects.map(project => (
+                        {projects.map((project, index) => {
+                            const label = isUnassignedGeminiKey(project.id) ? `Key ${index + 1} · ••••${project.key.slice(-4)}` : project.id;
+                            return (
                             <li key={project.id} className="flex items-start justify-between gap-3 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
                                 <div className="min-w-0">
-                                    <p className="break-all font-medium">{project.id}</p>
+                                    <p className="break-all font-medium">{label}</p>
                                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{MODEL_CONFIGS.filter(model => project.modelIds.includes(model.id)).map(model => model.name).join(', ')}</p>
                                 </div>
-                                <button type="button" aria-label={`Xóa key của ${project.id}`} onClick={() => setProjects(previous => previous.filter(item => item.id !== project.id))}
+                                <button type="button" disabled={checking} aria-label={`Xóa ${label}`} onClick={() => setProjects(previous => previous.filter(item => item.id !== project.id))}
                                     className="rounded p-1 text-slate-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
                             </li>
-                        ))}
+                            );
+                        })}
                     </ul>
                 )}
             </div>
             <div className="flex justify-end gap-2 border-t border-slate-200 dark:border-slate-700 px-5 py-4">
                 <button type="button" onClick={onClose} className="rounded-lg px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800">Hủy</button>
-                <button type="button" disabled={checking || !!key.trim()} onClick={() => {
+                <button type="button" disabled={checking || (!!input.trim() && !issues.length)} onClick={() => {
                     if (getGeminiProjectSettings() !== originalProjects) {
                         setMessage("Danh sách key đã thay đổi ở tab khác. Đóng và mở lại mục API để cập nhật.");
                         return;

@@ -430,6 +430,8 @@ export interface GeminiQuotaProject {
   quota: QuotaManager;
 }
 
+export const isUnassignedGeminiKey = (id: string) => id.startsWith('key:');
+
 const defaultProject: GeminiQuotaProject = {
   id: '',
   modelIds: DEFAULT_ENABLED_MODEL_IDS,
@@ -505,7 +507,11 @@ export const quotaManager = {
 
   getConfigs() {
     return MODEL_CONFIGS.map(model => {
-      const count = projects.filter(project => project.modelIds.includes(model.id)).length;
+      const matching = projects.filter(project => project.modelIds.includes(model.id));
+      if (matching.some(project => isUnassignedGeminiKey(project.id))) {
+        return { ...model, quotaUnverified: true };
+      }
+      const count = matching.length;
       return count < 2 ? model : { ...model, rpmLimit: model.rpmLimit * count, rpdLimit: model.rpdLimit * count };
     });
   },

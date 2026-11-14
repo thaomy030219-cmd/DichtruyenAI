@@ -208,8 +208,8 @@ export const Header: React.FC<HeaderProps> = (props) => {
         const requestsToday = usage.requestsToday || 0;
         const recentReqs = usage.recentRequests || [];
         const currentRpmCount = recentReqs.filter((t: number) => now - t < 60000).length;
-        const isRpmFull = currentRpmCount >= config.rpmLimit;
-        const isDepleted = usage.isDepleted || requestsToday >= config.rpdLimit;
+        const isRpmFull = !config.quotaUnverified && currentRpmCount >= config.rpmLimit;
+        const isDepleted = usage.isDepleted || (!config.quotaUnverified && requestsToday >= config.rpdLimit);
         
         // Calculate Wait Time
         const cooldownRemaining = Math.max(0, (usage.cooldownUntil || 0) - now);
@@ -258,17 +258,18 @@ export const Header: React.FC<HeaderProps> = (props) => {
                         ) : (
                             <>
                                 <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
-                                    <span className={isDepleted ? "text-rose-600 dark:text-rose-400 font-bold" : ""}>
-                                        {formatNumber(requestsToday)}/{formatNumber(config.rpdLimit)}
+                                    <span className={isDepleted ? "text-rose-600 dark:text-rose-400 font-bold" : ""}
+                                        title={config.quotaUnverified ? 'Số lượt app đã gọi hôm nay. Các key chưa có Project ID có thể dùng chung quota.' : undefined}>
+                                        {formatNumber(requestsToday)}{config.quotaUnverified ? ' lượt' : '/' + formatNumber(config.rpdLimit)}
                                     </span>
                                     <span className={`font-bold ${isDepleted ? "text-rose-400" : isRpmFull ? "text-amber-600 animate-pulse" : "text-primary-600"}`}>
-                                        {currentRpmCount}/{config.rpmLimit} RPM
+                                        {currentRpmCount}{config.quotaUnverified ? '' : '/' + config.rpmLimit} RPM
                                     </span>
                                 </div>
                                 {/* Thanh tiến trình mini — thay cho việc chỉ hiện số suông */}
-                                <div className="w-full h-[3px] bg-slate-100 dark:bg-slate-700 rounded-full mt-1 overflow-hidden">
+                                {!config.quotaUnverified && <div className="w-full h-[3px] bg-slate-100 dark:bg-slate-700 rounded-full mt-1 overflow-hidden">
                                     <div className={`h-full rounded-full transition-all ${isDepleted ? 'bg-rose-400' : 'bg-primary-400'}`} style={{ width: `${isDepleted ? 100 : rpdPct}%` }} />
-                                </div>
+                                </div>}
                             </>
                         )}
                     </div>
